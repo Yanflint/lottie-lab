@@ -68,7 +68,35 @@ export function initShare(options = {}) {
         const src = document.querySelector(keySelector);
         if (src) key = src.getAttribute('data-key') || ('value' in src ? src.value : src.textContent?.trim());
       }
-      if (!key) throw new Error('initShare: не удалось получить key (проверь options.key или data-key)');
+      if (!key) {
+        // Попробуем спросить у пользователя имя проекта и сформировать key
+        let base = (document.getElementById('projectName')?.value
+                    || document.querySelector('[data-project-name]')?.getAttribute('data-project-name')
+                    || document.title || 'project').toString();
+        // простая "slugify"
+        base = base.toLowerCase().trim()
+          .replace(/\s+/g,'-')
+          .replace(/[^a-z0-9._-]+/g,'-')
+          .replace(/-+/g,'-')
+          .replace(/^-|-$/g,'');
+        const input = prompt('Введите имя проекта для ссылки (латиницей):', base);
+        if (!input) { alert('Нужно указать имя проекта'); return; }
+        const slug = String(input).toLowerCase().trim()
+          .replace(/\s+/g,'-')
+          .replace(/[^a-z0-9._-]+/g,'-')
+          .replace(/-+/g,'-')
+          .replace(/^-|-$/g,'');
+        key = `projects/${slug}/animation.json`;
+        // запомним на странице для следующих кликов
+        let pk = document.getElementById('projectKey');
+        if (!pk) {
+          pk = document.createElement('input');
+          pk.type = 'hidden';
+          pk.id = 'projectKey';
+          document.body.appendChild(pk);
+        }
+        pk.value = key;
+      }
       const url = await createShareLink(key);
       try { await navigator.clipboard.writeText(url); } catch (e) { }
       const out = document.querySelector('#shareUrl,[data-share-url]');
