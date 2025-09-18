@@ -87,7 +87,7 @@ export function initShare({ refs }) {
 
     await withLoading(btn, async () => {
       const payload = await buildPayload(refs);
-      const res = await fetch('https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p', {
+      const res = await fetch('/api/share', {
         method: 'POST',
         headers: { 'content-type': 'application/json; charset=utf-8' },
         body: JSON.stringify(payload),

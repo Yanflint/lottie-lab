@@ -399,6 +399,6 @@ html:not(.viewer) #lotStage { cursor: grab; }
 html:not(.viewer) .lp-grabbing, 
 html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 
-/* stage pointer events for drag (no visual change) */
+/* stage pointer events for drag */
 #lotStage,.lot-stage{pointer-events:auto}
 .bg{pointer-events:none}
