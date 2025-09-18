@@ -1,3 +1,4 @@
+import { buildApiUrl } from './apiBase.js';
 // Загружаем по /s/:id. Если id нет и это standalone, пробуем "последний" снимок.
 // Флаг цикла (opts.loop) применяем до создания анимации.
 import { setPlaceholderVisible, afterTwoFrames } from './utils.js';
@@ -6,20 +7,20 @@ async function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 async function fetchStableLastPayload(maxMs=2000){
   const deadline = Date.now() + maxMs;
   while (Date.now() < deadline){
-    const pr = await fetch('/api/share?id=last', { cache: 'no-store' });
+    const pr = await fetch(buildApiUrl('/share','id=last'), { cache: 'no-store' });
     if (!pr.ok) throw new Error('payload get failed '+pr.status);
     const et = (pr.headers.get('ETag') || '').replace(/"/g,'');
     const data = await pr.json().catch(()=>null);
     let revNow = '';
     try{
-      const rr = await fetch('/api/share?id=last&rev=1', { cache: 'no-store' });
+      const rr = await fetch(buildApiUrl('/share','id=last&rev=1'), { cache: 'no-store' });
       if (rr.ok){ const j = await rr.json().catch(()=>({})); revNow = String(j.rev||''); }
     }catch{}
     const hasLot = !!(data && typeof data === 'object' && data.lot);
     if (hasLot && et && revNow && et === revNow) return { data, etag: et };
     await sleep(250);
   }
-  const pr2 = await fetch('/api/share?id=last', { cache: 'no-store' });
+  const pr2 = await fetch(buildApiUrl('/share','id=last'), { cache: 'no-store' });
   const data2 = await pr2.json().catch(()=>null);
   const et2 = (pr2.headers.get('ETag') || '').replace(/"/g,'');
   return { data: data2, etag: et2 };
@@ -100,7 +101,7 @@ export async function initLoadFromLink({ refs, isStandalone }) {
   // 2) Если ярлык — тянем "последний" снимок с сервера
   if (isStandalone) {
     try {
-      const r = await fetch('/api/share?id=last', { cache: 'no-store' });
+      const r = await fetch(buildApiUrl('/share','id=last'), { cache: 'no-store' });
       if (r.ok) {
         const data = await r.json().catch(() => null);
         if (await applyPayload(refs, data)) return;
