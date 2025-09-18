@@ -1,13 +1,13 @@
-// auto-generated shareClient.js (patched)
-// Function base URL injected
-const DEFAULT_API_BASE = 'https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p';
+// general_preview/src/app/shareClient.js — ready
+const DEFAULT_API_BASE = 'https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p'.replace(/\/+$/, '');
 
 function getApiBase() {
   const base = (typeof window !== 'undefined' && window.__API_BASE__) || DEFAULT_API_BASE;
   return String(base).replace(/\/+$/, '');
 }
 
-async function apiPost(path, payload, { timeout = 15000 } = {}) {
+async function apiPost(path, payload, { timeout = 15000 } = {}
+) {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), timeout);
   const url = `${getApiBase()}${path.startsWith('/') ? path : `/${path}`}`;
@@ -24,7 +24,7 @@ async function apiPost(path, payload, { timeout = 15000 } = {}) {
   }
   const text = await res.text();
   let data = null;
-  try { data = text ? JSON.parse(text) : null; } catch (_) {}
+  try { data = text ? JSON.parse(text) : null; } catch (_e) {}
   if (!res.ok) {
     const snippet = text.slice(0, 300);
     throw new Error(`API error ${res.status} ${res.statusText} — ${snippet}`);
@@ -44,7 +44,8 @@ export function setApiBase(url) {
   if (typeof window !== 'undefined') window.__API_BASE__ = String(url || '').replace(/\/+$/, '');
 }
 
-export function initShare(options = {}) {
+export function initShare(options = {}
+) {
   const {
     buttonSelector = '#shareBtn,[data-share]',
     keySelector = '#projectKey,[data-key]',
@@ -68,37 +69,9 @@ export function initShare(options = {}) {
         const src = document.querySelector(keySelector);
         if (src) key = src.getAttribute('data-key') || ('value' in src ? src.value : src.textContent?.trim());
       }
-      if (!key) {
-        // Попробуем спросить у пользователя имя проекта и сформировать key
-        let base = (document.getElementById('projectName')?.value
-                    || document.querySelector('[data-project-name]')?.getAttribute('data-project-name')
-                    || document.title || 'project').toString();
-        // простая "slugify"
-        base = base.toLowerCase().trim()
-          .replace(/\s+/g,'-')
-          .replace(/[^a-z0-9._-]+/g,'-')
-          .replace(/-+/g,'-')
-          .replace(/^-|-$/g,'');
-        const input = prompt('Введите имя проекта для ссылки (латиницей):', base);
-        if (!input) { alert('Нужно указать имя проекта'); return; }
-        const slug = String(input).toLowerCase().trim()
-          .replace(/\s+/g,'-')
-          .replace(/[^a-z0-9._-]+/g,'-')
-          .replace(/-+/g,'-')
-          .replace(/^-|-$/g,'');
-        key = `projects/${slug}/animation.json`;
-        // запомним на странице для следующих кликов
-        let pk = document.getElementById('projectKey');
-        if (!pk) {
-          pk = document.createElement('input');
-          pk.type = 'hidden';
-          pk.id = 'projectKey';
-          document.body.appendChild(pk);
-        }
-        pk.value = key;
-      }
+      if (!key) throw new Error('initShare: не удалось получить key (проверь options.key или data-key)');
       const url = await createShareLink(key);
-      try { await navigator.clipboard.writeText(url); } catch (e) { }
+      try { await navigator.clipboard.writeText(url); } catch (_e) {}
       const out = document.querySelector('#shareUrl,[data-share-url]');
       if (out) { if ('value' in out) out.value = url; else out.textContent = url; }
       onSuccess?.(url);

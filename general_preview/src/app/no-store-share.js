@@ -8,7 +8,7 @@
   window.fetch = function(input, init) {
     try {
       const url = (typeof input === 'string') ? input : (input && input.url) || '';
-      if (/(\/api\/share|\/share)(\?|$)/.test(url)) {
+      if (/\/api\/share(\?|$)/.test(url)) {
         const method = (init && (init.method || init.method === '')) ? String(init.method || '').toUpperCase() : 'GET';
         if (method === 'GET') {
           init = Object.assign({ cache: 'no-store' }, init || {});
