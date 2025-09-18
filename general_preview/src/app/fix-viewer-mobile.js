@@ -37,8 +37,8 @@
       // Defer a tick to let the built-in loader initialize DOM nodes.
       await new Promise(res => requestAnimationFrame(res));
 
-      const { setBackgroundFromSrc, loadLottieFromData, layoutLottie } = await import('../../../src/app/lottie.js');
-      const { setLotOffset, state } = await import('../../../src/app/state.js');
+      const { setBackgroundFromSrc, loadLottieFromData, layoutLottie } = await import('/src/app/lottie.js');
+      const { setLotOffset, state } = await import('/src/app/state.js');
 
       const refs = {
         preview: document.getElementById('preview'),
