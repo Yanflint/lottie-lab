@@ -18,7 +18,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ru-central1
         run: |
-          aws s3 sync ./site s3://${{ vars.S3_BUCKET }} \
+          aws s3 sync ./general_preview s3://${{ vars.S3_BUCKET }} \
             --delete \
             --acl public-read \
             --endpoint-url https://storage.yandexcloud.net
