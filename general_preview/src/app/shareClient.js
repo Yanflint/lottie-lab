@@ -1,20 +1,15 @@
 // general_preview/src/app/shareClient.js
-// Клиент для Cloud Function, которая отдает ссылку на объект в бакете.
-// Работает с публичной функцией из Яндекс Облака (Node.js 22/20).
+// Клиент к Cloud Function, возвращающей ссылку на объект в бакете.
+// Экспортирует initShare (для твоего main.js), createShareLink и setApiBase.
 
-// !!! ВСТАВЬ сюда URL своей функции (из консоли Cloud Functions)
+// !!! ВСТАВЬ URL своей функции (из Cloud Functions)
 const DEFAULT_API_BASE = 'https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p'; // <= замени
 
-// Можно переопределить базу из кода/окна: window.__API_BASE__ = 'https://...'
 function getApiBase() {
   const base = (typeof window !== 'undefined' && window.__API_BASE__) || DEFAULT_API_BASE;
-  return String(base).replace(/\/+$/, ''); // без хвостового слеша
+  return String(base).replace(/\/+$/, ''); // срезаем хвостовой слеш
 }
 
-/**
- * Внутренний helper для POST-запросов к функции.
- * Бросает осмысленную ошибку с HTTP-статусом и фрагментом ответа.
- */
 async function apiPost(path, payload, { timeout = 15000 } = {}) {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), timeout);
@@ -32,32 +27,25 @@ async function apiPost(path, payload, { timeout = 15000 } = {}) {
     clearTimeout(t);
   }
 
-  // Пытаемся прочитать JSON, если не получилось — текст
-  let bodyText = '';
-  let data = null;
   const text = await res.text();
-  bodyText = text.slice(0, 300); // для сообщений об ошибке
+  let data = null;
   try { data = text ? JSON.parse(text) : null; } catch (_) { /* not json */ }
 
   if (!res.ok) {
-    const msg = `API error ${res.status} ${res.statusText} @ ${url} — ${bodyText}`;
-    throw new Error(msg);
+    const snippet = text.slice(0, 300);
+    throw new Error(`API error ${res.status} ${res.statusText} — ${snippet}`);
   }
   return data ?? {};
 }
 
-/**
- * Создает «шаринг»-ссылку на объект в бакете.
- * @param {string} key - путь внутри бакета, например: "projects/demo/animation.json"
- * @returns {Promise<string>} публичный URL
- */
+// === Публичные функции ===
+
+/** Вернуть публичный URL для объекта в бакете */
 export async function createShareLink(key) {
   if (!key || typeof key !== 'string') {
     throw new Error('createShareLink: "key" обязателен и должен быть строкой');
   }
-  // убираем лидирующий слэш, чтобы ключ был относительный к корню бакета
-  const normalizedKey = key.replace(/^\/+/, '');
-
+  const normalizedKey = key.replace(/^\/+/, ''); // без лидирующего /
   const res = await apiPost('/share', { key: normalizedKey });
   if (!res || typeof res.url !== 'string') {
     throw new Error('Malformed response from /share: нет поля "url"');
@@ -65,12 +53,74 @@ export async function createShareLink(key) {
   return res.url;
 }
 
-/**
- * Опционально: динамически сменить базовый URL API в рантайме
- * (если удобнее не править DEFAULT_API_BASE).
- */
+/** Переопределить базовый URL функции в рантайме (не правя DEFAULT_API_BASE) */
 export function setApiBase(url) {
   if (typeof window !== 'undefined') {
-    window.__API_BASE__ = url;
+    window.__API_BASE__ = String(url || '').replace(/\/+$/, '');
   }
+}
+
+/**
+ * Инициализация кнопки «Share» — drop-in для твоего main.js
+ * Подвешивает обработчик клика и копирует ссылку в буфер обмена.
+ *
+ * @param {Object} options
+ * @param {string} [options.buttonSelector='#shareBtn,[data-share]'] - где искать кнопку
+ * @param {string} [options.keySelector='#projectKey,[data-key]']     - откуда брать key
+ * @param {string} [options.key]                                     - можно передать key напрямую
+ * @param {string} [options.endpointBase]                             - если хочешь указать URL функции здесь
+ * @param {(url:string)=>void} [options.onSuccess]
+ * @param {(err:Error)=>void} [options.onError]
+ * @returns {{destroy:()=>void}}
+ */
+export function initShare(options = {}) {
+  const {
+    buttonSelector = '#shareBtn,[data-share]',
+    keySelector = '#projectKey,[data-key]',
+    key: keyOverride,
+    endpointBase,
+    onSuccess,
+    onError,
+  } = options;
+
+  if (endpointBase) setApiBase(endpointBase);
+
+  const btn = document.querySelector(buttonSelector);
+  if (!btn) {
+    console.warn('initShare: не нашла кнопку по селектору', buttonSelector);
+    return { destroy() {} };
+  }
+
+  async function handler(e) {
+    try {
+      e?.preventDefault?.();
+
+      let key = keyOverride;
+      if (!key) {
+        const src = document.querySelector(keySelector);
+        if (src) {
+          key = src.getAttribute('data-key') || ('value' in src ? src.value : src.textContent?.trim());
+        }
+      }
+      if (!key) throw new Error('initShare: не удалось получить key (проверь options.key или data-key)');
+
+      const url = await createShareLink(key);
+
+      // копируем в буфер, если доступно
+      try { await navigator.clipboard.writeText(url); } catch {}
+
+      // если есть поле для вывода — заполним
+      const out = document.querySelector('#shareUrl,[data-share-url]');
+      if (out) { if ('value' in out) out.value = url; else out.textContent = url; }
+
+      onSuccess?.(url);
+    } catch (err) {
+      console.error(err);
+      onError?.(err);
+      // можно всплывашку/тост, если есть свой UI
+    }
+  }
+
+  btn.addEventListener('click', handler);
+  return { destroy() { btn.removeEventListener('click', handler); } };
 }
