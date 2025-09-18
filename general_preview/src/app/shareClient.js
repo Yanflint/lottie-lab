@@ -1,107 +1,76 @@
-// Клиент «Поделиться»
-import { state } from './state.js';
-import { withLoading, showToastNear } from './utils.js';
-import { savePinned } from './pinned.js';
+// general_preview/src/app/shareClient.js
+// Клиент для Cloud Function, которая отдает ссылку на объект в бакете.
+// Работает с публичной функцией из Яндекс Облака (Node.js 22/20).
 
-async function imageElementToDataURL(imgEl) {
-  if (!imgEl || !imgEl.src) return null;
-  const src = imgEl.src;
-  if (src.startsWith('data:')) return src;
-  if (src.startsWith('blob:')) {
-    await new Promise((res) => {
-      if (imgEl.complete && imgEl.naturalWidth) return res();
-      imgEl.onload = () => res();
-      imgEl.onerror = () => res();
-    });
-    const blob = await (await fetch(src)).blob().catch(() => null);
-    if (!blob) return null;
-    return await new Promise((resolve) => {
-      const fr = new FileReader();
-      fr.onload = () => resolve(fr.result);
-      fr.onerror = () => resolve(null);
-      fr.readAsDataURL(blob);
-    });
-  }
-  return src;
+// !!! ВСТАВЬ сюда URL своей функции (из консоли Cloud Functions)
+const DEFAULT_API_BASE = 'https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p'; // <= замени
+
+// Можно переопределить базу из кода/окна: window.__API_BASE__ = 'https://...'
+function getApiBase() {
+  const base = (typeof window !== 'undefined' && window.__API_BASE__) || DEFAULT_API_BASE;
+  return String(base).replace(/\/+$/, ''); // без хвостового слеша
 }
 
-async function buildPayload(refs) {
-  const rawLot = state.lastLottieJSON;
-  if (!rawLot) throw new Error('Нет данных Lottie');
-  const lot = JSON.parse(JSON.stringify(rawLot));
+/**
+ * Внутренний helper для POST-запросов к функции.
+ * Бросает осмысленную ошибку с HTTP-статусом и фрагментом ответа.
+ */
+async function apiPost(path, payload, { timeout = 15000 } = {}) {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), timeout);
+
+  const url = `${getApiBase()}${path.startsWith('/') ? path : `/${path}`}`;
+  let res;
   try {
-    const pos = state.lotOffset || { x:0, y:0 };
-    lot.meta = lot.meta || {};
-    lot.meta._lpPos = { x: +pos.x || 0, y: +pos.y || 0 };
-  } catch {}
-
-  let bg = null;
-  const imgEl = refs?.bgImg;
-  if (imgEl && imgEl.src) {
-    const maybeData = await imageElementToDataURL(imgEl);
-    const name = (state.lastBgMeta?.fileName || '');
-    const assetScale = (state.lastBgMeta?.assetScale || undefined);
-    if (maybeData && typeof maybeData === 'string' && maybeData.startsWith('data:')) {
-      bg = { kind:'data', value: maybeData, name, assetScale };
-    } else if (maybeData) {
-      bg = { kind:'url',  value: maybeData, name, assetScale };
-    }
-  }
-
-  const opts = { loop: !!state.loopOn };
-  return { lot, bg, opts };
-}
-
-async function copyToClipboard(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.position = 'fixed';
-    ta.style.left = '-9999px';
-    document.body.appendChild(ta);
-    ta.select();
-    try {
-      document.execCommand('copy');
-      return true;
-    } catch {
-      return false;
-    } finally {
-      document.body.removeChild(ta);
-    }
-  }
-}
-
-export function initShare({ refs }) {
-  const btn = refs?.shareBtn;
-  if (!btn) return;
-
-  btn.addEventListener('click', async () => {
-    const hasLot = !!state.lastLottieJSON;
-    const hasBg  = !!(refs?.bgImg && refs.bgImg.src);
-    if (!hasLot && !hasBg) { showToastNear(refs.toastEl, btn, 'Загрузите графику'); return; }
-    if (!hasLot && hasBg)  { showToastNear(refs.toastEl, btn, 'Загрузите анимацию'); return; }
-    if (hasLot && !hasBg)  { showToastNear(refs.toastEl, btn, 'Загрузите фон'); return; }
-
-    await withLoading(btn, async () => {
-      const payload = await buildPayload(refs);
-      const res = await fetch('/api/share', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json; charset=utf-8' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const t = await res.text().catch(() => '');
-        throw new Error(`share failed: ${res.status}${t ? ' ' + t : ''}`);
-      }
-      const { id } = await res.json();
-      const shortUrl = `${location.origin}/s/${id}`;
-
-      savePinned(payload);
-      await copyToClipboard(shortUrl);
-      showToastNear(refs.toastEl, btn, 'Ссылка скопирована');
+    res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload || {}),
+      signal: controller.signal,
     });
-  });
+  } finally {
+    clearTimeout(t);
+  }
+
+  // Пытаемся прочитать JSON, если не получилось — текст
+  let bodyText = '';
+  let data = null;
+  const text = await res.text();
+  bodyText = text.slice(0, 300); // для сообщений об ошибке
+  try { data = text ? JSON.parse(text) : null; } catch (_) { /* not json */ }
+
+  if (!res.ok) {
+    const msg = `API error ${res.status} ${res.statusText} @ ${url} — ${bodyText}`;
+    throw new Error(msg);
+  }
+  return data ?? {};
+}
+
+/**
+ * Создает «шаринг»-ссылку на объект в бакете.
+ * @param {string} key - путь внутри бакета, например: "projects/demo/animation.json"
+ * @returns {Promise<string>} публичный URL
+ */
+export async function createShareLink(key) {
+  if (!key || typeof key !== 'string') {
+    throw new Error('createShareLink: "key" обязателен и должен быть строкой');
+  }
+  // убираем лидирующий слэш, чтобы ключ был относительный к корню бакета
+  const normalizedKey = key.replace(/^\/+/, '');
+
+  const res = await apiPost('/share', { key: normalizedKey });
+  if (!res || typeof res.url !== 'string') {
+    throw new Error('Malformed response from /share: нет поля "url"');
+  }
+  return res.url;
+}
+
+/**
+ * Опционально: динамически сменить базовый URL API в рантайме
+ * (если удобнее не править DEFAULT_API_BASE).
+ */
+export function setApiBase(url) {
+  if (typeof window !== 'undefined') {
+    window.__API_BASE__ = url;
+  }
 }
