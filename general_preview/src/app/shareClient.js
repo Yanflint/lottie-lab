@@ -1,10 +1,8 @@
-// shareClient.js — payload mode; no key required
+// shareClient.js — payload mode; no key required, direct CF base (no /share)
 const API_BASE = 'https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p'.replace(/\/+$/, '');
 
-// read state from global safely
-function readState() {
-  try { return window.state || window.appState || {}; } catch { return {}; }
-}
+// Read state safely
+function readState() { try { return window.state || window.appState || {}; } catch { return {}; } }
 
 async function toDataUrlIfBlob(src) {
   if (!src) return '';
@@ -26,14 +24,15 @@ async function toDataUrlIfBlob(src) {
 }
 
 async function postShare(payload) {
-  const r = await fetch(API_BASE + '/share', {
+  const url = API_BASE; // БЕЗ /share
+  const r = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload || {})
+    body: JSON.stringify(payload || {}),
   });
   const text = await r.text();
-  let data = null; try { data = text ? JSON.parse(text) : null; } catch {/* not json */}
-  if (!r.ok) throw new Error(`share failed ${r.status} ${r.statusText} — ` + text.slice(0, 300));
+  let data = null; try { data = text ? JSON.parse(text) : null; } catch {}
+  if (!r.ok) throw new Error(`share failed ${r.status} ${r.statusText} — ` + text.slice(0,200));
   return data || {};
 }
 
@@ -60,26 +59,23 @@ export async function createShareLinkFromState(refs) {
     const origin = (window.__PUBLIC_ORIGIN__) || location.origin;
     return origin.replace(/\/$/,'') + '/s/' + encodeURIComponent(res.id);
   }
+  if (res && res.ok) return 'OK';
   throw new Error('share: no url/id in response');
 }
 
-export function initShare(options = {}) {
+export function initShare(options={}) {
   const { buttonSelector = '#shareBtn,[data-share]', refs, onSuccess, onError } = options;
   const btn = document.querySelector(buttonSelector);
-  if (!btn) { console.warn('initShare: button not found'); return { destroy() {} }; }
+  if (!btn) { console.warn('initShare: button not found'); return { destroy(){} }; }
   async function handler(e) {
     try {
       e?.preventDefault?.();
       const url = await createShareLinkFromState(refs);
-      try { await navigator.clipboard.writeText(url); } catch { }
+      try { await navigator.clipboard.writeText(url); } catch {}
       const out = document.querySelector('#shareUrl,[data-share-url]'); if (out) { if ('value' in out) out.value = url; else out.textContent = url; }
       onSuccess?.(url);
-    } catch (err) {
-      console.error(err);
-      onError?.(err);
-      alert('Share failed: ' + (err?.message || err));
-    }
+    } catch (err) { console.error(err); onError?.(err); alert('Share failed: ' + (err?.message||err)); }
   }
   btn.addEventListener('click', handler);
-  return { destroy() { btn.removeEventListener('click', handler); } };
+  return { destroy(){ btn.removeEventListener('click', handler); } };
 }
