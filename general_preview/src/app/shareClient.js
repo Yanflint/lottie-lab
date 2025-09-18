@@ -1,93 +1,107 @@
-// general_preview/src/app/shareClient.js
-// Клиент к Cloud Function. НЕ требует key. Кнопка Share всегда даёт фидбек (тост + clipboard).
+// Клиент «Поделиться»
+import { state } from './state.js';
+import { withLoading, showToastNear } from './utils.js';
+import { savePinned } from './pinned.js';
 
-import { showSuccessToast, showErrorToast } from './updateToast.js';
-
-const DEFAULT_API_BASE = 'https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p'; // базовый URL функции БЕЗ /share
-
-function getApiBase() {
-  const base = (typeof window !== 'undefined' && window.__API_BASE__) || DEFAULT_API_BASE;
-  return String(base).replace(/\/+$/, ''); // без хвостового слеша
-}
-
-async function apiPost(payload, { timeout = 15000 } = {}) {
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), timeout);
-  const url = getApiBase(); // ВАЖНО: БЕЗ /share
-  let res, text = '';
-  try {
-    res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload || {}),
-      signal: controller.signal,
+async function imageElementToDataURL(imgEl) {
+  if (!imgEl || !imgEl.src) return null;
+  const src = imgEl.src;
+  if (src.startsWith('data:')) return src;
+  if (src.startsWith('blob:')) {
+    await new Promise((res) => {
+      if (imgEl.complete && imgEl.naturalWidth) return res();
+      imgEl.onload = () => res();
+      imgEl.onerror = () => res();
     });
-    text = await res.text();
-  } finally { clearTimeout(t); }
-
-  let data = null; try { data = text ? JSON.parse(text) : null; } catch { /* not json */ }
-  if (!res?.ok) throw new Error(`HTTP {res?.status} {res?.statusText} — ` + text.slice(0,200));
-  return data || {};
+    const blob = await (await fetch(src)).blob().catch(() => null);
+    if (!blob) return null;
+    return await new Promise((resolve) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(fr.result);
+      fr.onerror = () => resolve(null);
+      fr.readAsDataURL(blob);
+    });
+  }
+  return src;
 }
 
-async function readState(refs) {
-  const st = (window.state || window.appState || {});
-  const lot = st.lastLottieJSON ? JSON.parse(JSON.stringify(st.lastLottieJSON)) : null;
-  const loop = !!st.loopOn;
-  const off  = (st.getLotOffset ? st.getLotOffset() : st.lotOffset) || {x:0,y:0};
-  const bgMeta = st.lastBgMeta || { fileName: '', assetScale: 1 };
-  const bgSrc = (refs && refs.bgImg && refs.bgImg.src) || st.bgSrc || '';
-
-  async function toDataUrlIfBlob(src) {
-    if (!src) return '';
-    if (/^(data:|https?:)/i.test(src)) return src;
-    if (/^blob:/i.test(src)) {
-      const img = new Image(); img.crossOrigin='anonymous'; img.src = src;
-      if (img.decode) { try { await img.decode(); } catch {} }
-      await new Promise(r => { if (img.complete) r(); else img.onload = () => r(); });
-      const c = document.createElement('canvas'); c.width = img.naturalWidth||img.width; c.height = img.naturalHeight||img.height;
-      const ctx = c.getContext('2d'); ctx.drawImage(img,0,0); try { return c.toDataURL('image/png'); } catch { return src; }
-    }
-    return src;
-  }
-
-  if (lot) {
+async function buildPayload(refs) {
+  const rawLot = state.lastLottieJSON;
+  if (!rawLot) throw new Error('Нет данных Lottie');
+  const lot = JSON.parse(JSON.stringify(rawLot));
+  try {
+    const pos = state.lotOffset || { x:0, y:0 };
     lot.meta = lot.meta || {};
-    lot.meta._lpBgMeta   = { fileName: bgMeta.fileName || '', assetScale: +bgMeta.assetScale || 1 };
-    lot.meta._lpLotOffset = { x: +off.x || 0, y: +off.y || 0 };
-  }
-  const bg = await toDataUrlIfBlob(bgSrc);
-  return { lot, opts: { loop }, bg: bg ? { value: bg, name: bgMeta.fileName || '', assetScale: +bgMeta.assetScale || 1 } : undefined };
-}
+    lot.meta._lpPos = { x: +pos.x || 0, y: +pos.y || 0 };
+  } catch {}
 
-export function setApiBase(url) { try { window.__API_BASE__ = String(url||'').replace(/\/+$/, ''); } catch {} }
-
-export function initShare({ refs, onSuccess, onError } = {}) {
-  const btn = document.querySelector('#shareBtn,[data-share]');
-  if (!btn) return { destroy(){} };
-
-  async function handler(e) {
-    try {
-      e?.preventDefault?.();
-      // Собираем состояние и отправляем
-      const payload = await readState(refs);
-      const res = await apiPost(payload);
-
-      let url = res?.url || (res?.id ? ( (window.__PUBLIC_ORIGIN__||location.origin).replace(/\/$/,'') + '/s/' + encodeURIComponent(res.id) ) : '');
-      if (!url && res?.ok) url = 'OK';
-
-      if (!url) throw new Error('Пустой ответ API');
-      try { await navigator.clipboard.writeText(url); } catch { /* ignore */ }
-      const out = document.querySelector('#shareUrl,[data-share-url]'); if (out) { if ('value' in out) out.value = url; else out.textContent = url; }
-      showSuccessToast('Ссылка скопирована');
-      onSuccess?.(url);
-    } catch(err) {
-      console.error('[share] failed:', err);
-      showErrorToast(err?.message || 'Share failed', btn);
-      onError?.(err);
+  let bg = null;
+  const imgEl = refs?.bgImg;
+  if (imgEl && imgEl.src) {
+    const maybeData = await imageElementToDataURL(imgEl);
+    const name = (state.lastBgMeta?.fileName || '');
+    const assetScale = (state.lastBgMeta?.assetScale || undefined);
+    if (maybeData && typeof maybeData === 'string' && maybeData.startsWith('data:')) {
+      bg = { kind:'data', value: maybeData, name, assetScale };
+    } else if (maybeData) {
+      bg = { kind:'url',  value: maybeData, name, assetScale };
     }
   }
 
-  btn.addEventListener('click', handler);
-  return { destroy(){ btn.removeEventListener('click', handler); } };
+  const opts = { loop: !!state.loopOn };
+  return { lot, bg, opts };
+}
+
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+      return true;
+    } catch {
+      return false;
+    } finally {
+      document.body.removeChild(ta);
+    }
+  }
+}
+
+export function initShare({ refs }) {
+  const btn = refs?.shareBtn;
+  if (!btn) return;
+
+  btn.addEventListener('click', async () => {
+    const hasLot = !!state.lastLottieJSON;
+    const hasBg  = !!(refs?.bgImg && refs.bgImg.src);
+    if (!hasLot && !hasBg) { showToastNear(refs.toastEl, btn, 'Загрузите графику'); return; }
+    if (!hasLot && hasBg)  { showToastNear(refs.toastEl, btn, 'Загрузите анимацию'); return; }
+    if (hasLot && !hasBg)  { showToastNear(refs.toastEl, btn, 'Загрузите фон'); return; }
+
+    await withLoading(btn, async () => {
+      const payload = await buildPayload(refs);
+      const res = await fetch('https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json; charset=utf-8' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const t = await res.text().catch(() => '');
+        throw new Error(`share failed: ${res.status}${t ? ' ' + t : ''}`);
+      }
+      const { id } = await res.json();
+      const shortUrl = `${location.origin}/s/${id}`;
+
+      savePinned(payload);
+      await copyToClipboard(shortUrl);
+      showToastNear(refs.toastEl, btn, 'Ссылка скопирована');
+    });
+  });
 }

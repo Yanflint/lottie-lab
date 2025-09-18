@@ -398,9 +398,3 @@ button::-moz-focus-inner{ border:0 !important; }
 html:not(.viewer) #lotStage { cursor: grab; }
 html:not(.viewer) .lp-grabbing, 
 html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
-
-
-/* LP DRAG UX */
-.lot-stage{ cursor: grab; }
-body.lp-grabbing .lot-stage{ cursor: grabbing !important; }
-.preview, .lottie-layer, .lot-stage, .lottie-mount{ -webkit-user-select:none; user-select:none; }
