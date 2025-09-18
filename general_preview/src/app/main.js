@@ -209,3 +209,25 @@ window.addEventListener('resize', () => { try { layoutLottie(refs); } catch {} }
   } catch {}
 
 });
+
+// /* drag-helper */
+(function(){
+  const root = document.querySelector('.lot-stage, #preview, .lottie-mount');
+  if(!root) return;
+  let down=false, sx=0, sy=0, ox=0, oy=0;
+  root.addEventListener('pointerdown', (e)=>{
+    down=true; sx=e.clientX; sy=e.clientY;
+    const st = window.state || window.appState || {};
+    const off = (st.getLotOffset ? st.getLotOffset() : st.lotOffset) || {x:0,y:0};
+    ox=+off.x||0; oy=+off.y||0;
+    document.body.classList.add('dragging');
+  });
+  window.addEventListener('pointermove', (e)=>{
+    if(!down) return;
+    const dx=e.clientX-sx, dy=e.clientY-sy;
+    const st = window.state || window.appState || {};
+    if (st.setLotOffset) { st.setLotOffset({x:ox+dx, y:oy+dy}); }
+    else { st.lotOffset = {x:ox+dx, y:oy+dy}; }
+  });
+  window.addEventListener('pointerup', ()=>{ down=false; document.body.classList.remove('dragging'); });
+})();
