@@ -1,11 +1,9 @@
 // general_preview/src/app/shareClient.js
-// Патч: уводим с /api/share на Cloud Function. Поддерживаем старую логику тостов и withLoading.
-
 import { showSuccessToast, showErrorToast } from './updateToast.js';
 import { withLoading } from './utils.js';
 
 const API_BASE = 'https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p'.replace(/\/+$/, '');
-const CANDIDATE_PATHS = ['/share', '']; // пробуем и с /share, и без
+const CANDIDATE_PATHS = ['/share', '']; // try with suffix and without
 
 async function postJSON(url, payload) {
   const r = await fetch(url, {
@@ -21,29 +19,22 @@ async function postJSON(url, payload) {
 
 export async function createShareLink(key) {
   if (!key || typeof key !== 'string') throw new Error('initShare: не удалось получить key (проверь data-key/#projectKey)');
-  // payload совместим со старым бэком: { key }
   let lastErr = null;
   for (const p of CANDIDATE_PATHS) {
-    const url = API_BASE + p;
     try {
-      const data = await postJSON(url, { key });
+      const data = await postJSON(API_BASE + p, { key });
       const origin = (window.__PUBLIC_ORIGIN__) || location.origin;
       if (data && typeof data.url === 'string') return data.url;
       if (data && data.id) return origin.replace(/\/$/, '') + '/s/' + encodeURIComponent(data.id);
       throw new Error('share: пустой ответ API');
-    } catch (e) {
-      lastErr = e;
-      // попробуем следующий путь
-    }
+    } catch (e) { lastErr = e; }
   }
   throw lastErr || new Error('share: все попытки не удались');
 }
 
 function readKeyFromDOM() {
-  // 1) data-key на кнопке
   const btn = document.querySelector('[data-share], #shareBtn');
   if (btn && btn.dataset && btn.dataset.key) return btn.dataset.key;
-  // 2) скрытое поле #projectKey
   const inp = document.getElementById('projectKey');
   if (inp && inp.value) return inp.value;
   return null;
@@ -52,11 +43,13 @@ function readKeyFromDOM() {
 export function initShare({ onSuccess, onError } = {}) {
   const btn = document.querySelector('[data-share], #shareBtn');
   if (!btn) return { destroy(){} };
+
   async function handler(e) {
     try {
       e?.preventDefault?.();
       const key = readKeyFromDOM();
-      const url = await withLoading(() => createShareLink(key));
+      // IMPORTANT: pass the button element to withLoading so it can toggle the loader classes safely
+      const url = await withLoading(() => createShareLink(key), btn);
       try { await navigator.clipboard.writeText(url); } catch { }
       showSuccessToast('Ссылка скопирована', btn);
       const out = document.querySelector('#shareUrl,[data-share-url]');
@@ -68,6 +61,7 @@ export function initShare({ onSuccess, onError } = {}) {
       onError?.(err);
     }
   }
+
   btn.addEventListener('click', handler);
   return { destroy(){ btn.removeEventListener('click', handler); } };
 }
