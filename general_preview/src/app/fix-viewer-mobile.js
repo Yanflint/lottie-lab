@@ -1,4 +1,3 @@
-// build-2025-09-19-01
 
 // src/app/fix-viewer-mobile.js
 // Purpose: eliminate stale Lottie layout/state in standalone (A2HS/WebView) viewers.
@@ -7,7 +6,6 @@
 //  - Re-fetch payload for /s/:id with `no-store` and apply *fresh* opts before layout.
 //  - Force-clear any stale inline styles/state before applying new ones.
 //  - Retry once after first layout to eliminate races.
-import { API_BASE as SHARE_API_BASE } from './shareClient.js';
 (function(){
   try {
     const isStandalone =
@@ -71,8 +69,9 @@ import { API_BASE as SHARE_API_BASE } from './shareClient.js';
       } catch {}
 
       // Fetch payload with no caching to avoid stale data in WebViews
-      const api = API_CANDIDATES[0] + '?id=' + encodeURIComponent(id);
-      const res = await fetch(api, { method: 'GET', cache: 'no-store' }).catch(() => null);
+      const url = new URL('/api/share', location.origin);
+      url.searchParams.set('id', id);
+      const res = await fetch(url.toString(), { method: 'GET', cache: 'no-store' }).catch(() => null);
       if (!res || !res.ok) return;
       const data = await res.json().catch(() => null);
       if (!data) return;

@@ -1,4 +1,3 @@
-// build-2025-09-19-01
 // general_preview/src/app/shareClient.js
 // build yc14 (silent)
 import { showSuccessToast, showErrorToast } from './updateToast.js';

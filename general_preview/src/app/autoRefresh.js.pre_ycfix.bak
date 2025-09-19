@@ -176,7 +176,7 @@ function jittered(ms){const f=1+(Math.random()*2-1)*JITTER;return Math.max(1000,
 async function fetchRev(){
   for (const base of API_CANDIDATES){
     try{
-      const u = `\${base}?id=last&rev=1&_=\${Date.now()}`;
+      const u = `${base}?id=last&rev=1`;
       const r = await fetch(u, { cache: 'no-store' });
       if (!r.ok){ try{ __AR_DBG__.log('fetchRev non-OK', { base, status: r.status }); }catch(e){}; continue; }
       const j = await r.json(); 
@@ -197,7 +197,7 @@ async function fetchStableLastPayload(maxMs=2000){
   const deadline = Date.now() + maxMs;
   while (Date.now() < deadline){
     // 1) fetch payload with no-store and capture ETag
-    const pr = await fetch(`\${API_CANDIDATES[0]}?id=last&_=\${Date.now()}`, { cache: 'no-store' });
+    const pr = await fetch(`${API_CANDIDATES[0]}?id=last`, { cache: 'no-store' });
     if (!pr.ok) throw new Error('payload get failed '+pr.status);
     const et = (pr.headers.get('ETag') || '').replace(/"/g,'');
     const data = await pr.json().catch(()=>null);
@@ -205,7 +205,7 @@ async function fetchStableLastPayload(maxMs=2000){
     // 2) fetch current rev
     let revNow = '';
     try{
-      const rr = await fetch(`\${API_CANDIDATES[0]}?id=last&rev=1&_=\${Date.now()}`, { cache: 'no-store' });
+      const rr = await fetch(`${API_CANDIDATES[0]}?id=last&rev=1`, { cache: 'no-store' });
       if (rr.ok){ const j = await rr.json().catch(()=>({})); revNow = String(j.rev||''); }
     }catch(e){}
 
@@ -217,7 +217,7 @@ async function fetchStableLastPayload(maxMs=2000){
     await sleep(250);
   }
   // final attempt return whatever we have (best effort)
-  const pr2 = await fetch(`\${API_CANDIDATES[0]}?id=last&_=\${Date.now()}`, { cache: 'no-store' });
+  const pr2 = await fetch(`${API_CANDIDATES[0]}?id=last`, { cache: 'no-store' });
   const data2 = await pr2.json().catch(()=>null);
   const et2 = (pr2.headers.get('ETag') || '').replace(/"/g,'');
   return { data: data2, etag: et2 };
