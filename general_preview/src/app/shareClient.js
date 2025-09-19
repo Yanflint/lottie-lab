@@ -1,4 +1,4 @@
-// general_preview/src/app/shareClient.js
+// src/app/shareClient.js (YC fix)
 import { showSuccessToast, showErrorToast } from './updateToast.js';
 import { withLoading } from './utils.js';
 // [PATCH YC] Reworked to build payload directly when no key is present.
@@ -90,83 +90,79 @@ export async function createShareLink(key) {
 }
 
 
-const API_BASE = 'https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p'.replace(/\/+$/, '');
-const PATHS = ['/share', '']; // пробуем с /share и без
+// БАЗОВЫЙ URL функции (без суффиксов)
+const API_BASE = (typeof window !== 'undefined' && window.__API_BASE__)
+  ? String(window.__API_BASE__).replace(/\/+$/, '')
+  : 'https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p'.replace(/\/+$/, '');
 
-async function postJSON(url, payload) {
-  const r = await fetch(url, {
+// универсальный POST
+async function apiPost(payload) {
+  const res = await fetch(API_BASE, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload || {}),
   });
-  const txt = await r.text();
-  let data = null; try { data = txt ? JSON.parse(txt) : null; } catch { }
-  if (!r.ok) throw new Error(`share failed: ${r.status}`);
+  const txt = await res.text();
+  let data = null; try { data = txt ? JSON.parse(txt) : null; } catch {}
+  if (!res.ok) throw new Error(`API ${res.status}`);
   return data || {};
 }
 
+// где взять key
 function detectKey() {
-  // 1) на самой кнопке
-  const btn = document.querySelector('[data-share], #shareBtn');
-  if (btn && btn.dataset && btn.dataset.key) return btn.dataset.key.trim();
-  // 2) скрытый инпут
+  const btn = document.querySelector('#shareBtn,[data-share]');
+  if (btn?.dataset?.key) return btn.dataset.key.trim();
   const inp = document.getElementById('projectKey');
   if (inp && inp.value) return String(inp.value).trim();
-  // 3) meta
   const meta = document.querySelector('meta[name="project-key"]');
-  if (meta && meta.content) return meta.content.trim();
-  // 4) любой держатель с data-project-key
+  if (meta?.content) return meta.content.trim();
   const holder = document.querySelector('[data-project-key]');
-  if (holder && holder.dataset && holder.dataset.projectKey) return holder.dataset.projectKey.trim();
-  // 5) глобальная переменная, если где-то выставляется
-  if (window.__PROJECT_KEY) return String(window.__PROJECT_KEY).trim();
+  if (holder?.dataset?.projectKey) return String(holder.dataset.projectKey).trim();
+  if (typeof window !== 'undefined' && window.__PROJECT_KEY) return String(window.__PROJECT_KEY).trim();
   return '';
 }
 
 export function setShareKey(key) {
   const k = String(key || '').trim();
   if (!k) return;
-  const btn = document.querySelector('[data-share], #shareBtn');
+  try { window.__PROJECT_KEY = k; } catch {}
+  const btn = document.querySelector('#shareBtn,[data-share]');
   if (btn) btn.dataset.key = k;
   const inp = document.getElementById('projectKey');
   if (inp) inp.value = k;
-  window.__PROJECT_KEY = k;
 }
 
 export async function createShareLink(key) {
   const k = (key && String(key).trim()) || detectKey();
   if (!k) throw new Error('initShare: не удалось получить key (проверь data-key/#projectKey)');
-  let lastErr = null;
-  for (const p of PATHS) {
-    try {
-      const data = await postJSON(API_BASE + p, { key: k });
-      const origin = (window.__PUBLIC_ORIGIN__) || location.origin;
-      if (data && typeof data.url === 'string') return data.url;
-      if (data && data.id) return origin.replace(/\/$/, '') + '/s/' + encodeURIComponent(data.id);
-      throw new Error('share: пустой ответ API');
-    } catch (e) { lastErr = e; }
+  const data = await apiPost({ key: k });
+  let url = data?.url || '';
+  if (!url && data?.id) {
+    const origin = (typeof window !== 'undefined' && (window.__PUBLIC_ORIGIN__ || window.location.origin)) || '';
+    url = origin.replace(/\/$/, '') + '/s/' + encodeURIComponent(data.id);
   }
-  throw lastErr || new Error('share: все попытки не удались');
+  if (!url) throw new Error('share: пустой ответ API');
+  return url;
 }
 
-export function initShare({ onSuccess, onError } = {}) {
-  const btn = document.querySelector('[data-share], #shareBtn');
-  if (!btn) return { destroy(){} };
+export function initShare() {
+  const btn = document.querySelector('#shareBtn,[data-share]');
+  if (!btn) return { destroy(){ } };
+
   async function handler(e) {
     try {
       e?.preventDefault?.();
       const url = await withLoading(btn, () => createShareLink());
-      try { await navigator.clipboard.writeText(url); } catch { }
+      try { await navigator.clipboard.writeText(url); } catch {}
       showSuccessToast('Ссылка скопирована', btn);
       const out = document.querySelector('#shareUrl,[data-share-url]');
       if (out) { if ('value' in out) out.value = url; else out.textContent = url; }
-      onSuccess?.(url);
     } catch (err) {
-      console.error(err);
-      showErrorToast(err?.message || 'Share failed', btn);
-      onError?.(err);
+      console.error('[Share]', err);
+      showErrorToast('Не удалось создать ссылку — проверьте, что проект выбран', btn);
     }
   }
+
   btn.addEventListener('click', handler);
   return { destroy(){ btn.removeEventListener('click', handler); } };
 }
