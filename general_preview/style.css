@@ -406,3 +406,5 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 
 /* drag-hotfix */
 #preview, #lotStage { pointer-events: auto; touch-action: none; }
+
+#lottie{pointer-events:auto;}
