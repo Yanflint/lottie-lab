@@ -408,12 +408,3 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 #preview, #lotStage { pointer-events: auto; touch-action: none; }
 
 #lottie{pointer-events:auto;}
-
-/* Ensure only visible painted parts of the SVG catch pointer events */
-#lottie svg { pointer-events: visiblePainted; }
-
-
-/* Cursor: restrict grab to Lottie only (not whole stage) */
-html:not(.viewer) #lotStage { cursor: default; }
-html:not(.viewer) #lottie svg { cursor: grab; }
-

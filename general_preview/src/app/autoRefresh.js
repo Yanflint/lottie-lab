@@ -105,8 +105,17 @@ function isViewingLast() {
       if (id === 'last' || id === '__last__') return true;
     }
     const u = new URL(location.href);
-    const qid = u.searchParams.get('id');
+    const q = u.searchParams;
+    const qid = q.get('id');
     if (qid && (qid === 'last' || qid === '__last__')) return true;
+    // New: follow flag allows auto-refresh even after server redirects /s/last -> /s/{id}
+    const follow = (q.get('follow') || '').toLowerCase();
+    if (follow === '1' || follow === 'true' || follow === 'yes') return true;
+    // New: session flag from launch.html
+    try {
+      const ss = (sessionStorage.getItem('lp_follow_last') || '').toLowerCase();
+      if (ss === '1' || ss === 'true' || ss === 'yes' || ss === 'on') return true;
+    } catch(e){}
   } catch(e){}
   return false;
 }

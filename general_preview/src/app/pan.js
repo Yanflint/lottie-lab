@@ -8,14 +8,6 @@ export function initLottiePan({ refs }) {
               || (refs?.lotStage)     || document.getElementById('lotStage');
   if (!target) return;
 
-  // Hard guard: never enable drag in viewer (/s/ links)
-  try {
-    const viewerByClass = document.documentElement.classList.contains('viewer');
-    const viewerByPath  = /^\/s\//.test(location.pathname) || location.pathname.includes('/s/');
-    if (viewerByClass || viewerByPath) return;
-  } catch {}
-
-
   try { target.style.touchAction = 'none'; } catch {}
   try { target.style.cursor = 'grab'; } catch {}
 
