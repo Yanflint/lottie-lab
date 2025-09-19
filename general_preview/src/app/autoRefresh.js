@@ -298,5 +298,6 @@ export function initAutoRefreshIfViewingLast(){
   window.addEventListener('pageshow', onVisible);
   window.addEventListener('pointerdown', onPointer, {passive:true});
 
-  (async()=>{ try{ baseline=await fetchRev(); }catch(e){} if(document.visibilityState==='visible'){ schedule(BASE_INTERVAL);} })();
+  (async()=>{ try{ baseline=await fetchRev(); }catch(e){}
+    if(!(document.visibilityState==='visible' || __isStandalone())) return; if(document.visibilityState==='visible'){ /* start timer */ schedule(BASE_INTERVAL);} })();
 }
