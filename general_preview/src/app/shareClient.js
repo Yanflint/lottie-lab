@@ -48,8 +48,8 @@ export function initShare({ onSuccess, onError } = {}) {
     try {
       e?.preventDefault?.();
       const key = readKeyFromDOM();
-      // IMPORTANT: pass the button element to withLoading so it can toggle the loader classes safely
-      const url = await withLoading(() => createShareLink(key), btn);
+      // pass BUTTON first (API expects withLoading(el, fn))
+      const url = await withLoading(btn, () => createShareLink(key));
       try { await navigator.clipboard.writeText(url); } catch { }
       showSuccessToast('Ссылка скопирована', btn);
       const out = document.querySelector('#shareUrl,[data-share-url]');
