@@ -1,11 +1,12 @@
 // general_preview/src/app/shareClient.js
-// build yc14 (silent)
+// build yc15 (silent)
 import { showSuccessToast, showErrorToast } from './updateToast.js';
 import { withLoading } from './utils.js';
 import { state, getLotOffset } from './state.js';
 
 // API endpoint (Yandex Cloud Function). No trailing slash.
-const API_BASE = 'https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p'.replace(/\/+$/, '');
+\1
+try{ window.__SHARE_API_BASE = API_BASE; }catch{}
 // Use only the base path (no /share) to avoid CORS noise.
 const PATHS = [''];
 

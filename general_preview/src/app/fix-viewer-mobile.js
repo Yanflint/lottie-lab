@@ -98,7 +98,7 @@
         }
       } catch(e) { console.error('fix-viewer-mobile: lottie load error', e); }
 
-      // Try to read possible position/size hints from payload (best-effort — tolerant to missing keys)
+      // Try to read possible position/size hints from payload (best-effort - tolerant to missing keys)
       try {
         const hints = (data.lot && (data.lot.hints || data.lot.layout || data.lot.pos || data.lot.opts)) || (data.opts && data.opts.lottie) || {};
         // Common key aliases we will accept
@@ -110,7 +110,7 @@
         if (Number.isFinite(nx) || Number.isFinite(ny)) {
           setLotOffset(Number.isFinite(nx) ? nx : 0, Number.isFinite(ny) ? ny : 0);
         }
-        // Width/height/scale attempts — if provided, apply to the layer directly
+        // Width/height/scale attempts - if provided, apply to the layer directly
         const layer = document.querySelector('.lottie-layer');
         if (layer) {
           const w = hints.w ?? hints.width  ?? null;
@@ -126,7 +126,7 @@
         }
       } catch(e) { console.warn('fix-viewer-mobile: layout hints skipped', e); }
 
-      // Final layout (twice — to outwait any late upgrades)
+      // Final layout (twice - to outwait any late upgrades)
       try {
         layoutLottie(refs);
         // A second pass after two RAFs helps with WebView races

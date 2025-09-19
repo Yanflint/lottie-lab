@@ -4,6 +4,7 @@ import { setLotOffset, setLastLottie, setLastBgMeta, state } from './state.js';
 import { showUpdateToast } from './updateToast.js';
 
 // src/app/autoRefresh.js
+function getApiBase(){ try { return window.__SHARE_API_BASE || getApiBase()+'''; } catch { return getApiBase()+'''; } }
 // Live-пулинг для /s/last: 5с ±20% (только когда вкладка видима).
 // Мгновенная проверка при возврате в фокус/тач. Бэкофф до 30с при ошибках.
 // Перед перезагрузкой ставим флаг в sessionStorage, чтобы показать тост "Обновлено".
@@ -112,7 +113,7 @@ function isViewingLast() {
 }
 function jittered(ms){const f=1+(Math.random()*2-1)*JITTER;return Math.max(1000,Math.round(ms*f));}
 async function fetchRev(){
-  const r=await fetch('/api/share?id=last&rev=1',{cache:'no-store'});
+  const r=await fetch(getApiBase()+''?id=last&rev=1',{cache:'no-store'});
   if(!r.ok) throw new Error('bad '+r.status);
   const j=await r.json(); return String(j.rev||'');
 }
@@ -125,7 +126,7 @@ async function fetchStableLastPayload(maxMs=2000){
   const deadline = Date.now() + maxMs;
   while (Date.now() < deadline){
     // 1) fetch payload with no-store and capture ETag
-    const pr = await fetch('/api/share?id=last', { cache: 'no-store' });
+    const pr = await fetch(getApiBase()+''?id=last', { cache: 'no-store' });
     if (!pr.ok) throw new Error('payload get failed '+pr.status);
     const et = (pr.headers.get('ETag') || '').replace(/"/g,'');
     const data = await pr.json().catch(()=>null);
@@ -133,7 +134,7 @@ async function fetchStableLastPayload(maxMs=2000){
     // 2) fetch current rev
     let revNow = '';
     try{
-      const rr = await fetch('/api/share?id=last&rev=1', { cache: 'no-store' });
+      const rr = await fetch(getApiBase()+''?id=last&rev=1', { cache: 'no-store' });
       if (rr.ok){ const j = await rr.json().catch(()=>({})); revNow = String(j.rev||''); }
     }catch(e){}
 
@@ -145,7 +146,7 @@ async function fetchStableLastPayload(maxMs=2000){
     await sleep(250);
   }
   // final attempt return whatever we have (best effort)
-  const pr2 = await fetch('/api/share?id=last', { cache: 'no-store' });
+  const pr2 = await fetch(getApiBase()+''?id=last', { cache: 'no-store' });
   const data2 = await pr2.json().catch(()=>null);
   const et2 = (pr2.headers.get('ETag') || '').replace(/"/g,'');
   return { data: data2, etag: et2 };
