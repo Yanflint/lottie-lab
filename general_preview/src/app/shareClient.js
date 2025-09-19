@@ -1,6 +1,7 @@
 // general_preview/src/app/shareClient.js
 import { showSuccessToast, showErrorToast } from './updateToast.js';
 import { withLoading } from './utils.js';
+import { state } from './state.js';
 
 const API_BASE = 'https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p'.replace(/\/+$/, '');
 try { window.__SHARE_API_BASE = API_BASE; } catch {}
@@ -16,34 +17,6 @@ async function postJSON(url, payload) {
   let data = null; try { data = txt ? JSON.parse(txt) : null; } catch { }
   if (!r.ok) throw new Error(`share failed: ${r.status}`);
   return data || {};
-}
-
-function detectKey() {
-  // 1) на самой кнопке
-  const btn = document.querySelector('[data-share], #shareBtn');
-  if (btn && btn.dataset && btn.dataset.key) return btn.dataset.key.trim();
-  // 2) скрытый инпут
-  const inp = document.getElementById('projectKey');
-  if (inp && inp.value) return String(inp.value).trim();
-  // 3) meta
-  const meta = document.querySelector('meta[name="project-key"]');
-  if (meta && meta.content) return meta.content.trim();
-  // 4) любой держатель с data-project-key
-  const holder = document.querySelector('[data-project-key]');
-  if (holder && holder.dataset && holder.dataset.projectKey) return holder.dataset.projectKey.trim();
-  // 5) глобальная переменная, если где-то выставляется
-  if (window.__PROJECT_KEY) return String(window.__PROJECT_KEY).trim();
-  return '';
-}
-
-export function setShareKey(key) {
-  const k = String(key || '').trim();
-  if (!k) return;
-  const btn = document.querySelector('[data-share], #shareBtn');
-  if (btn) btn.dataset.key = k;
-  const inp = document.getElementById('projectKey');
-  if (inp) inp.value = k;
-  window.__PROJECT_KEY = k;
 }
 
 export async function createShareLink(key) {
@@ -76,7 +49,9 @@ export function initShare({ onSuccess, onError } = {}) {
       onSuccess?.(url);
     } catch (err) {
       console.error(err);
-      showErrorToast(err?.message || 'Share failed', btn);
+      let msg = String(err?.message||'Ошибка');
+      msg = msg.replace('Нет данных Lottie — загрузите JSON и фон','Загрузите графику').replace('Нет данных Lottie — загрузите анимацию','Загрузите анимацию').replace('Нет фона — загрузите фон','Загрузите фон');
+      showErrorToast(msg, btn);
       onError?.(err);
     }
   }
