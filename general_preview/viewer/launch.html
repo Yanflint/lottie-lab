@@ -1,3 +1,4 @@
+<!-- build-2025-09-19-01 -->
 <!doctype html>
 <html lang="ru">
 <head>
@@ -36,7 +37,8 @@
       const dbg = (cur.searchParams.get('ar_debug')||'').toLowerCase();
       if (dbg==='1'||dbg==='true'||dbg==='on'){ try{ localStorage.setItem('lp_ar_debug','1'); sessionStorage.setItem('lp_ar_debug','1'); }catch(e){} }
       const url = new URL('/s/last', location.origin);
-      url.searchParams.set('fit', 'vv'); // vv|safe|edge — vv даёт наилучшее центрирование
+      url.searchParams.set('fit', 'vv');
+      url.searchParams.set('v', 'build-2025-09-19-01'); // vv|safe|edge — vv даёт наилучшее центрирование
       if (dbg) url.searchParams.set('ar_debug', dbg);
       url.searchParams.set('follow','1');
       // Мгновенная навигация без возможности "Назад", чтобы ярлык всегда попадал на актуальное

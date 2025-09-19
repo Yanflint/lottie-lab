@@ -1,3 +1,4 @@
+// build-2025-09-19-01
 
 // src/app/fix-viewer-mobile.js
 // Purpose: eliminate stale Lottie layout/state in standalone (A2HS/WebView) viewers.

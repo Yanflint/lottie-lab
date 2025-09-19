@@ -1,3 +1,4 @@
+// build-2025-09-19-01
 // src/app/main.js
 
 // 1) Отметка standalone (A2HS)

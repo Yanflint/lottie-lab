@@ -1,9 +1,11 @@
+// build-2025-09-19-01
 // [ADDED] atomic-swap imports
 import { API_BASE as SHARE_API_BASE } from './shareClient.js';
 import { setBackgroundFromSrc, loadLottieFromData, layoutLottie, setLoop } from './lottie.js';
 import { setLotOffset, setLastLottie, setLastBgMeta, state } from './state.js';
 import { showUpdateToast } from './updateToast.js';
 import { afterTwoFrames } from './utils.js';
+window.__LP_BUILD = 'build-2025-09-19-01';
 
 
 // === AUTOREFRESH DEBUG (opt-in via ?ar_debug=1 or localStorage 'lp_ar_debug') ===
