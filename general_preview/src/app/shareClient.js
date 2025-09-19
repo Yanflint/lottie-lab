@@ -1,107 +1,73 @@
-// Клиент «Поделиться»
-import { state } from './state.js';
-import { withLoading, showToastNear } from './utils.js';
-import { savePinned } from './pinned.js';
+// general_preview/src/app/shareClient.js
+// Патч: уводим с /api/share на Cloud Function. Поддерживаем старую логику тостов и withLoading.
 
-async function imageElementToDataURL(imgEl) {
-  if (!imgEl || !imgEl.src) return null;
-  const src = imgEl.src;
-  if (src.startsWith('data:')) return src;
-  if (src.startsWith('blob:')) {
-    await new Promise((res) => {
-      if (imgEl.complete && imgEl.naturalWidth) return res();
-      imgEl.onload = () => res();
-      imgEl.onerror = () => res();
-    });
-    const blob = await (await fetch(src)).blob().catch(() => null);
-    if (!blob) return null;
-    return await new Promise((resolve) => {
-      const fr = new FileReader();
-      fr.onload = () => resolve(fr.result);
-      fr.onerror = () => resolve(null);
-      fr.readAsDataURL(blob);
-    });
-  }
-  return src;
-}
+import { showSuccessToast, showErrorToast } from './updateToast.js';
+import { withLoading } from './utils.js';
 
-async function buildPayload(refs) {
-  const rawLot = state.lastLottieJSON;
-  if (!rawLot) throw new Error('Нет данных Lottie');
-  const lot = JSON.parse(JSON.stringify(rawLot));
-  try {
-    const pos = state.lotOffset || { x:0, y:0 };
-    lot.meta = lot.meta || {};
-    lot.meta._lpPos = { x: +pos.x || 0, y: +pos.y || 0 };
-  } catch {}
+const API_BASE = 'https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p'.replace(/\/+$/, '');
+const CANDIDATE_PATHS = ['/share', '']; // пробуем и с /share, и без
 
-  let bg = null;
-  const imgEl = refs?.bgImg;
-  if (imgEl && imgEl.src) {
-    const maybeData = await imageElementToDataURL(imgEl);
-    const name = (state.lastBgMeta?.fileName || '');
-    const assetScale = (state.lastBgMeta?.assetScale || undefined);
-    if (maybeData && typeof maybeData === 'string' && maybeData.startsWith('data:')) {
-      bg = { kind:'data', value: maybeData, name, assetScale };
-    } else if (maybeData) {
-      bg = { kind:'url',  value: maybeData, name, assetScale };
-    }
-  }
-
-  const opts = { loop: !!state.loopOn };
-  return { lot, bg, opts };
-}
-
-async function copyToClipboard(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.position = 'fixed';
-    ta.style.left = '-9999px';
-    document.body.appendChild(ta);
-    ta.select();
-    try {
-      document.execCommand('copy');
-      return true;
-    } catch {
-      return false;
-    } finally {
-      document.body.removeChild(ta);
-    }
-  }
-}
-
-export function initShare({ refs }) {
-  const btn = refs?.shareBtn;
-  if (!btn) return;
-
-  btn.addEventListener('click', async () => {
-    const hasLot = !!state.lastLottieJSON;
-    const hasBg  = !!(refs?.bgImg && refs.bgImg.src);
-    if (!hasLot && !hasBg) { showToastNear(refs.toastEl, btn, 'Загрузите графику'); return; }
-    if (!hasLot && hasBg)  { showToastNear(refs.toastEl, btn, 'Загрузите анимацию'); return; }
-    if (hasLot && !hasBg)  { showToastNear(refs.toastEl, btn, 'Загрузите фон'); return; }
-
-    await withLoading(btn, async () => {
-      const payload = await buildPayload(refs);
-      const res = await fetch('/api/share', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json; charset=utf-8' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const t = await res.text().catch(() => '');
-        throw new Error(`share failed: ${res.status}${t ? ' ' + t : ''}`);
-      }
-      const { id } = await res.json();
-      const shortUrl = `${location.origin}/s/${id}`;
-
-      savePinned(payload);
-      await copyToClipboard(shortUrl);
-      showToastNear(refs.toastEl, btn, 'Ссылка скопирована');
-    });
+async function postJSON(url, payload) {
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload || {}),
   });
+  const txt = await r.text();
+  let data = null; try { data = txt ? JSON.parse(txt) : null; } catch { }
+  if (!r.ok) throw new Error(`share failed: ${r.status}`);
+  return data || {};
+}
+
+export async function createShareLink(key) {
+  if (!key || typeof key !== 'string') throw new Error('initShare: не удалось получить key (проверь data-key/#projectKey)');
+  // payload совместим со старым бэком: { key }
+  let lastErr = null;
+  for (const p of CANDIDATE_PATHS) {
+    const url = API_BASE + p;
+    try {
+      const data = await postJSON(url, { key });
+      const origin = (window.__PUBLIC_ORIGIN__) || location.origin;
+      if (data && typeof data.url === 'string') return data.url;
+      if (data && data.id) return origin.replace(/\/$/, '') + '/s/' + encodeURIComponent(data.id);
+      throw new Error('share: пустой ответ API');
+    } catch (e) {
+      lastErr = e;
+      // попробуем следующий путь
+    }
+  }
+  throw lastErr || new Error('share: все попытки не удались');
+}
+
+function readKeyFromDOM() {
+  // 1) data-key на кнопке
+  const btn = document.querySelector('[data-share], #shareBtn');
+  if (btn && btn.dataset && btn.dataset.key) return btn.dataset.key;
+  // 2) скрытое поле #projectKey
+  const inp = document.getElementById('projectKey');
+  if (inp && inp.value) return inp.value;
+  return null;
+}
+
+export function initShare({ onSuccess, onError } = {}) {
+  const btn = document.querySelector('[data-share], #shareBtn');
+  if (!btn) return { destroy(){} };
+  async function handler(e) {
+    try {
+      e?.preventDefault?.();
+      const key = readKeyFromDOM();
+      const url = await withLoading(() => createShareLink(key));
+      try { await navigator.clipboard.writeText(url); } catch { }
+      showSuccessToast('Ссылка скопирована', btn);
+      const out = document.querySelector('#shareUrl,[data-share-url]');
+      if (out) { if ('value' in out) out.value = url; else out.textContent = url; }
+      onSuccess?.(url);
+    } catch (err) {
+      console.error(err);
+      showErrorToast(err?.message || 'Share failed', btn);
+      onError?.(err);
+    }
+  }
+  btn.addEventListener('click', handler);
+  return { destroy(){ btn.removeEventListener('click', handler); } };
 }
