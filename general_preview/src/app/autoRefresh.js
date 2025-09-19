@@ -50,6 +50,13 @@ const __AR_DBG__ = (function(){
 })();
 
 // src/app/autoRefresh.js
+function __isStandalone(){
+  try{
+    return (window.matchMedia && (window.matchMedia('(display-mode: standalone)').matches ||
+                                  window.matchMedia('(display-mode: fullscreen)').matches)) ||
+           (typeof navigator!=='undefined' && navigator.standalone===true);
+  }catch(e){ return false; }
+}
 // Live-пулинг для /s/last: 5с ±20% (только когда вкладка видима).
 // Мгновенная проверка при возврате в фокус/тач. Бэкофф до 30с при ошибках.
 // Перед перезагрузкой ставим флаг в sessionStorage, чтобы показать тост "Обновлено".
@@ -175,14 +182,24 @@ function isViewingLast() {
 function jittered(ms){const f=1+(Math.random()*2-1)*JITTER;return Math.max(1000,Math.round(ms*f));}
 async function fetchRev(){
   for (const base of API_CANDIDATES){
+    // Prefer HEAD (ETag) — cheaper and often more permissive in shells
     try{
-      const u = `${base}?id=last&rev=1`;
-      const r = await fetch(u, { cache: 'no-store' });
+      const head = await fetch(`${base}?id=last`, { method: 'HEAD', cache: 'no-store' });
+      if (head && head.ok){
+        const et = (head.headers.get('ETag') || '').replace(/"/g,'');
+        if (et) return String(et);
+      }
+    }catch(e){
+      try{ __AR_DBG__.log('fetchRev HEAD error', { base, error: String(e) }); }catch(_){}
+    }
+    // Fallback to lightweight GET ?rev=1
+    try{
+      const r = await fetch(`${base}?id=last&rev=1`, { cache: 'no-store' });
       if (!r.ok){ try{ __AR_DBG__.log('fetchRev non-OK', { base, status: r.status }); }catch(e){}; continue; }
       const j = await r.json(); 
       return String(j.rev||'');
     }catch(e){
-      try{ __AR_DBG__.log('fetchRev error', { base, error: String(e) }); }catch(_){}
+      try{ __AR_DBG__.log('fetchRev GET error', { base, error: String(e) }); }catch(_){}
       continue;
     }
   }
@@ -234,7 +251,8 @@ export function initAutoRefreshIfViewingLast(){
 
   const tick=async()=>{ window.__AR_STATE.lastTick = Date.now(); __AR_DBG__.log('tick');
     if(inFlight) return;
-    if(document.visibilityState!=='visible'){schedule(currentDelay); return;}
+    const __visOk = (typeof document!=='undefined' && document.visibilityState==='visible');
+    if(!__visOk && !__isStandalone()){ schedule(currentDelay); return; }
     inFlight=true;
     try{
       const rev=await fetchRev(); window.__AR_STATE.lastRev = rev; __AR_DBG__.log('rev', { rev });
