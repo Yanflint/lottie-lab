@@ -145,29 +145,27 @@ async function __applyAtomicUpdate(data){
 
 
 
+function isViewerPath(){
+  try { return /^\/s\//.test(location.pathname); } catch(e) { return false; }
+}
 function isViewingLast() {
   try {
+    if (!isViewerPath()) return false; // Only in /s/*
     const p = location.pathname;
+    // /s/{id}
     if (p.startsWith('/s/')) {
       const id = decodeURIComponent(p.split('/')[2] || '');
       if (id === 'last' || id === '__last__') return true;
     }
     const u = new URL(location.href);
     const q = u.searchParams;
-    const qid = q.get('id');
-    if (qid && (qid === 'last' || qid === '__last__')) return true;
-    // New: follow flag allows auto-refresh even after server redirects /s/last -> /s/{id}
+    // follow=1 from launch.html survives immediate navigation
     const follow = (q.get('follow') || '').toLowerCase();
     if (follow === '1' || follow === 'true' || follow === 'yes') return true;
-    // New: session flag from launch.html
+    // session flag set by launch.html (same-origin)
     try {
       const ss = (sessionStorage.getItem('lp_follow_last') || '').toLowerCase();
       if (ss === '1' || ss === 'true' || ss === 'yes' || ss === 'on') return true;
-    } catch(e){}
-    // Cookie fallback
-    try {
-      const ck = document.cookie || '';
-      if (/\blp_follow_last\s*=\s*(1|true|on)\b/i.test(ck)) return true;
     } catch(e){}
   } catch(e){}
   return false;

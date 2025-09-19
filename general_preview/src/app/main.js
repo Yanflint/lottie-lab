@@ -74,7 +74,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 showToastIfFlag(); // покажет "Обновлено", если страница была перезагружена авто-рефрешом
 
   // Авто-рефреш для /s/last (Viewer)
-  initAutoRefreshIfViewingLast(); // ← НОВОЕ
+  if (isViewer) initAutoRefreshIfViewingLast(); // run only on /s/* viewer
 
   await initLoadFromLink({ refs, isStandalone });
 
