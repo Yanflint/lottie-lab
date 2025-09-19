@@ -243,4 +243,4 @@ export function showErrorToast(msg='Ошибка', anchorEl=null) {
   showAnchored(msg, 'error', anchorEl);
 }
 
-export function showToastIfFlag(flag){ if(!flag) return; try{ return showUpdateToast(typeof flag==='string'? flag : 'Готово'); }catch(e){} }
+export function showToastIfFlag(flag){ if(!flag) return; try{ return showUpdateToast(typeof flag==='string' ? flag : undefined); }catch(e){} }
