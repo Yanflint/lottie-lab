@@ -33,7 +33,7 @@ const __AR_DBG__ = (function(){
   }
   function log(msg, meta){
     try{
-      console.log('[autoRefresh]', msg, meta||'');
+      if (flagOn()) console.log('[autoRefresh]', msg, meta||'');
       const el = ensureOverlay();
       if (el){
         const t = (new Date()).toLocaleTimeString();
