@@ -242,5 +242,3 @@ export function showErrorToast(msg='Ошибка', anchorEl=null) {
   if (!anchorEl) return showAnchored(msg, 'error', document.body);
   showAnchored(msg, 'error', anchorEl);
 }
-
-export function showToastIfFlag(flag){ if(!flag) return; try{ return showUpdateToast(typeof flag==='string' ? flag : undefined); }catch(e){} }
