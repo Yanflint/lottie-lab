@@ -107,7 +107,7 @@ export async function initLoadFromLink({ refs, isStandalone }) {
   // 2) Если ярлык — тянем "последний" снимок с сервера
   if (isStandalone) {
     try {
-      const r = await fetch('https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p?id=last&_=`, { cache: 'no-store' });
+      const r = await fetch(`https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p?id=last&_=${Date.now()}`, { cache: 'no-store' });
       if (r.ok) {
         const data = await r.json().catch(() => null);
         if (await applyPayload(refs, data)) return;
