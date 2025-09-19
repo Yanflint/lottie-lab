@@ -65,7 +65,13 @@ async function applyPayload(refs, data) {
     if (src) await setBackgroundFromSrc(refs, src, meta);
   }
   if (data.lot) {
-    try { const m = data.lot && data.lot.meta && data.lot.meta._lpPos; if (m && (typeof m.x==='number' || typeof m.y==='number')) setLotOffset(m.x||0, m.y||0); } catch {}
+    try {
+      const m = data?.lot?.meta?._lpOffset;
+      if (m && typeof m.x === 'number' && typeof m.y === 'number') setLotOffset(m.x || 0, m.y || 0);
+    
+    
+    try { layoutLottie(refs); } catch {}try { layoutLottie(); } catch {}
+} catch {}
     setLastLottie(data.lot);
     await loadLottieFromData(refs, data.lot); // учтёт state.loopOn
   }
