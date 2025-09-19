@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="ru">
+
 <head>
   <base href="/">
   <meta charset="utf-8" />
@@ -18,7 +19,7 @@
 
   <!-- favicon чтобы не было 404 -->
   <link rel="icon" type="image/png"
-        href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/Urn1ogAAAAASUVORK5CYII="/>
+    href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/Urn1ogAAAAASUVORK5CYII=" />
 
   <!-- Lottie -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js" defer></script>
@@ -31,14 +32,24 @@
     html.viewer .controls,
     html.viewer #mode,
     html.viewer #dropOverlay,
-    html.viewer .placeholder { display: none !important; }
-    html.viewer .wrapper::after { display: none !important; }
+    html.viewer .placeholder {
+      display: none !important;
+    }
+
+    html.viewer .wrapper::after {
+      display: none !important;
+    }
+
     html.viewer .wrapper {
       max-width: none !important;
       max-height: none !important;
       border-radius: 0 !important;
     }
-    html.viewer body, html.viewer html { background: #000; }
+
+    html.viewer body,
+    html.viewer html {
+      background: #000;
+    }
   </style>
 </head>
 
@@ -46,7 +57,7 @@
 <body>
   <script>
     // bootstrap viewer class ASAP
-    (function(){ try { if(/^\/s\//.test(location.pathname)) document.documentElement.classList.add('viewer'); } catch(e){} })();
+    (function () { try { if (/^\/s\//.test(location.pathname)) document.documentElement.classList.add('viewer'); } catch (e) { } })();
   </script>
 
   <div class="page">
@@ -76,7 +87,7 @@
       </div>
 
       <div id="mode" class="controls">
-<button class="btn secondary" id="restartBtn" title="Повторить анимацию" aria-label="Повтор">▶</button>
+        <button class="btn secondary" id="restartBtn" title="Повторить анимацию" aria-label="Повтор">▶</button>
         <label class="chk" title="Играть зацикленно">
           <input type="checkbox" id="loopChk"> Цикл
         </label>
@@ -91,24 +102,27 @@
   <div id="ver" class="ver"></div>
 
   <!-- детектор standalone для CSS (только класс, без визуальных изменений) -->
-<script type="module">
-  const isStandalone =
-    (window.matchMedia && (window.matchMedia('(display-mode: standalone)').matches ||
-                           window.matchMedia('(display-mode: fullscreen)').matches)) ||
-    (navigator.standalone === true);
+  <script type="module">
+    const isStandalone =
+      (window.matchMedia && (window.matchMedia('(display-mode: standalone)').matches ||
+        window.matchMedia('(display-mode: fullscreen)').matches)) ||
+      (navigator.standalone === true);
 
-  if (isStandalone) {
-    document.documentElement.classList.add('standalone');
+    if (isStandalone) {
+      document.documentElement.classList.add('standalone');
 
-    // Режим подгонки: ?fit=edge | ?fit=safe (по умолчанию safe)
-    const fit = new URL(location.href).searchParams.get('fit');
-    const mode = (fit === 'edge' || fit === 'safe') ? fit : 'safe';
-    document.documentElement.classList.add(`fit-${mode}`);
-  }
-</script>
+      // Режим подгонки: ?fit=edge | ?fit=safe (по умолчанию safe)
+      const fit = new URL(location.href).searchParams.get('fit');
+      const mode = (fit === 'edge' || fit === 'safe') ? fit : 'safe';
+      document.documentElement.classList.add(`fit-${mode}`);
+    }
+  </script>
 
 
   <!-- Абсолютный путь к модулю -->
   <script type="module" src="/src/app/main.js?v=0.01"></script>
+  <script src="build.js" defer></script>
+  <script src="build-tag.js" defer></script>
 </body>
+
 </html>
