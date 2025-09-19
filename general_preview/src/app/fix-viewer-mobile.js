@@ -1,8 +1,8 @@
 // src/app/fix-viewer-mobile.js
 (function(){
   try {
-    var isViewer = /^\/s\//.test(location.pathname);
-    if (!isViewer) return;
+    var p = String(location.pathname || '');
+    if (!(p.length >= 3 && p[0] === '/' && p[1] === 's' && p[2] === '/')) return;
     window.addEventListener('pageshow', function(ev){
       try {
         if (ev && ev.persisted) {
@@ -11,6 +11,6 @@
           window.dispatchEvent(e);
         }
       } catch(e){}
-    });
-  } catch(e){}
+    }, { passive: true });
+  } catch(e) {}
 })();

@@ -402,5 +402,3 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 /* stage pointer events for drag */
 #lotStage,.lot-stage{pointer-events:auto}
 .bg{pointer-events:none}
-
-#lottie{pointer-events:auto;}
