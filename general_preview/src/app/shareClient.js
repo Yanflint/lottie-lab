@@ -1,15 +1,13 @@
 // general_preview/src/app/shareClient.js
-// build yc7
+// build yc8 (silent)
 import { showSuccessToast, showErrorToast } from './updateToast.js';
 import { withLoading } from './utils.js';
 import { state, getLotOffset } from './state.js';
 
 // API endpoint (Yandex Cloud Function). No trailing slash.
 const API_BASE = 'https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p'.replace(/\/+$/, '');
-// We use only the base path to avoid extra CORS noise.
+// Use only the base path (no /share) to avoid CORS noise.
 const PATHS = [''];
-
-console.info('[shareClient] build yc7', new Date().toISOString(), { API_BASE });
 
 function bgMeta() {
   return {
@@ -43,9 +41,19 @@ async function collectPayloadOrThrow() {
   const lot = state.lastLottieJSON || null;
   const bg  = readCurrentBg();
 
-  if (!lot || !bg) {
-    const err = new Error('Загрузите графику');
+  if (!lot && !bg) {
+    const err = new Error('загрузите графику');
     err.code = 'NO_ASSETS';
+    throw err;
+  }
+  if (lot && !bg) {
+    const err = new Error('загрузите фон');
+    err.code = 'NO_BG';
+    throw err;
+  }
+  if (bg && !lot) {
+    const err = new Error('загрузите анимцию');
+    err.code = 'NO_LOTTIE';
     throw err;
   }
 
@@ -101,11 +109,19 @@ export function initShare({ onSuccess, onError } = {}) {
   async function handler(e) {
     try {
       e?.preventDefault?.();
-      // Pre-check: show a friendly toast if assets are missing
+      // Pre-check: specific toasts depending on what's missing
       const hasLot = !!state.lastLottieJSON;
       const hasBg  = !!readCurrentBg();
-      if (!hasLot || !hasBg) {
-        showErrorToast('Загрузите графику', btn);
+      if (!hasLot && !hasBg) {
+        showErrorToast('загрузите графику', btn);
+        return;
+      }
+      if (hasLot && !hasBg) {
+        showErrorToast('загрузите фон', btn);
+        return;
+      }
+      if (hasBg && !hasLot) {
+        showErrorToast('загрузите анимцию', btn);
         return;
       }
       const url = await withLoading(btn, () => createShareLink());
@@ -115,8 +131,13 @@ export function initShare({ onSuccess, onError } = {}) {
       if (out) { if ('value' in out) out.value = url; else out.textContent = url; }
       onSuccess?.(url);
     } catch (err) {
-      if (err?.code === 'NO_ASSETS') {
-        showErrorToast('Загрузите графику', btn);
+      const m = (err?.message || '').toLowerCase();
+      if (err?.code === 'NO_ASSETS' || m.includes('загрузите графику')) {
+        showErrorToast('загрузите графику', btn);
+      } else if (err?.code === 'NO_BG' || m.includes('загрузите фон')) {
+        showErrorToast('загрузите фон', btn);
+      } else if (err?.code === 'NO_LOTTIE' || m.includes('загрузите анимцию')) {
+        showErrorToast('загрузите анимцию', btn);
       } else {
         showErrorToast(err?.message || 'Share failed', btn);
       }
