@@ -1,15 +1,19 @@
 // src/app/pan.js
-// Перемещение Lottie мышкой/тачем (pointer events) — работает и если lotStage перекрыт.
+// Перемещение Lottie: pointer events на контейнере #preview с pointer capture.
+// Работает даже если слой лотти перекрыт другими элементами.
 import { setLotOffset, getLotOffset } from './state.js';
 import { layoutLottie } from './lottie.js';
 
-export function initLottiePan({ refs }) {
-  const stage = (refs?.lotStage) || (refs?.previewBox) || (refs?.preview) || document.getElementById('lotStage') || document.getElementById('preview');
-  if (!stage) return;
+function isUiElement(el) {
+  return !!(el && (el.closest('[data-ui]') || el.closest('button, [role="button"], input, textarea, select, [contenteditable="true"]')));
+}
 
-  // Разрешаем перетаскивание на тач-устройствах
-  try { stage.style.touchAction = 'none'; } catch {}
-  try { stage.style.cursor = 'grab'; } catch {}
+export function initLottiePan({ refs }) {
+  const container = document.getElementById('preview') || refs?.preview || document.body;
+  if (!container) return;
+
+  try { container.style.touchAction = 'none'; } catch {}
+  try { container.style.cursor = 'grab'; } catch {}
 
   let dragging = false;
   let startX = 0, startY = 0;
@@ -17,16 +21,15 @@ export function initLottiePan({ refs }) {
   let raf = 0;
 
   const onPointerDown = (e) => {
-    // Только primary button
-    if (e.button !== 0 && e.pointerType !== 'touch') return;
+    // primary mouse or touch; игнорим UI-клики
+    if ((e.pointerType !== 'touch' && e.button !== 0) || isUiElement(e.target)) return;
     dragging = true;
     startX = e.clientX; startY = e.clientY;
     orig = getLotOffset();
-    try { stage.setPointerCapture(e.pointerId); } catch {}
-    try { stage.style.cursor = 'grabbing'; } catch {}
+    try { container.setPointerCapture(e.pointerId); } catch {}
+    try { container.style.cursor = 'grabbing'; } catch {}
     document.documentElement.classList.add('dragging-lottie');
     e.preventDefault();
-    e.stopPropagation();
   };
 
   const onPointerMove = (e) => {
@@ -35,10 +38,7 @@ export function initLottiePan({ refs }) {
     const dy = e.clientY - startY;
     setLotOffset(orig.x + dx, orig.y + dy);
     if (!raf) {
-      raf = requestAnimationFrame(() => {
-        raf = 0;
-        layoutLottie();
-      });
+      raf = requestAnimationFrame(() => { raf = 0; layoutLottie(refs); });
     }
     e.preventDefault();
   };
@@ -46,25 +46,25 @@ export function initLottiePan({ refs }) {
   const onPointerUp = (e) => {
     if (!dragging) return;
     dragging = false;
-    try { stage.releasePointerCapture(e.pointerId); } catch {}
-    try { stage.style.cursor = 'grab'; } catch {}
+    try { container.releasePointerCapture(e.pointerId); } catch {}
+    try { container.style.cursor = 'grab'; } catch {}
     document.documentElement.classList.remove('dragging-lottie');
     e.preventDefault();
   };
 
-  stage.addEventListener('pointerdown', onPointerDown);
-  stage.addEventListener('pointermove', onPointerMove);
-  stage.addEventListener('pointerup', onPointerUp);
-  stage.addEventListener('pointercancel', onPointerUp);
-  stage.addEventListener('lostpointercapture', onPointerUp);
+  container.addEventListener('pointerdown', onPointerDown);
+  container.addEventListener('pointermove', onPointerMove);
+  container.addEventListener('pointerup', onPointerUp);
+  container.addEventListener('pointercancel', onPointerUp);
+  container.addEventListener('lostpointercapture', onPointerUp);
 
   return {
     destroy() {
-      stage.removeEventListener('pointerdown', onPointerDown);
-      stage.removeEventListener('pointermove', onPointerMove);
-      stage.removeEventListener('pointerup', onPointerUp);
-      stage.removeEventListener('pointercancel', onPointerUp);
-      stage.removeEventListener('lostpointercapture', onPointerUp);
+      container.removeEventListener('pointerdown', onPointerDown);
+      container.removeEventListener('pointermove', onPointerMove);
+      container.removeEventListener('pointerup', onPointerUp);
+      container.removeEventListener('pointercancel', onPointerUp);
+      container.removeEventListener('lostpointercapture', onPointerUp);
     }
   };
 }

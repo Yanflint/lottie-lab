@@ -402,3 +402,7 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 /* stage pointer events for drag */
 #lotStage,.lot-stage{pointer-events:auto}
 .bg{pointer-events:none}
+
+
+/* drag-hotfix */
+#preview, #lotStage { pointer-events: auto; touch-action: none; }
