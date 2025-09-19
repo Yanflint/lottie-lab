@@ -15,6 +15,8 @@ const __AR_DBG__ = (function(){
       if (q==='1'||q==='true'||q==='on') return true;
       const ls=(localStorage.getItem('lp_ar_debug')||'').toLowerCase();
       if (ls==='1'||ls==='true'||ls==='on') return true;
+      const ss=(sessionStorage.getItem('lp_ar_debug')||'').toLowerCase();
+      if (ss==='1'||ss==='true'||ss==='on') return true;
     }catch(e){}
     return false;
   }
