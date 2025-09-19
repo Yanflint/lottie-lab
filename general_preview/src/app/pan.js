@@ -10,15 +10,19 @@ export function initLottiePan({ refs }) {
   let dragging = false;
   let startX = 0, startY = 0;
   let orig = { x: 0, y: 0 };
+  let raf = 0;
+
+  const setCursor = (c) => { try { stage.style.cursor = c; } catch {} };
 
   const onMouseDown = (e) => {
     if (e.button !== 0) return;
-    if (e.ctrlKey || e.metaKey) return;
+    e.preventDefault();
     dragging = true;
     startX = e.clientX; startY = e.clientY;
-    try { const cur = getLotOffset(); orig = { x: cur?.x||0, y: cur?.y||0 }; } catch {}
-    document.body.classList.add('lp-grabbing');
-    e.preventDefault();
+    orig = getLotOffset();
+    setCursor('grabbing');
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
   };
 
   const onMouseMove = (e) => {
@@ -26,17 +30,71 @@ export function initLottiePan({ refs }) {
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
     setLotOffset(orig.x + dx, orig.y + dy);
-    try { layoutLottie(refs); } catch {}
+    if (!raf) {
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        layoutLottie();
+      });
+    }
   };
 
-  const endDrag = () => {
+  const onMouseUp = () => {
     if (!dragging) return;
     dragging = false;
-    document.body.classList.remove('lp-grabbing');
+    setCursor('grab');
+    window.removeEventListener('mousemove', onMouseMove);
+    window.removeEventListener('mouseup', onMouseUp);
   };
 
+  // Touch support
+  const onTouchStart = (e) => {
+    if (!e.touches || e.touches.length === 0) return;
+    const t = e.touches[0];
+    dragging = true;
+    startX = t.clientX; startY = t.clientY;
+    orig = getLotOffset();
+    setCursor('grabbing');
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onTouchEnd);
+    window.addEventListener('touchcancel', onTouchEnd);
+  };
+  const onTouchMove = (e) => {
+    if (!dragging || !e.touches || e.touches.length === 0) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+    setLotOffset(orig.x + dx, orig.y + dy);
+    if (!raf) {
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        layoutLottie();
+      });
+    }
+  };
+  const onTouchEnd = () => {
+    if (!dragging) return;
+    dragging = false;
+    setCursor('grab');
+    window.removeEventListener('touchmove', onTouchMove);
+    window.removeEventListener('touchend', onTouchEnd);
+    window.removeEventListener('touchcancel', onTouchEnd);
+  };
+
+  // Init cursor and listeners
+  setCursor('grab');
   stage.addEventListener('mousedown', onMouseDown);
-  window.addEventListener('mousemove', onMouseMove);
-  window.addEventListener('mouseup', endDrag);
-  window.addEventListener('blur', endDrag);
+  stage.addEventListener('touchstart', onTouchStart, { passive: false });
+
+  return {
+    destroy() {
+      stage.removeEventListener('mousedown', onMouseDown);
+      stage.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('touchcancel', onTouchEnd);
+    }
+  };
 }

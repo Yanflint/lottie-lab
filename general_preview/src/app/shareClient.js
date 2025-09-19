@@ -1,5 +1,5 @@
 // general_preview/src/app/shareClient.js
-// build yc9 (silent)
+// build yc10 (silent)
 import { showSuccessToast, showErrorToast } from './updateToast.js';
 import { withLoading } from './utils.js';
 import { state, getLotOffset } from './state.js';
@@ -42,17 +42,17 @@ async function collectPayloadOrThrow() {
   const bg  = readCurrentBg();
 
   if (!lot && !bg) {
-    const err = new Error('загрузите графику');
+    const err = new Error('Загрузите графику');
     err.code = 'NO_ASSETS';
     throw err;
   }
   if (lot && !bg) {
-    const err = new Error('загрузите фон');
+    const err = new Error('Загрузите фон');
     err.code = 'NO_BG';
     throw err;
   }
   if (bg && !lot) {
-    const err = new Error('загрузите анимцию');
+    const err = new Error('Загрузите анимацию');
     err.code = 'NO_LOTTIE';
     throw err;
   }
@@ -113,15 +113,15 @@ export function initShare({ onSuccess, onError } = {}) {
       const hasLot = !!state.lastLottieJSON;
       const hasBg  = !!readCurrentBg();
       if (!hasLot && !hasBg) {
-        showErrorToast('загрузите графику', btn);
+        showErrorToast('Загрузите графику', btn);
         return;
       }
       if (hasLot && !hasBg) {
-        showErrorToast('загрузите фон', btn);
+        showErrorToast('Загрузите фон', btn);
         return;
       }
       if (hasBg && !hasLot) {
-        showErrorToast('загрузите анимцию', btn);
+        showErrorToast('Загрузите анимацию', btn);
         return;
       }
       const url = await withLoading(btn, () => createShareLink());
@@ -132,12 +132,12 @@ export function initShare({ onSuccess, onError } = {}) {
       onSuccess?.(url);
     } catch (err) {
       const m = (err?.message || '').toLowerCase();
-      if (err?.code === 'NO_ASSETS' || m.includes('загрузите графику')) {
-        showErrorToast('загрузите графику', btn);
-      } else if (err?.code === 'NO_BG' || m.includes('загрузите фон')) {
-        showErrorToast('загрузите фон', btn);
-      } else if (err?.code === 'NO_LOTTIE' || m.includes('загрузите анимцию')) {
-        showErrorToast('загрузите анимцию', btn);
+      if (err?.code === 'NO_ASSETS' || m.includes('Загрузите графику')) {
+        showErrorToast('Загрузите графику', btn);
+      } else if (err?.code === 'NO_BG' || m.includes('Загрузите фон')) {
+        showErrorToast('Загрузите фон', btn);
+      } else if (err?.code === 'NO_LOTTIE' || m.includes('Загрузите анимацию')) {
+        showErrorToast('Загрузите анимацию', btn);
       } else {
         showErrorToast(err?.message || 'Share failed', btn);
       }

@@ -68,7 +68,9 @@ async function applyPayload(refs, data) {
     try {
       const m = data?.lot?.meta?._lpOffset;
       if (m && typeof m.x === 'number' && typeof m.y === 'number') setLotOffset(m.x || 0, m.y || 0);
-    } catch {}
+    
+    try { layoutLottie(); } catch {}
+} catch {}
     setLastLottie(data.lot);
     await loadLottieFromData(refs, data.lot); // учтёт state.loopOn
   }
