@@ -5,7 +5,7 @@ import { withLoading } from './utils.js';
 import { state, getLotOffset } from './state.js';
 
 // API endpoint (Yandex Cloud Function). No trailing slash.
-const API_BASE = 'https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p'.replace(/\/+$/, '');
+export const API_BASE = 'https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p'.replace(/\/+$/, '');
 // Use only the base path (no /share) to avoid CORS noise.
 const PATHS = [''];
 

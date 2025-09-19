@@ -1,7 +1,52 @@
 // [ADDED] atomic-swap imports
+import { API_BASE as SHARE_API_BASE } from './shareClient.js';
 import { setBackgroundFromSrc, loadLottieFromData, layoutLottie, setLoop } from './lottie.js';
 import { setLotOffset, setLastLottie, setLastBgMeta, state } from './state.js';
 import { showUpdateToast } from './updateToast.js';
+
+
+// === AUTOREFRESH DEBUG (opt-in via ?ar_debug=1 or localStorage 'lp_ar_debug') ===
+const __AR_DBG__ = (function(){
+  function flagOn(){
+    try{
+      const sp = new URL(location.href).searchParams;
+      const q = (sp.get('ar_debug')||'').toLowerCase();
+      if (q==='1'||q==='true'||q==='on') return true;
+      const ls=(localStorage.getItem('lp_ar_debug')||'').toLowerCase();
+      if (ls==='1'||ls==='true'||ls==='on') return true;
+    }catch(e){}
+    return false;
+  }
+  function ensureOverlay(){
+    try{
+      if (!flagOn()) return null;
+      let el = document.getElementById('ar-debug');
+      if (!el){
+        el = document.createElement('div');
+        el.id = 'ar-debug';
+        el.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:99999;background:rgba(0,0,0,.7);color:#0f0;font:12px/1.4 monospace;padding:6px 8px;border-radius:6px;max-width:60vw;white-space:pre-wrap;pointer-events:none;';
+        document.body.appendChild(el);
+      }
+      return el;
+    }catch(e){ return null; }
+  }
+  function log(msg, meta){
+    try{
+      console.log('[autoRefresh]', msg, meta||'');
+      const el = ensureOverlay();
+      if (el){
+        const t = (new Date()).toLocaleTimeString();
+        const m = typeof msg==='string' ? msg : JSON.stringify(msg);
+        if (!el.__lines) el.__lines = [];
+        const line = t+' — '+m+(meta?(' '+JSON.stringify(meta)):''); 
+        el.__lines.push(line);
+        if (el.__lines.length>8) el.__lines.shift();
+        el.textContent = el.__lines.join('\n');
+      }
+    }catch(e){}
+  }
+  return { flagOn, log, ensureOverlay };
+})();
 
 // src/app/autoRefresh.js
 // Live-пулинг для /s/last: 5с ±20% (только когда вкладка видима).
@@ -10,6 +55,9 @@ import { showUpdateToast } from './updateToast.js';
 
 const BASE_INTERVAL = 5000;
 const JITTER = 0.20;
+// Derive API endpoint candidates from shareClient (YC functions) and local Netlify
+const __API_BASE = (typeof SHARE_API_BASE==='string' && SHARE_API_BASE) ? SHARE_API_BASE.replace(/\/+$/, '') : '';
+const API_CANDIDATES = __API_BASE ? [`${__API_BASE}/share`, '/api/share'] : ['/api/share'];
 const MAX_BACKOFF = 30000;
 const TOAST_FLAG = 'lp_show_toast';
 
@@ -116,14 +164,29 @@ function isViewingLast() {
       const ss = (sessionStorage.getItem('lp_follow_last') || '').toLowerCase();
       if (ss === '1' || ss === 'true' || ss === 'yes' || ss === 'on') return true;
     } catch(e){}
+    // Cookie fallback
+    try {
+      const ck = document.cookie || '';
+      if (/\blp_follow_last\s*=\s*(1|true|on)\b/i.test(ck)) return true;
+    } catch(e){}
   } catch(e){}
   return false;
 }
 function jittered(ms){const f=1+(Math.random()*2-1)*JITTER;return Math.max(1000,Math.round(ms*f));}
 async function fetchRev(){
-  const r=await fetch('/api/share?id=last&rev=1',{cache:'no-store'});
-  if(!r.ok) throw new Error('bad '+r.status);
-  const j=await r.json(); return String(j.rev||'');
+  for (const base of API_CANDIDATES){
+    try{
+      const u = `${base}?id=last&rev=1`;
+      const r = await fetch(u, { cache: 'no-store' });
+      if (!r.ok){ try{ __AR_DBG__.log('fetchRev non-OK', { base, status: r.status }); }catch(e){}; continue; }
+      const j = await r.json(); 
+      return String(j.rev||'');
+    }catch(e){
+      try{ __AR_DBG__.log('fetchRev error', { base, error: String(e) }); }catch(_){}
+      continue;
+    }
+  }
+  throw new Error('all rev endpoints failed');
 }
 
 
@@ -134,7 +197,7 @@ async function fetchStableLastPayload(maxMs=2000){
   const deadline = Date.now() + maxMs;
   while (Date.now() < deadline){
     // 1) fetch payload with no-store and capture ETag
-    const pr = await fetch('/api/share?id=last', { cache: 'no-store' });
+    const pr = await fetch(`${API_CANDIDATES[0]}?id=last`, { cache: 'no-store' });
     if (!pr.ok) throw new Error('payload get failed '+pr.status);
     const et = (pr.headers.get('ETag') || '').replace(/"/g,'');
     const data = await pr.json().catch(()=>null);
@@ -142,7 +205,7 @@ async function fetchStableLastPayload(maxMs=2000){
     // 2) fetch current rev
     let revNow = '';
     try{
-      const rr = await fetch('/api/share?id=last&rev=1', { cache: 'no-store' });
+      const rr = await fetch(`${API_CANDIDATES[0]}?id=last&rev=1`, { cache: 'no-store' });
       if (rr.ok){ const j = await rr.json().catch(()=>({})); revNow = String(j.rev||''); }
     }catch(e){}
 
@@ -154,32 +217,33 @@ async function fetchStableLastPayload(maxMs=2000){
     await sleep(250);
   }
   // final attempt return whatever we have (best effort)
-  const pr2 = await fetch('/api/share?id=last', { cache: 'no-store' });
+  const pr2 = await fetch(`${API_CANDIDATES[0]}?id=last`, { cache: 'no-store' });
   const data2 = await pr2.json().catch(()=>null);
   const et2 = (pr2.headers.get('ETag') || '').replace(/"/g,'');
   return { data: data2, etag: et2 };
 }
 
 export function initAutoRefreshIfViewingLast(){
-  if(!isViewingLast()) return;
+  const _ivl = isViewingLast(); if(! _ivl){ __AR_DBG__.log('Skip: not viewing last'); return; } __AR_DBG__.log('Init auto-refresh');
 
   let baseline=null, timer=null, currentDelay=BASE_INTERVAL, inFlight=false;
+  window.__AR_STATE = { baseline:null, lastRev:null, currentDelay:BASE_INTERVAL, inFlight:false, lastTick:0 };
 
-  const schedule=(d=currentDelay)=>{clearTimeout(timer); timer=setTimeout(tick,jittered(d));};
+  const schedule=(d=currentDelay)=>{ clearTimeout(timer); const jd=jittered(d); __AR_DBG__.log('schedule', { in: jd }); timer=setTimeout(tick, jd); };
   const reset=()=>{currentDelay=BASE_INTERVAL;};
 
-  const tick=async()=>{
+  const tick=async()=>{ window.__AR_STATE.lastTick = Date.now(); __AR_DBG__.log('tick');
     if(inFlight) return;
     if(document.visibilityState!=='visible'){schedule(currentDelay); return;}
     inFlight=true;
     try{
-      const rev=await fetchRev();
-      if(!baseline){ baseline=rev; }
-      else if(rev && rev!==baseline){
+      const rev=await fetchRev(); window.__AR_STATE.lastRev = rev; __AR_DBG__.log('rev', { rev });
+      if(!baseline){ baseline=rev; window.__AR_STATE.baseline = baseline; __AR_DBG__.log('baseline set', { baseline }); }
+      else if(rev && rev!==baseline){ __AR_DBG__.log('rev changed', { from: baseline, to: rev });
   try {
     const { data } = await fetchStableLastPayload(4000);
     if (data && typeof data === 'object') {
-      const ok = await __applyAtomicUpdate(data);
+      __AR_DBG__.log('try atomic update'); const ok = await __applyAtomicUpdate(data); __AR_DBG__.log('atomic result', { ok });
       if (ok) {
         try { baseline = rev; } catch(e) {}
         try { showUpdateToast('Обновлено'); } catch(e) {}
@@ -193,7 +257,7 @@ export function initAutoRefreshIfViewingLast(){
   }
   // Fallback to old behaviour if something goes wrong
   try{ sessionStorage.setItem(TOAST_FLAG,'1'); }catch(e){}
-  location.replace(location.href);
+  __AR_DBG__.log('fallback: hard reload'); location.replace(location.href);
   return;
 }
 
@@ -201,7 +265,7 @@ export function initAutoRefreshIfViewingLast(){
 
       reset();
     }catch{
-      currentDelay=Math.min(MAX_BACKOFF, Math.max(BASE_INTERVAL, currentDelay*2));
+      __AR_DBG__.log('error/backoff'); currentDelay=Math.min(MAX_BACKOFF, Math.max(BASE_INTERVAL, currentDelay*2));
     }finally{
       inFlight=false;
       schedule(currentDelay);
