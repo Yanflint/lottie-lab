@@ -1,4 +1,5 @@
 // general_preview/src/app/shareClient.js
+console.info('[shareClient] build yc4', new Date().toISOString());
 import { showSuccessToast, showErrorToast } from './updateToast.js';
 import { withLoading } from './utils.js';
 
@@ -47,7 +48,7 @@ export function setShareKey(key) {
 
 export async function createShareLink(key) {
   const k = (key && String(key).trim()) || detectKey();
-  if (!k) throw new Error('initShare: не удалось получить key (проверь data-key/#projectKey)');
+  if (!k) throw new Error('initShare: legacy key path disabled (проверь data-key/#projectKey)');
   let lastErr = null;
   for (const p of PATHS) {
     try {
