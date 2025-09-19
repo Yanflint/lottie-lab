@@ -1,3 +1,4 @@
+// build-2025-09-19-02
 // build-2025-09-19-01
 // [ADDED] atomic-swap imports
 import { API_BASE as SHARE_API_BASE } from './shareClient.js';
@@ -50,6 +51,8 @@ const __AR_DBG__ = (function(){
       }
     }catch(e){}
   }
+  try{ if (flagOn()) { if (document.readyState!=='loading') ensureOverlay(); else document.addEventListener('DOMContentLoaded', ensureOverlay, { once: true }); } }catch(e){}
+  /* DBG_DOM_READY */
   return { flagOn, log, ensureOverlay };
 })();
 

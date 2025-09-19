@@ -1,5 +1,7 @@
 // build-2025-09-19-01
 // src/app/main.js
+function __isStandalone(){try{return (window.matchMedia && (window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: fullscreen)').matches)) || (typeof navigator!=='undefined' && navigator.standalone===true);}catch(e){return false;}}
+
 
 // 1) Отметка standalone (A2HS)
 const isStandalone =
@@ -71,6 +73,26 @@ function applyVersion(refs) {
 // 5) Init
 window.addEventListener('DOMContentLoaded', async () => {
   const refs = collectRefs();
+// PWA viewer: follow 'last' if not already
+(function(){
+  try{
+    if (!__isStandalone()) return;
+    var p = location.pathname;
+    if (!/^\/s\//.test(p)) return;
+    var id = decodeURIComponent(p.split('/')[2]||'');
+    var qp = new URL(location.href).searchParams;
+    if (qp.get('nofollow')==='1') return;
+    if (id && id!=='last' && id!=='__last__') {
+      sessionStorage.setItem('lp_follow_last','1');
+      var u = new URL('/s/last', location.origin);
+      ['fit','ar_debug'].forEach(k=>{ var v=qp.get(k); if(v) u.searchParams.set(k,v); });
+      u.searchParams.set('follow','1');
+      u.searchParams.set('v','build-2025-09-19-02');
+      location.replace(u.toString());
+    }
+  }catch(e){}
+})();
+/* PWA_VIEWER_FORCE_LAST */
   applyVersion(refs);
 showToastIfFlag(); // покажет "Обновлено", если страница была перезагружена авто-рефрешом
 
@@ -209,4 +231,21 @@ window.addEventListener('resize', () => { try { layoutLottie(refs); } catch {} }
     }
   } catch {}
 
-});
+})
+// Ensure PWA always lands in /s/last via launch
+(function(){
+  try{
+    if (!__isStandalone()) return;
+    var p = location.pathname;
+    if (!/^\/s\//.test(p)) {
+      var u = new URL('/viewer/launch.html', location.origin);
+      u.searchParams.set('fit','vv');
+      u.searchParams.set('follow','1');
+      u.searchParams.set('v','build-2025-09-19-02');
+      if (new URL(location.href).searchParams.get('ar_debug')) u.searchParams.set('ar_debug','1');
+      location.replace(u.toString());
+    }
+  }catch(e){}
+})();
+/* PWA_BOOTSTRAP_REDIRECT */
+;
