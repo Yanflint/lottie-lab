@@ -61,6 +61,7 @@ async function collectPayloadOrThrow() {
     lot.meta = lot.meta || {};
     const off = getLotOffset();
     lot.meta._lpOffset = { x: +off.x || 0, y: +off.y || 0 };
+    lot.meta._lpPos    = { x: +off.x || 0, y: +off.y || 0 };
     if (state.lastBgMeta && (state.lastBgMeta.fileName || state.lastBgMeta.assetScale)) {
       lot.meta._lpBgMeta = { fileName: state.lastBgMeta.fileName || '', assetScale: +state.lastBgMeta.assetScale || 1 };
     }

@@ -3,6 +3,7 @@ import { API_BASE as SHARE_API_BASE } from './shareClient.js';
 import { setBackgroundFromSrc, loadLottieFromData, layoutLottie, setLoop } from './lottie.js';
 import { setLotOffset, setLastLottie, setLastBgMeta, state } from './state.js';
 import { showUpdateToast } from './updateToast.js';
+import { afterTwoFrames } from './utils.js';
 
 
 // === AUTOREFRESH DEBUG (opt-in via ?ar_debug=1 or localStorage 'lp_ar_debug') ===
@@ -124,9 +125,10 @@ async function __applyAtomicUpdate(data){
   } catch(e) {}
   if (bgSrc) { try { await __preloadImage(bgSrc); } catch(e) {} }
 
-  // C) Read offset from lot meta (_lpPos) to avoid jump
+  // C) Read offset from lot meta (_lpOffset/_lpPos) to avoid jump
+  // __AR_OFFSET_RELAYOUT__
   try {
-    const m = data.lot && data.lot.meta && data.lot.meta._lpPos;
+    let m = data.lot && data.lot.meta && (data.lot.meta._lpOffset || data.lot.meta._lpPos);
     if (m && typeof m.x==='number' && typeof m.y==='number') setLotOffset(m.x||0, m.y||0);
   } catch(e) {}
 
