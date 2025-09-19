@@ -57,7 +57,7 @@ const BASE_INTERVAL = 5000;
 const JITTER = 0.20;
 // Derive API endpoint candidates from shareClient (YC functions) and local Netlify
 const __API_BASE = (typeof SHARE_API_BASE==='string' && SHARE_API_BASE) ? SHARE_API_BASE.replace(/\/+$/, '') : '';
-const API_CANDIDATES = __API_BASE ? [`${__API_BASE}/share`, '/api/share'] : ['/api/share'];
+const API_CANDIDATES = __API_BASE ? [`${__API_BASE}`, '/api/share'] : ['/api/share'];
 const MAX_BACKOFF = 30000;
 const TOAST_FLAG = 'lp_show_toast';
 
