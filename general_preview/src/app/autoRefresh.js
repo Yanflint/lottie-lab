@@ -153,10 +153,9 @@ function isViewerPath(){
 function isViewingLast() {
   try {
     if (!isViewerPath()) return false; // Only in /s/*
-    const p = location.pathname;
-    // /s/{id}
-    if (p.startsWith('/s/')) {
-      const id = decodeURIComponent(p.split('/')[2] || '');
+    const m = location.pathname.match(/(?:^|\/)s\/([^\/?#]+)/);
+    if (m) {
+      const id = decodeURIComponent(m[1] || '');
       if (id === 'last' || id === '__last__') return true;
     }
     const u = new URL(location.href);

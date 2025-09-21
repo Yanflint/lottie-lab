@@ -10,7 +10,7 @@ const isStandalone =
 if (isStandalone) document.documentElement.classList.add('standalone');
 
 // Viewer mode on /s/*
-const isViewer = /^\/s\//.test(location.pathname);
+const isViewer = /(?:^|\/)s\/[^/]/.test(location.pathname);
 if (isViewer) document.documentElement.classList.add('viewer');
 
 // [PATCH] Boot hard refresh once per session, to avoid stale payload
