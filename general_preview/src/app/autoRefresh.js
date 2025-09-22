@@ -1,3 +1,12 @@
+// --- PWA visibility gating control ---
+const IS_STANDALONE = (typeof window !== 'undefined') && (
+  (window.matchMedia && (window.matchMedia('(display-mode: standalone)').matches ||
+                         window.matchMedia('(display-mode: fullscreen)').matches ||
+                         window.matchMedia('(display-mode: minimal-ui)').matches)) ||
+  (typeof navigator !== 'undefined' && navigator.standalone === true) // iOS Safari
+);
+const GATE_BY_VISIBILITY = !IS_STANDALONE; // in PWA do not gate ticks by document.visibilityState
+// --------------------------------------
 // [ADDED] atomic-swap imports
 import { API_BASE as SHARE_API_BASE } from './shareClient.js';
 import { setBackgroundFromSrc, loadLottieFromData, layoutLottie, setLoop } from './lottie.js';
@@ -234,7 +243,7 @@ export function initAutoRefreshIfViewingLast(){
 
   const tick=async()=>{ window.__AR_STATE.lastTick = Date.now(); __AR_DBG__.log('tick');
     if(inFlight) return;
-    if(document.visibilityState!=='visible'){schedule(currentDelay); return;}
+    if (GATE_BY_VISIBILITY && document.visibilityState !== 'visible'){schedule(currentDelay); return;}
     inFlight=true;
     try{
       const rev=await fetchRev(); window.__AR_STATE.lastRev = rev; __AR_DBG__.log('rev', { rev });
@@ -272,13 +281,13 @@ export function initAutoRefreshIfViewingLast(){
     }
   };
 
-  const onVisible=()=>{ if(document.visibilityState==='visible'){ reset(); clearTimeout(timer); tick(); } };
-  const onPointer=()=>{ if(document.visibilityState==='visible'){ reset(); clearTimeout(timer); tick(); } };
+  const onVisible=()=>{ if (!GATE_BY_VISIBILITY || document.visibilityState === 'visible'){ reset(); clearTimeout(timer); tick(); } };
+  const onPointer=()=>{ if (!GATE_BY_VISIBILITY || document.visibilityState === 'visible'){ reset(); clearTimeout(timer); tick(); } };
 
   document.addEventListener('visibilitychange', onVisible);
   window.addEventListener('focus', onVisible);
   window.addEventListener('pageshow', onVisible);
   window.addEventListener('pointerdown', onPointer, {passive:true});
 
-  (async()=>{ try{ baseline=await fetchRev(); }catch(e){} if(document.visibilityState==='visible'){ schedule(BASE_INTERVAL);} })();
+  (async()=>{ try{ baseline=await fetchRev(); }catch(e){} if (!GATE_BY_VISIBILITY || document.visibilityState === 'visible'){ schedule(BASE_INTERVAL);} })();
 }
