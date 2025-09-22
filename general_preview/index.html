@@ -142,6 +142,23 @@ html.viewer .bg img {
 html.booting .controls,
 html.booting #mode,
 html.booting .placeholder { display: none !important; }
+
+/* === Desktop viewer: behave like editor (no controls), no cropping === */
+@media (hover: hover) and (pointer: fine) {
+  html.viewer .page { padding: 16px !important; }
+  html.viewer .app  { width: 100% !important; max-width: 1000px !important; align-items: center !important; }
+  html.viewer .wrapper {
+    /* remove forced 1:1 and 100vw rules */
+    width: auto !important;
+    height: var(--preview-h, 800px) !important;
+    max-height: calc(100dvh - var(--controls-space, 0px)) !important;
+    max-width:  min(100vw - 32px, 1000px) !important;
+    aspect-ratio: auto !important;
+    margin: 0 auto !important;
+  }
+  /* background behaves like in editor */
+  html.viewer .bg img { width: auto !important; height: 100% !important; }
+}
 </style>
 </head>
 

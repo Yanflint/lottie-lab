@@ -249,6 +249,19 @@ const autoplay = !!state.loopOn;
         item.appendChild(mount);
         // set item base size from composition if available
         try { if (lotJson && lotJson.w && lotJson.h) { item.style.width = `${lotJson.w}px`; item.style.height = `${lotJson.h}px`; } } catch {}
+
+// Fallback size if composition dimensions are missing
+try {
+  const bw = (state.lastBgSize && state.lastBgSize.w) || 0;
+  const bh = (state.lastBgSize && state.lastBgSize.h) || 0;
+  if ((!item.style.width || item.style.width === '0px' || item.style.width === '') &&
+      (!item.style.height || item.style.height === '0px' || item.style.height === '')) {
+    const fw = bw > 0 ? bw : 512;
+    const fh = bh > 0 ? bh : fw;
+    item.style.width  = typeof fw === 'number' ? `${fw}px` : fw;
+    item.style.height = typeof fh === 'number' ? `${fh}px` : fh;
+  }
+} catch {}
         // attach and register layer in state
         if (stage) stage.appendChild(item);
         try { addLayer({ id: layerId, name: (lotJson?.nm || 'Layer') }); } catch {}
@@ -275,6 +288,19 @@ const autoplay = !!state.loopOn;
         item.appendChild(mount);
         // set item base size from composition if available
         try { if (lotJson && lotJson.w && lotJson.h) { item.style.width = `${lotJson.w}px`; item.style.height = `${lotJson.h}px`; } } catch {}
+
+// Fallback size if composition dimensions are missing
+try {
+  const bw = (state.lastBgSize && state.lastBgSize.w) || 0;
+  const bh = (state.lastBgSize && state.lastBgSize.h) || 0;
+  if ((!item.style.width || item.style.width === '0px' || item.style.width === '') &&
+      (!item.style.height || item.style.height === '0px' || item.style.height === '')) {
+    const fw = bw > 0 ? bw : 512;
+    const fh = bh > 0 ? bh : fw;
+    item.style.width  = typeof fw === 'number' ? `${fw}px` : fw;
+    item.style.height = typeof fh === 'number' ? `${fh}px` : fh;
+  }
+} catch {}
         // attach and register layer in state
         if (stage) stage.appendChild(item);
         try { addLayer({ id: layerId, name: (lotJson?.nm || 'Layer') }); } catch {}
