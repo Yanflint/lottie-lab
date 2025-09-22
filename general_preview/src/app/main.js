@@ -1,7 +1,5 @@
 // src/app/main.js
 
-import './multiCore.js';
-
 // 1) Отметка standalone (A2HS)
 const isStandalone =
   (window.matchMedia &&
@@ -38,6 +36,7 @@ import { initAutoRefreshIfViewingLast } from './autoRefresh.js'; // ← НОВО
 import { showToastIfFlag } from './updateToast.js';
 import { bumpLotOffset } from './state.js';
 import { initLottiePan }  from './pan.js';
+import { moveSelectedBy } from './multi.js';
 
 // 3) DOM-refs
 function collectRefs() {
@@ -213,3 +212,16 @@ window.addEventListener('resize', () => { try { layoutLottie(refs); } catch {} }
   } catch {}
 
 });
+
+// Дополнительные хоткеи для мультирежима: стрелки двигают выбранную лотти
+window.addEventListener('keydown', (e) => {
+  const t = e.target;
+  const isEditable = !!(t && (t.closest?.('input, textarea') || t.isContentEditable || t.getAttribute?.('role') === 'textbox'));
+  if (isEditable) return;
+
+  const step = e.shiftKey ? 10 : 1;
+  if (e.code === 'ArrowLeft')  { moveSelectedBy(-step, 0); e.preventDefault(); }
+  if (e.code === 'ArrowRight') { moveSelectedBy(+step, 0); e.preventDefault(); }
+  if (e.code === 'ArrowUp')    { moveSelectedBy(0, -step); e.preventDefault(); }
+  if (e.code === 'ArrowDown')  { moveSelectedBy(0, +step); e.preventDefault(); }
+}, { passive: false });

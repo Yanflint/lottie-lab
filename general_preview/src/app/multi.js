@@ -1,140 +1,226 @@
-const stage = document.getElementById('stage');
-const filesInput = document.getElementById('lotFiles');
-const loopChk = document.getElementById('loopChk');
-const restartBtn = document.getElementById('restartBtn');
 
-/** Model */
-const items = new Map(); // id -> { el, anim, x, y, w, h, name, loop }
-let selectedId = null;
-let nextId = 1;
+// src/app/multi.js
+// Простая "мультитрековая" прослойка для нескольких Lottie одновременно.
+// Не трогаем старую одно-лотовую логику — используем её как fallback.
+// Здесь каждая лотти — это собственный контейнер внутри #lotStage.
 
-// Helpers
-function selectItem(id) {
-  if (selectedId && items.has(selectedId)) {
-    const prev = items.get(selectedId);
-    prev.el.classList.remove('selected');
-    const ov = prev.el.querySelector('.selection-overlay');
-    if (ov) ov.remove();
-  }
-  selectedId = id;
-  if (id && items.has(id)) {
-    const it = items.get(id);
-    it.el.classList.add('selected');
-    const ov = document.createElement('div');
-    ov.className = 'selection-overlay';
-    it.el.appendChild(ov);
-    // reflect loop state to checkbox
-    loopChk.checked = !!it.loop;
-    // focus stage so arrows work
-    stage.focus();
-    // bring to front
-    it.el.style.zIndex = String(1000 + id);
-  }
+import { pickEngine } from './engine.js';
+
+const BLUE = 'rgba(30,144,255,1)';        // dodgerblue
+const BLUE_BG = 'rgba(30,144,255,0.10)';  // 10% заливка
+
+/** @typedef {Object} LotInstance
+ *  @property {string} id
+ *  @property {HTMLElement} el          // контейнер
+ *  @property {any} player              // lottie-web аниматор
+ *  @property {{x:number,y:number}} pos // позиция в px
+ *  @property {boolean} loop
+ *  @property {number} w
+ *  @property {number} h
+ */
+
+const state = {
+  refs: null,
+  instances: /** @type {LotInstance[]} */([]),
+  selectedId: null,
+};
+
+function makeId() {
+  return 'lot_' + Math.random().toString(36).slice(2, 9);
 }
 
-function setItemPos(it, x, y) {
-  it.x = x; it.y = y;
-  it.el.style.transform = `translate({x}px, {y}px)`;
-}
-
-function addItemFromJSON(name, data) {
+export function initMulti(refs) {
+  state.refs = refs;
+  // Обеспечим относительное позиционирование сцены
   try {
-    const lot = (typeof data === 'string') ? JSON.parse(data) : data;
-    const w = +lot.w || 512, h = +lot.h || 512;
-    const id = nextId++;
-    const el = document.createElement('div');
-    el.className = 'lottie-item';
-    el.dataset.id = String(id);
-    el.style.width = w + 'px';
-    el.style.height = h + 'px';
-    stage.appendChild(el);
-    const anim = window.lottie.loadAnimation({
-      container: el,
-      renderer: 'svg',
-      loop: false,
-      autoplay: true,
-      animationData: lot
-    });
-    const it = { id, el, anim, x: 0, y: 0, w, h, name, loop: false };
-    items.set(id, it);
-
-    // interactions
-    el.addEventListener('mousedown', (e) => {
-      selectItem(id);
-      const startX = e.clientX, startY = e.clientY;
-      const ox = it.x, oy = it.y;
-      let dragging = true;
-      el.classList.add('dragging');
-      const onMove = (ev) => {
-        if (!dragging) return;
-        const dx = ev.clientX - startX;
-        const dy = ev.clientY - startY;
-        setItemPos(it, ox + dx, oy + dy);
-      };
-      const onUp = () => {
-        dragging = false;
-        el.classList.remove('dragging');
-        window.removeEventListener('mousemove', onMove);
-        window.removeEventListener('mouseup', onUp);
-      };
-      window.addEventListener('mousemove', onMove);
-      window.addEventListener('mouseup', onUp);
-    });
-
-    el.addEventListener('click', () => selectItem(id));
-
-    // initial slight offset to avoid perfect overlap
-    setItemPos(it, (id-1)*12, (id-1)*12);
-    selectItem(id);
-  } catch (e) {
-    console.error('Failed to add Lottie:', e);
-  }
+    if (refs?.lotStage) {
+      refs.lotStage.style.position = 'relative';
+      refs.lotStage.style.userSelect = 'none';
+    }
+  } catch {}
+  // Делегируем клавиши для перемещения
+  window.addEventListener('keydown', onKeyMove, { passive: false });
 }
 
-filesInput.addEventListener('change', async (e) => {
-  const files = Array.from(e.target.files || []);
-  for (const file of files) {
-    const text = await file.text();
-    addItemFromJSON(file.name, text);
-  }
-  filesInput.value = '';
-});
+export function hasAny() { return state.instances.length > 0; }
+export function getSelected() {
+  return state.instances.find(it => it.id === state.selectedId) || null;
+}
+export function selectById(id) {
+  const inst = state.instances.find(it => it.id === id);
+  if (inst) select(inst);
+}
+export function setLoopForSelected(on) {
+  const inst = getSelected();
+  if (!inst) return;
+  inst.loop = !!on;
+  try {
+    if (inst.player && typeof inst.player.loop === 'boolean') {
+      inst.player.loop = !!on;
+    } else if (inst.player?.setLoop) {
+      inst.player.setLoop(!!on);
+    }
+  } catch {}
+}
+export function restartSelected() {
+  const inst = getSelected();
+  if (!inst || !inst.player) return;
+  try {
+    if (inst.player.stop) { inst.player.stop(); }
+    if (inst.player.goToAndStop) { inst.player.goToAndStop(0, true); }
+    if (inst.player.play) { inst.player.play(); }
+  } catch {}
+}
 
-// Loop checkbox controls ONLY selected item
-loopChk.addEventListener('change', () => {
-  if (!selectedId || !items.has(selectedId)) return;
-  const it = items.get(selectedId);
-  it.loop = !!loopChk.checked;
-  if (it.anim) it.anim.loop = it.loop;
-});
+export function moveSelectedBy(dx, dy) {
+  const inst = getSelected();
+  if (!inst) return;
+  inst.pos.x += dx; inst.pos.y += dy;
+  applyTransform(inst);
+}
 
-// Restart only selected
-restartBtn.addEventListener('click', () => {
-  if (!selectedId || !items.has(selectedId)) return;
-  const it = items.get(selectedId);
-  try { it.anim.stop(); it.anim.goToAndPlay(0,true); } catch { it.anim?.play?.(); }
-});
-
-// Keyboard move
-stage.addEventListener('keydown', (e) => {
-  if (!selectedId || !items.has(selectedId)) return;
-  const it = items.get(selectedId);
+function onKeyMove(e) {
+  // стрелки двигают выбранную лотти
+  const codes = ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];
+  if (!codes.includes(e.code)) return;
+  // не мешаем когда вводится в поле
+  const t = e.target;
+  const isEditable = !!(t && (t.closest?.('input, textarea') || t.isContentEditable || t.getAttribute?.('role') === 'textbox'));
+  if (isEditable) return;
   const step = e.shiftKey ? 10 : 1;
-  if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)) e.preventDefault();
-  if (e.key === 'ArrowLeft')  setItemPos(it, it.x - step, it.y);
-  if (e.key === 'ArrowRight') setItemPos(it, it.x + step, it.y);
-  if (e.key === 'ArrowUp')    setItemPos(it, it.x, it.y - step);
-  if (e.key === 'ArrowDown')  setItemPos(it, it.x, it.y + step);
-});
-
-// Drag & drop support
-stage.addEventListener('dragover', (e) => e.preventDefault());
-stage.addEventListener('drop', async (e) => {
+  if (e.code === 'ArrowLeft')  moveSelectedBy(-step, 0);
+  if (e.code === 'ArrowRight') moveSelectedBy(+step, 0);
+  if (e.code === 'ArrowUp')    moveSelectedBy(0, -step);
+  if (e.code === 'ArrowDown')  moveSelectedBy(0, +step);
   e.preventDefault();
-  const files = Array.from(e.dataTransfer?.files || [])
-    .filter(f => /\.json$|\.lottie$/i.test(f.name));
-  for (const f of files) {
-    const text = await f.text();
-    addItemFromJSON(f.name, text);
+}
+
+function applyTransform(inst) {
+  if (!inst?.el) return;
+  inst.el.style.transform = `translate(${inst.pos.x}px, ${inst.pos.y}px)`;
+}
+
+function makeSelectionEl() {
+  const sel = document.createElement('div');
+  sel.className = 'lot-selection-overlay';
+  // Заполняем 10% голубым и рисуем рамку 2px ВНУТРИ
+  sel.style.position = 'absolute';
+  sel.style.inset = '0';
+  sel.style.pointerEvents = 'none';
+  sel.style.background = BLUE_BG;                  // 10% голубого
+  sel.style.boxShadow = `inset 0 0 0 2px ${BLUE}`; // рамка 2px внутрь
+  return sel;
+}
+
+function attachDrag(inst) {
+  const el = inst.el;
+  let dragging = false;
+  let origin = {x:0, y:0};
+  let start = {x:0, y:0};
+
+  const onDown = (e) => {
+    // Выделяем по клику
+    select(inst);
+    dragging = true;
+    try { el.setPointerCapture(e.pointerId); } catch {}
+    el.style.cursor = 'grabbing';
+    start = { x: e.clientX, y: e.clientY };
+    origin = { ...inst.pos };
+    e.preventDefault();
+  };
+  const onMove = (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    inst.pos = { x: origin.x + dx, y: origin.y + dy };
+    applyTransform(inst);
+    e.preventDefault();
+  };
+  const onUp = (e) => {
+    dragging = false;
+    try { el.releasePointerCapture(e.pointerId); } catch {}
+    el.style.cursor = 'grab';
+    e.preventDefault();
+  };
+
+  el.style.touchAction = 'none';
+  el.style.cursor = 'grab';
+  el.addEventListener('pointerdown', onDown);
+  el.addEventListener('pointermove', onMove);
+  el.addEventListener('pointerup', onUp);
+  el.addEventListener('pointercancel', onUp);
+  el.addEventListener('lostpointercapture', onUp);
+}
+
+function select(inst) {
+  // Снимаем выделение со всех
+  state.instances.forEach(i => { try {
+    const s = i.el.querySelector('.lot-selection-overlay');
+    if (s) s.remove();
+    i.el.style.zIndex = '0';
+  } catch {} });
+  state.selectedId = inst.id;
+  // Подсветка — добавим overlay
+  const sel = makeSelectionEl();
+  inst.el.appendChild(sel);
+  inst.el.style.zIndex = '1';
+  // Подсинхроним чекбокс цикла, если он есть
+  try {
+    const chk = document.getElementById('loopChk');
+    if (chk) chk.checked = !!inst.loop;
+  } catch {}
+}
+
+export async function addLottieFromJSON(refs, lotJson, name='') {
+  if (!refs?.lotStage) return null;
+  const engine = pickEngine(); // 'lottie-web' or 'rlottie' (здесь используем lottie-web)
+  if (engine !== 'lottie-web') {
+    console.warn('[multi] RLottie не поддерживается в мультирежиме; переключаю на lottie-web');
   }
-});
+  // Контейнер
+  const mount = document.createElement('div');
+  mount.className = 'lot-instance';
+  mount.style.position = 'absolute';
+  mount.style.left = '0';
+  mount.style.top  = '0';
+  mount.style.transform = 'translate(0px, 0px)';
+  mount.style.willChange = 'transform';
+  mount.style.contain = 'content';
+  // Важно: пусть svg будет естественного размера композиции
+  refs.lotStage.appendChild(mount);
+
+  // Создаём анимацию
+  const player = window.lottie?.loadAnimation ? window.lottie.loadAnimation({
+    container: mount,
+    renderer: 'svg',
+    loop: true,
+    autoplay: true,
+    animationData: lotJson
+  }) : null;
+
+  // Вычислим размеры композиции из json (w/h), чтобы задать min-size контейнера
+  let compW = 0, compH = 0;
+  try { compW = +lotJson?.w || 0; compH = +lotJson?.h || 0; } catch {}
+  if (compW > 0 && compH > 0) {
+    mount.style.width = compW + 'px';
+    mount.style.height = compH + 'px';
+  }
+
+  const inst = {
+    id: makeId(),
+    el: mount,
+    player,
+    pos: { x: 0, y: 0 },
+    loop: true,
+    w: compW,
+    h: compH
+  };
+  state.instances.push(inst);
+
+  // Навесим выделение/drag
+  attachDrag(inst);
+  // Выделим свежедобавленный
+  select(inst);
+
+  return inst;
+}
