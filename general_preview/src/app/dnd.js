@@ -98,21 +98,6 @@ export function initDnd({ refs }) {
   // paste (img or single json)
 
   initMulti(refs);
-
-  // drag-over indicator
-  const dropOverlay = refs?.dropOverlay || document.getElementById('dropOverlay');
-  const setDrop = (on) => { try { setDropActive(dropOverlay, on); } catch {} };
-
-  // drop
-  document.addEventListener('dragover', (e) => { e.preventDefault(); setDrop(true); });
-  document.addEventListener('dragleave', (e) => { setDrop(false); });
-  document.addEventListener('drop', async (e) => {
-    e.preventDefault();
-    setDrop(false);
-    const files = Array.from(e.dataTransfer?.files || []);
-    await processFilesSequential(refs, files);
-  });
-
   // paste (img or multiple json via text/plain won't really work, but keep single-json support)
   document.addEventListener('paste', async (e) => {
     const items = e.clipboardData?.items || [];
