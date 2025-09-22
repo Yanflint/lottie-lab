@@ -39,7 +39,7 @@ function parseAssetScale(nameOrUrl) {
 /** Центрируем лотти-стейдж без масштаба (1:1) */
 /** Центрируем и масштабируем лотти-стейдж синхронно с фоном */
 export function layoutLottie(refs) {
-  const stage = refs?.lotStage;
+  const stage = (refs && refs.lotStage);
   const wrap  = refs?.wrapper || refs?.previewBox || refs?.preview;
   if (!stage || !wrap) return;
 

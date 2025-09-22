@@ -41,7 +41,7 @@ function getShareIdFromLocation() {
 function applyLoopFromPayload(refs, data) {
   if (data && data.opts && typeof data.opts.loop === 'boolean') {
     state.loopOn = !!data.opts.loop;
-    if (refs?.loopChk) refs.loopChk.checked = state.loopOn;
+    if ((refs && refs.loopChk)) refs.loopChk.checked = state.loopOn;
   }
 }
 
@@ -54,10 +54,10 @@ async function applyPayload(refs, data) {
   applyLoopFromPayload(refs, data);
 
   // временно спрячем слой лотти до пересчёта, чтобы не было "вспышки" старого расположения
-  try { if (refs?.lotStage) refs.lotStage.style.visibility = 'hidden'; _hid=true; } catch {}
+  try { if ((refs && refs.lotStage)) refs.lotStage.style.visibility = 'hidden'; _hid=true; } catch {}
 
   // скрываем лотти до полного применения размеров и конвертации
-  try { if (refs?.lotStage) refs.lotStage.style.visibility = 'hidden'; } catch {}
+  try { if ((refs && refs.lotStage)) refs.lotStage.style.visibility = 'hidden'; } catch {}
   if (data.bg) {
     const src = typeof data.bg === 'string' ? data.bg : data.bg.value;
     const meta = (typeof data.bg === 'object') ? { fileName: data.bg.name, assetScale: data.bg.assetScale } : {};
@@ -66,7 +66,7 @@ async function applyPayload(refs, data) {
   }
   if (data.lot) {
     try {
-      const m = data?.lot?.meta?._lpOffset;
+      const m = (data && data.lot && data.lot.meta && data.lot.meta._lpOffset);
       if (m && typeof m.x === 'number' && typeof m.y === 'number') setLotOffset(m.x || 0, m.y || 0);
     
     
@@ -80,7 +80,7 @@ async function applyPayload(refs, data) {
   layoutLottie(refs);
   try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); document.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
   
-  } finally { try { if (_hid && refs?.lotStage) refs.lotStage.style.visibility = ''; } catch {} }
+  } finally { try { if (_hid && (refs && refs.lotStage)) refs.lotStage.style.visibility = ''; } catch {} }
   return true;
 return true;
 }
