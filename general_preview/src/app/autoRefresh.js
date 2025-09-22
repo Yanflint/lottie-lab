@@ -1,6 +1,3 @@
-// Auto-refresh & mobile PWA viewer functionality removed.
-// This stub keeps API surface so imports don't break.
-
-export function initAutoRefreshIfViewingLast() {
-  // intentionally no-op
-}
+// Auto-refresh & dedicated PWA viewer removed.
+// Keep API to avoid breaking imports.
+export function initAutoRefreshIfViewingLast(){/* no-op */}
