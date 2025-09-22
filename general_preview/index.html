@@ -1,22 +1,7 @@
 <!doctype html>
 <html lang="ru">
 
-\1
-<script>
-// Hash-to-History shim for launching viewer via /index.html#/s/...
-(function() {
-  try {
-    var isRootIndex = location.pathname === '/' || location.pathname.endsWith('/index.html');
-    if (isRootIndex && location.hash && location.hash.indexOf('#/s/') === 0) {
-      var target = location.hash.slice(1); // '/s/last?...'
-      history.replaceState(null, '', target);
-      var evt = new PopStateEvent('popstate', { state: null });
-      dispatchEvent(evt);
-    }
-  } catch (e) { /* no-op */ }
-})();
-</script>
-
+<head>
   <base href="/">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />

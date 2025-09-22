@@ -1,2 +1,0 @@
-build-2025-09-19-01
-PWA fixes: visibility gating, HEAD/ETag, debug pass-through, cache-busting redirect
