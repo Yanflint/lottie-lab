@@ -1,12 +1,30 @@
 
-import { setBackgroundFromSrc, loadLottieFromData } from './lottie.js';
+import { setBackgroundFromSrc, loadLottieFromData, getAnim } from './lottie.js';
 import { setPlaceholderVisible, setDropActive } from './utils.js';
-import { setLastLottie } from './state.js';
+import { setLastLottie, state } from './state.js';
 import { initMulti, addLottieFromJSON, hasAny as multiHasAny } from './multi.js';
+
+
+async function migrateSingleToMulti(refs) {
+  try {
+    const json = state.lastLottieJSON;
+    if (!json) return false;
+    await addLottieFromJSON(refs, json, 'existing');
+    // Очищаем одиночный контейнер
+    const mount = refs?.lottieMount || document.getElementById('lottie');
+    try { const anim = getAnim(); anim?.destroy?.(); } catch {}
+    try { if (mount) mount.innerHTML = ''; } catch {}
+    return true;
+  } catch (e) {
+    console.warn('[dnd] migrateSingleToMulti failed', e);
+    return false;
+  }
+}
 
 async function handleJsonList(refs, jsonFiles) {
   // Если более одного JSON — включаем мультирежим
-  if (jsonFiles.length > 1 || multiHasAny()) {
+  if (jsonFiles.length > 1 || multiHasAny() || state.lastLottieJSON) {
+    if (!multiHasAny() && state.lastLottieJSON) { await migrateSingleToMulti(refs); }
     for (const f of jsonFiles) {
       try {
         const txt = await f.text();
@@ -51,7 +69,34 @@ async function processFilesSequential(refs, files) {
   }
 }
 
+
 export function initDnd({ refs }) {
+  initMulti(refs);
+
+  let dragDepth = 0;
+  const setDrop = (on) => { try { setDropActive(refs?.dropOverlay || document.getElementById('dropOverlay'), on); } catch {} };
+
+  function onDragEnter(e){ dragDepth++; setDrop(true); e.preventDefault(); }
+  function onDragOver(e){ e.preventDefault(); }
+  function onDragLeave(e){ dragDepth = Math.max(0, dragDepth - 1); if (dragDepth === 0) setDrop(false); }
+  async function onDrop(e){
+    e.preventDefault();
+    dragDepth = 0; setDrop(false);
+    const files = Array.from(e.dataTransfer?.files || []);
+    await processFilesSequential(refs, files);
+  }
+
+  const targets = [document, refs?.wrapper, refs?.preview, refs?.lotStage];
+  for (const t of targets) {
+    if (!t) continue;
+    t.addEventListener('dragenter', onDragEnter);
+    t.addEventListener('dragover', onDragOver);
+    t.addEventListener('dragleave', onDragLeave);
+    t.addEventListener('drop', onDrop);
+  }
+
+  // paste (img or single json)
+
   initMulti(refs);
 
   // drag-over indicator
@@ -93,3 +138,9 @@ export function initDnd({ refs }) {
     }
   });
 }
+
+
+try {
+  window.addEventListener('drop', () => { document.body.classList.remove('dragging'); }, { passive: true });
+  window.addEventListener('dragend', () => { document.body.classList.remove('dragging'); }, { passive: true });
+} catch {}

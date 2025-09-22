@@ -418,3 +418,8 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 
 /* User preference: checkbox margins */
 #loopChk { margin-left: 0 !important; margin-right: 0 !important; }
+
+
+/* DnD overlay pointer-events */
+.drop-overlay{ pointer-events: none; }
+.drop-overlay .box{ pointer-events: none; }

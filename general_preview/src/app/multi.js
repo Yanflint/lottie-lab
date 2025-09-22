@@ -112,7 +112,9 @@ function makeSelectionEl() {
   return sel;
 }
 
+
 function attachDrag(inst) {
+
   const el = inst.el;
   let dragging = false;
   let origin = {x:0, y:0};
@@ -145,7 +147,18 @@ function attachDrag(inst) {
 
   el.style.touchAction = 'none';
   el.style.cursor = 'grab';
-  el.addEventListener('pointerdown', onDown);
+  
+// Клик = проигрывание один раз, если loop выключен
+const userPlayOnce = (e) => {
+  try {
+    if (!inst.loop && inst.player) {
+      if (inst.player.stop) inst.player.stop();
+      if (inst.player.goToAndStop) inst.player.goToAndStop(0, true);
+      if (inst.player.play) inst.player.play();
+    }
+  } catch {}
+};
+el.addEventListener('pointerdown', onDown);
   el.addEventListener('pointermove', onMove);
   el.addEventListener('pointerup', onUp);
   el.addEventListener('pointercancel', onUp);
