@@ -32,7 +32,7 @@
     (function(){
       // Всегда открываем «последний», с автоподгонкой по visualViewport
       try{ sessionStorage.setItem('lp_follow_last','1'); }catch(e){}
-      const url = new URL('./s/last', document.baseURI || location.href);
+      const url = new URL('/s/last', location.origin);
       url.searchParams.set('fit', 'vv'); // vv|safe|edge — vv даёт наилучшее центрирование
       url.searchParams.set('follow','1');
       // Мгновенная навигация без возможности "Назад", чтобы ярлык всегда попадал на актуальное
