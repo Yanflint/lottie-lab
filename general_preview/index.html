@@ -70,6 +70,33 @@
     html.viewer .wrapper { height: 100vh !important; }
   }
 }
+
+/* Edge-to-edge viewer on mobile and desktop */
+html.viewer .page {
+  padding: 0 !important;
+}
+html.viewer .app {
+  width: 100vw !important;
+  max-width: none !important;
+  align-items: stretch !important;
+}
+html.viewer body, html.viewer html {
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden !important;
+}
+html.viewer .wrapper {
+  width: 100vw !important;
+  height: 100dvh !important;
+  margin: 0 !important;
+}
+html.viewer .bg img {
+  width: 100% !important;
+  height: auto !important;
+}
+@supports not (height: 100dvh) {
+  html.viewer .wrapper { height: 100vh !important; }
+}
 </style>
 </head>
 
