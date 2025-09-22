@@ -27,7 +27,14 @@
   <!-- ВАЖНО: абсолютный путь, чтобы работало по /s/:id -->
   <link rel="stylesheet" href="/style.css" />
 
-  <style>
+  
+<script>
+  // Early viewer-mode bootstrap to avoid editor flash on /s/*
+  (function () {
+    try { if (/^\/s\//.test(location.pathname)) document.documentElement.classList.add('booting'); document.documentElement.classList.add('viewer'); } catch (e) {}
+  })();
+</script>
+<style>
     /* viewer mode overrides */
     html.viewer .controls,
     html.viewer #mode,
@@ -130,16 +137,16 @@ html.viewer .bg img {
     height: 100% !important;
   }
 }
+
+/* prevent editor flash during initial parse */
+html.booting .controls,
+html.booting #mode,
+html.booting .placeholder { display: none !important; }
 </style>
 </head>
 
 
 <body>
-  <script>
-    // bootstrap viewer class ASAP
-    (function () { try { if (/^\/s\//.test(location.pathname)) document.documentElement.classList.add('viewer'); } catch (e) { } })();
-  </script>
-
   <div class="page">
     <div class="app">
 
