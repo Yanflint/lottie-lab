@@ -85,7 +85,7 @@ showToastIfFlag(); // покажет "Обновлено", если страни
   if (!isViewer) initLottiePan({ refs });
 if (!isViewer) initDnd({ refs });
   initControls({ refs });
-  initShare({ refs, isStandalone });
+  // initShare removed; lazy loader will attach on first click
 
   /* DISABLE TAB FOCUS */
   try { document.querySelectorAll('button').forEach(b => b.setAttribute('tabindex','-1')); } catch {}
