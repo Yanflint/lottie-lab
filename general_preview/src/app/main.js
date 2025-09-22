@@ -1,5 +1,7 @@
 // src/app/main.js
 
+import './multiCore.js';
+
 // 1) Отметка standalone (A2HS)
 const isStandalone =
   (window.matchMedia &&

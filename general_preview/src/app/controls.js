@@ -6,7 +6,7 @@ export function initControls({ refs }) {
   // Кнопка повторного проигрывания
   if (refs?.restartBtn) {
     refs.restartBtn.addEventListener('click', () => {
-      restart();
+      try { if (window.__lp_multi?.isActive()) { window.__lp_multi.restart(); } else { restart(); } } catch { restart(); }
     });
   }
 

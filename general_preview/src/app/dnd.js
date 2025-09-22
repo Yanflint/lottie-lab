@@ -3,11 +3,11 @@ import { setPlaceholderVisible, setDropActive } from './utils.js';
 import { setLastLottie } from './state.js';
 
 async function processFilesSequential(refs, files) {
-  let imgFile = null, jsonFile = null;
+  let imgFile = null; const jsonFiles = [];
   for (const f of files) {
     if (!imgFile && f.type?.startsWith?.('image/')) imgFile = f;
     const isJson = f.type === 'application/json' || f.name?.endsWith?.('.json') || f.type === 'text/plain';
-    if (!jsonFile && isJson) jsonFile = f;
+    if (isJson) jsonFiles.push(f);
   }
   if (imgFile) {
     const url = URL.createObjectURL(imgFile);
@@ -15,14 +15,27 @@ async function processFilesSequential(refs, files) {
     setPlaceholderVisible(refs, false);
     try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); document.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
   }
-  if (jsonFile) {
-    const text = await jsonFile.text();
-    try {
-      const json = JSON.parse(text);
-      setLastLottie(json);
-      await loadLottieFromData(refs, json);
+  if (jsonFiles.length) {
+    // Если больше одного JSON — переходим в мульти-режим
+    if (jsonFiles.length > 1) {
+      try { if (window.__lp_multi) window.__lp_multi.ensureStage(refs); } catch {}
+      for (const jf of jsonFiles) {
+        try { await window.__lp_multi.addFromFile(refs, jf); } catch (e) { console.error('multi add error', e); }
+      }
       setPlaceholderVisible(refs, false);
-    try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); document.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
+      try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); window.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
+    } else {
+      // Старое поведение для одного JSON
+      const text = await jsonFiles[0].text();
+      try {
+        const json = JSON.parse(text);
+        setLastLottie(json);
+        await loadLottieFromData(refs, json);
+        setPlaceholderVisible(refs, false);
+        try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); window.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
+      } catch {}
+    }
+  } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); document.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
     } catch (e) { console.error('Invalid JSON', e); }
   }
 }
