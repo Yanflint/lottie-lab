@@ -1,4 +1,7 @@
 export const state = {
+  layers: [],
+  activeLayerId: null,
+
   VERSION: '58',
   loopOn: false,
   autoplayOn: true,
@@ -13,6 +16,26 @@ export const state = {
   lastBgMeta: { fileName: '', assetScale: 1 }, // метаданные фона
 };
 
+
+export function addLayer(layer) {
+  if (!layer || !layer.id) return;
+  state.layers = state.layers || [];
+  state.layers.push({ id: layer.id, name: layer.name || ('Layer ' + state.layers.length+1), offset: {x:0,y:0} });
+  state.activeLayerId = layer.id;
+}
+export function setActiveLayer(id) {
+  state.activeLayerId = id;
+}
+export function getActiveLayer() {
+  const id = state.activeLayerId;
+  if (!id) return null;
+  return (state.layers || []).find(l => l.id === id) || null;
+}
+function _ensureActiveLayer() {
+  if (!state.activeLayerId && state.layers && state.layers.length) {
+    state.activeLayerId = state.layers[state.layers.length - 1].id;
+  }
+}
 export function setLoop(on)       { state.loopOn = !!on; }
 export function setAutoplay(on)   { state.autoplayOn = !!on; }
 export function setLastLottie(j)  { state.lastLottieJSON = j || null; }
@@ -32,16 +55,33 @@ export function setLastBgMeta(meta){
 // === позиционирование лотти ===
 export function setLotOffset(x, y) {
   try {
+    _ensureActiveLayer();
+    const L = getActiveLayer();
+    if (!L) { state.lotOffset = {x:+x||0, y:+y||0}; return; } // fallback
     const nx = +x || 0, ny = +y || 0;
-    state.lotOffset = { x: nx, y: ny };
-    // пробрасываем в глобал, если layout читает оттуда
+    L.offset = { x: nx, y: ny };
+    // keep legacy globals for metrics/compat
     try { window.__lotOffsetX = nx; window.__lotOffsetY = ny; } catch {}
   } catch {}
 }
 export function bumpLotOffset(dx, dy) {
+  _ensureActiveLayer();
+  const L = getActiveLayer();
+  if (!L) { 
+    const cx = (state.lotOffset?.x || 0), cy = (state.lotOffset?.y || 0);
+    setLotOffset(cx + (+dx || 0), cy + (+dy || 0));
+    return;
+  }
+  const cx = (L.offset?.x || 0), cy = (L.offset?.y || 0);
+  setLotOffset(cx + (+dx || 0), cy + (+dy || 0));
+}
+(dx, dy) {
   const cx = (state.lotOffset?.x || 0), cy = (state.lotOffset?.y || 0);
   setLotOffset(cx + (+dx || 0), cy + (+dy || 0));
 }
 export function getLotOffset() {
-  return state.lotOffset || { x: 0, y: 0 };
+  _ensureActiveLayer();
+  const L = getActiveLayer();
+  if (!L) return state.lotOffset || {x:0,y:0};
+  return L.offset || { x: 0, y: 0 };
 }

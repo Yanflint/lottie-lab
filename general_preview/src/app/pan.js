@@ -1,11 +1,12 @@
 // src/app/pan.js
 // Перетаскивание ТОЛЬКО за саму Lottie: target = #lottie (fallback #lotStage)
-import { setLotOffset, getLotOffset } from './state.js';
+import { setLotOffset, getLotOffset, setActiveLayer } from './state.js';
 import { layoutLottie } from './lottie.js';
 
 export function initLottiePan({ refs }) {
-  const target = (refs?.lottieMount) || document.getElementById('lottie')
-              || (refs?.lotStage)     || document.getElementById('lotStage');
+  const target = (refs?.lotStage) || document.getElementById('lotStage') || document;
+  const rootEl = (refs?.lotStage) || document.getElementById('lotStage') || document;
+
   if (!target) return;
 
   try { target.style.touchAction = 'none'; } catch {}
@@ -18,6 +19,10 @@ export function initLottiePan({ refs }) {
 
   const onPointerDown = (e) => {
     // primary mouse or any touch; разрешаем только по Lottie
+    const hit = e.target && (e.target.closest ? e.target.closest('.lot-item') : null);
+    if (!hit) return; // начинаем перетаскивание только если попали по слою
+    try { if (hit.dataset && hit.dataset.layerId) setActiveLayer(hit.dataset.layerId); } catch {}
+
     if (e.pointerType !== 'touch' && e.button !== 0) return;
     dragging = true;
     startX = e.clientX; startY = e.clientY;
