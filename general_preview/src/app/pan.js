@@ -4,19 +4,18 @@ import { setLotOffset, getLotOffset, setActiveLayer } from './state.js';
 import { layoutLottie } from './lottie.js';
 
 export function initLottiePan({ refs }) {
-  const target = (refs && refs.lotStage) ? refs.lotStage : (document.getElementById('lotStage') || document);
-              || (refs?.lotStage)     || document.getElementById('lotStage');
+  var target = (refs && refs.lotStage) ? refs.lotStage : (document.getElementById('lotStage') || document);
   if (!target) return;
 
   try { target.style.touchAction = 'none'; } catch {}
   try { target.style.cursor = 'grab'; } catch {}
 
-  let dragging = false;
+  var dragging = false;
   let startX = 0, startY = 0;
   let orig = { x: 0, y: 0 };
   let raf = 0;
 
-  const onPointerDown = (e) => {
+  var onPointerDown = (e) => {
   var hit = e.target && e.target.closest ? e.target.closest('.lot-item') : null;
   if (!hit) return;
   try{ if (hit.dataset && hit.dataset.layerId) setActiveLayer(hit.dataset.layerId); }catch(e){}
@@ -32,7 +31,7 @@ export function initLottiePan({ refs }) {
     e.stopPropagation();
   };
 
-  const onPointerMove = (e) => {
+  var onPointerMove = (e) => {
     if (!dragging) return;
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
@@ -43,7 +42,7 @@ export function initLottiePan({ refs }) {
     e.preventDefault();
   };
 
-  const onPointerUp = (e) => {
+  var onPointerUp = (e) => {
     if (!dragging) return;
     dragging = false;
     try { target.releasePointerCapture(e.pointerId); } catch {}
