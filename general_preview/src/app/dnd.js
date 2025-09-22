@@ -74,19 +74,23 @@ export function initDnd({ refs }) {
   initMulti(refs);
 
   let dragDepth = 0;
+  let dropBusy = false;
   const setDrop = (on) => { try { setDropActive(refs?.dropOverlay || document.getElementById('dropOverlay'), on); } catch {} };
 
-  function onDragEnter(e){ dragDepth++; setDrop(true); e.preventDefault(); }
-  function onDragOver(e){ e.preventDefault(); }
-  function onDragLeave(e){ dragDepth = Math.max(0, dragDepth - 1); if (dragDepth === 0) setDrop(false); }
+  function onDragEnter(e){ dragDepth++; setDrop(true); e.preventDefault(); try{e.stopPropagation();}catch{} }
+  function onDragOver(e){ e.preventDefault(); try{e.stopPropagation();}catch{} }
+  function onDragLeave(e){ dragDepth = Math.max(0, dragDepth - 1); if (dragDepth === 0) setDrop(false); try{e.stopPropagation();}catch{} }
   async function onDrop(e){
-    e.preventDefault();
+    if (dropBusy) { try{e.preventDefault(); e.stopPropagation();}catch{} return; }
+    dropBusy = true;
+    e.preventDefault(); try{e.stopPropagation();}catch{}
     dragDepth = 0; setDrop(false);
     const files = Array.from(e.dataTransfer?.files || []);
     await processFilesSequential(refs, files);
+    setTimeout(()=>{ dropBusy=false; }, 0);
   }
 
-  const targets = [document, refs?.wrapper, refs?.preview, refs?.lotStage];
+  const targets = [document];
   for (const t of targets) {
     if (!t) continue;
     t.addEventListener('dragenter', onDragEnter);
