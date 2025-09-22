@@ -214,7 +214,7 @@ export function setLoop(on) {
  * — создаём инстанс
  * — задаём габариты стейджа по w/h из JSON
  */
-export async function loadLottieFromData(refs, data) {
+/* v14 */ export async function loadLottieFromData(refs, data) {
   try {
     const lotJson = typeof data === 'string' ? JSON.parse(data) : data;
     if (!lotJson || typeof lotJson !== 'object') return null;
@@ -342,3 +342,5 @@ const autoplay = !!state.loopOn;
 
 /** Экспорт текущей анимации (если нужно где-то ещё) */
 export function getAnim() { return anim; }
+/* v14 layout after load */
+try{ setTimeout(function(){ try{ if (typeof layoutLottie==='function') layoutLottie(); }catch(e){} }, 0); }catch(e){}

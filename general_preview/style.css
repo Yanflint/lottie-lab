@@ -411,3 +411,7 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 
 .lot-item{ position:absolute; left:50%; top:50%; transform-origin:50% 50%; cursor:grab; }
 .lot-item .lottie-mount{ width:100%; height:100%; pointer-events:auto; }
+
+/* LL viewer bg fix */
+html.viewer body{ background:#111; }
+html.viewer .bg{ background:#000; }
