@@ -31,14 +31,17 @@
   <link rel="stylesheet" href="/style.css" />
 
   
+  
+  <!-- LottieLab build: v16 -->
   <script>
-    // Early viewer-mode bootstrap to avoid editor flash on /s/*
     (function(){
       try {
         if (/^\/s\//.test(location.pathname)) {
-          document.documentElement.classList.add('booting');
           document.documentElement.classList.add('viewer');
         }
+        // remove any stale 'booting' class just in case
+        document.documentElement.classList.remove('booting');
+        window.__LL_VERSION='v16';
       } catch(e){}
     })();
   </script>
@@ -67,10 +70,6 @@
     }
   
   /* prevent editor flash during initial parse */
-  html.booting .controls,
-  html.booting #mode,
-  html.booting .placeholder { display: none !important; }
-
   /* Mobile viewer: edge-to-edge width, vertically centered */
   @media (hover:none) and (pointer:coarse) {
     html.viewer .page { padding: 0 !important; }
