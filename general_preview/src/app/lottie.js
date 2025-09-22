@@ -220,12 +220,7 @@ export async function loadLottieFromData(refs, data) {
   try {
     const lotJson = typeof data === 'string' ? JSON.parse(data) : data;
     if (!lotJson || typeof lotJson !== 'object') return null;
-
-    if (anim) {
-      try { anim.destroy?.(); } catch (_) {}
-      anim = null;
-    }
-
+// keep previous animations alive to allow multiple layers
     const w = Number(lotJson.w || 0) || 512;
     const h = Number(lotJson.h || 0) || 512;
     if (refs.lotStage) {
