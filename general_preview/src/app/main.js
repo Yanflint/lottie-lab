@@ -29,11 +29,11 @@ import { initDnd }           from './dnd.js';
 import { state }           from './state.js';
 import { getAnim, restart } from './lottie.js';
 import { initControls }      from './controls.js';
-import { initShare }         from './shareClient.js?v=yc14';
+// (lazy) import of shareClient removed; will load on demand
 import { initLoadFromLink }  from './loadFromLink.js';
 import { layoutLottie }      from './lottie.js';
 import { initAutoRefreshIfViewingLast } from './autoRefresh.js'; // ← НОВОЕ
-import { showToastIfFlag } from './updateToast.js';
+import { showToastIfFlag } from './updateToast.js'; // safe stub
 import { bumpLotOffset } from './state.js';
 import { initLottiePan }  from './pan.js';
 import { moveSelectedBy } from './multi.js';
@@ -225,3 +225,21 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'ArrowUp')    { moveSelectedBy(0, -step); e.preventDefault(); }
   if (e.code === 'ArrowDown')  { moveSelectedBy(0, +step); e.preventDefault(); }
 }, { passive: false });
+
+// Ленивая загрузка клиента шаринга — чтобы ошибки внутри него не ломали редактор
+(function setupLazyShare(){
+  const btn = document.getElementById('shareBtn');
+  if (!btn) return;
+  btn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    try {
+      const mod = await import('./shareClient.js?v=yc14');
+      if (mod && typeof mod.createShareLink === 'function') {
+        const url = await mod.createShareLink();
+        if (url) { try { location.href = url; } catch {} }
+      }
+    } catch (err) {
+      console.error('share module failed', err);
+    }
+  }, { once: true });
+})();
