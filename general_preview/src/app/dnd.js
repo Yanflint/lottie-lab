@@ -34,8 +34,11 @@ export function initDnd({ refs }) {
   const onDragEnter = (e) => { e.preventDefault(); if (++depth === 1) setDropActive(true); };
   const onDragOver  = (e) => { e.preventDefault(); };
   const onDragLeave = (e) => { e.preventDefault(); if (--depth <= 0) { depth = 0; setDropActive(false); } };
+  let __dropGuard = false;
   const onDrop = async (e) => {
-    e.preventDefault(); depth = 0; setDropActive(false);
+    e.preventDefault();
+    if (__dropGuard) return; __dropGuard = true; setTimeout(()=>__dropGuard=false, 300);
+    depth = 0; setDropActive(false);
     const dt = e.dataTransfer;
     const files = [];
     if (dt?.files?.length) {
@@ -53,7 +56,8 @@ export function initDnd({ refs }) {
   document.addEventListener('dragenter', onDragEnter);
   document.addEventListener('dragover', onDragOver);
   document.addEventListener('dragleave', onDragLeave);
-  document.addEventListener('drop', onDrop);
+  // document-level drop removed to avoid double handling
+  // document.addEventListener('drop', onDrop);
 
   document.addEventListener('paste', async (e) => {
     const items = Array.from(e.clipboardData?.items || []);
