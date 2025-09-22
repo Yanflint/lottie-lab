@@ -1,25 +1,22 @@
 // src/app/pan.js
 // Перетаскивание ТОЛЬКО за саму Lottie: target = #lottie (fallback #lotStage)
-import { setLotOffset, getLotOffset, setActiveLayer } from './state.js';
+import { setLotOffset, getLotOffset } from './state.js';
 import { layoutLottie } from './lottie.js';
 
 export function initLottiePan({ refs }) {
-  var target = (refs && refs.lotStage) ? refs.lotStage : (document.getElementById('lotStage') || document);
+  const target = (refs?.lottieMount) || document.getElementById('lottie')
+              || (refs?.lotStage)     || document.getElementById('lotStage');
   if (!target) return;
 
   try { target.style.touchAction = 'none'; } catch {}
   try { target.style.cursor = 'grab'; } catch {}
 
-  var dragging = false;
+  let dragging = false;
   let startX = 0, startY = 0;
   let orig = { x: 0, y: 0 };
   let raf = 0;
 
-  var onPointerDown = (e) => {
-  var hit = e.target && e.target.closest ? e.target.closest('.lot-item') : null;
-  if (!hit) return;
-  try{ if (hit.dataset && hit.dataset.layerId) setActiveLayer(hit.dataset.layerId); }catch(e){}
-
+  const onPointerDown = (e) => {
     // primary mouse or any touch; разрешаем только по Lottie
     if (e.pointerType !== 'touch' && e.button !== 0) return;
     dragging = true;
@@ -31,7 +28,7 @@ export function initLottiePan({ refs }) {
     e.stopPropagation();
   };
 
-  var onPointerMove = (e) => {
+  const onPointerMove = (e) => {
     if (!dragging) return;
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
@@ -42,7 +39,7 @@ export function initLottiePan({ refs }) {
     e.preventDefault();
   };
 
-  var onPointerUp = (e) => {
+  const onPointerUp = (e) => {
     if (!dragging) return;
     dragging = false;
     try { target.releasePointerCapture(e.pointerId); } catch {}

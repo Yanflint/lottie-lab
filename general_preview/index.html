@@ -2,9 +2,6 @@
 <html lang="ru">
 
 <head>
-  <!-- LottieLab build: v14 -->
-  <script>window.__LL_VERSION='v14';</script>
-
   <base href="/">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -31,20 +28,12 @@
   <link rel="stylesheet" href="/style.css" />
 
   
-  
-  <!-- LottieLab build: v16 -->
-  <script>
-    (function(){
-      try {
-        if (/^\/s\//.test(location.pathname)) {
-          document.documentElement.classList.add('viewer');
-        }
-        // remove any stale 'booting' class just in case
-        document.documentElement.classList.remove('booting');
-        window.__LL_VERSION='v16';
-      } catch(e){}
-    })();
-  </script>
+<script>
+  // Early viewer-mode bootstrap to avoid editor flash on /s/*
+  (function () {
+    try { if (/^\/s\//.test(location.pathname)) { document.documentElement.classList.add('booting'); document.documentElement.classList.add('viewer'); } } catch (e) {}
+  })();
+</script>
 <style>
     /* viewer mode overrides */
     html.viewer .controls,
@@ -69,45 +58,95 @@
       background: #000;
     }
   
-  /* prevent editor flash during initial parse */
-  /* Mobile viewer: edge-to-edge width, vertically centered */
-  @media (hover:none) and (pointer:coarse) {
-    html.viewer .page { padding: 0 !important; }
-    html.viewer .app  { width: 100vw !important; max-width: none !important; align-items: stretch !important; }
-    html.viewer html, html.viewer body { margin:0!important; padding:0!important; overflow-x:hidden!important; }
-    html.viewer .wrapper { width:100vw!important; height:100dvh!important; margin:0!important; }
-    @supports not (height: 100dvh){ html.viewer .wrapper { height: 100vh!important; } }
-    html.viewer .bg { display:flex; align-items:center; justify-content:center; }
-    html.viewer .bg img { width:100%!important; height:auto!important; }
+/* Mobile browser viewer: fit-by-width & vertical center */
+@media (hover: none) and (pointer: coarse) {
+  html.viewer .wrapper {
+    width: 100vw !important;
+    height: 100dvh !important;
+    margin: 0 auto !important;
+  }
+  /* background image and lottie stage scale by width */
+  html.viewer .bg img {
+    width: 100% !important;
+    height: auto !important;
+  }
+}
+/* Fallback for browsers without 100dvh */
+@supports not (height: 100dvh) {
+  @media (hover: none) and (pointer: coarse) {
+    html.viewer .wrapper { height: 100vh !important; }
+  }
+}
+
+/* Edge-to-edge viewer on mobile and desktop */
+html.viewer .page {
+  padding: 0 !important;
+}
+html.viewer .app {
+  width: 100vw !important;
+  max-width: none !important;
+  align-items: stretch !important;
+}
+html.viewer body, html.viewer html {
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden !important;
+}
+html.viewer .wrapper {
+  width: 100vw !important;
+  height: 100dvh !important;
+  margin: 0 !important;
+}
+html.viewer .bg img {
+  width: 100% !important;
+  height: auto !important;
+}
+@supports not (height: 100dvh) {
+  html.viewer .wrapper { height: 100vh !important; }
+}
+
+/* Desktop web viewer: square 1:1 centered, editor-like, no controls */
+@media (hover: hover) and (pointer: fine) {
+  /* restore some breathing room on desktop */
+  html.viewer .page { padding: 16px !important; }
+
+  /* center container */
+  html.viewer .app {
+    width: 100% !important;
+    max-width: 1000px !important;
+    align-items: center !important;
   }
 
-  /* Desktop viewer: like editor (no controls), don't crop wide previews */
-  @media (hover:hover) and (pointer:fine) {
-    html.viewer .page { padding: 16px !important; }
-    html.viewer .app  { width: 100% !important; max-width: 1000px !important; align-items: center !important; }
-    html.viewer .wrapper {
-      width: auto !important;
-      height: var(--preview-h, 800px) !important;
-      max-height: calc(100dvh - var(--controls-space, 0px)) !important;
-      max-width:  min(100vw - 32px, 1000px) !important;
-      aspect-ratio: auto !important;
-      margin: 0 auto !important;
-    }
-    @supports not (height: 100dvh) {
-      html.viewer .wrapper { max-height: calc(100vh - var(--controls-space, 0px)) !important; }
-    }
-    html.viewer .bg img { width: auto !important; height: 100% !important; }
+  /* square stage centered; size limited by the smaller viewport side minus padding */
+  html.viewer .wrapper {
+    aspect-ratio: 1 / 1 !important;
+    width: min(calc(100dvh - 32px), calc(100vw - 32px)) !important;
+    height: min(calc(100dvh - 32px), calc(100vw - 32px)) !important;
+    margin: 0 auto !important;
   }
+  @supports not (height: 100dvh) {
+    html.viewer .wrapper {
+      width: min(calc(100vh - 32px), calc(100vw - 32px)) !important;
+      height: min(calc(100vh - 32px), calc(100vw - 32px)) !important;
+    }
+  }
+
+  /* background fits the square box without stretching */
+  html.viewer .bg img {
+    width: auto !important;
+    height: 100% !important;
+  }
+}
+
+/* prevent editor flash during initial parse */
+html.booting .controls,
+html.booting #mode,
+html.booting .placeholder { display: none !important; }
 </style>
 </head>
 
 
 <body>
-  <script>
-    // bootstrap viewer class ASAP
-    (function () { try { if (/^\/s\//.test(location.pathname)) document.documentElement.classList.add('viewer'); } catch (e) { } })();
-  </script>
-
   <div class="page">
     <div class="app">
 
@@ -171,22 +210,6 @@
   <script type="module" src="/src/app/main.js?v=0.15"></script>
   <script src="build.js" defer></script>
   <script src="build-tag.js" defer></script>
-
-<script>
-(function(){
-  try{
-    var q = location.search || '';
-    if (/debug=1/.test(q)) {
-      var b = document.createElement('div');
-      b.id = 'LL-DEBUG-BADGE';
-      b.textContent = 'LL v14';
-      b.style.cssText='position:fixed;z-index:99999;left:8px;bottom:8px;background:#111;color:#0f0;font:12px/1.6 monospace;padding:4px 6px;border-radius:4px;opacity:.8';
-      document.body.appendChild(b);
-    }
-  }catch(e){}
-})();
-</script>
-
 </body>
 
 </html>

@@ -11,7 +11,7 @@ export function initControls({ refs }) {
   }
 
   // Чекбокс "Зацикленно"
-  if ((refs && refs.loopChk)) {
+  if (refs?.loopChk) {
     // Инициализация состоянием (если где-то выставляли ранее)
     refs.loopChk.checked = !!state.loopOn;
 

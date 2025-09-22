@@ -1,8 +1,3 @@
-
-// LL_BOOTING_FALLBACK: ensure booting class is dropped even if init short-circuits
-try{ document.addEventListener('DOMContentLoaded', function(){ try{ document.documentElement.classList.remove('booting'); }catch(e){} }); }catch(e){}
-try{ window.addEventListener('load', function(){ setTimeout(function(){ try{ document.documentElement.classList.remove('booting'); }catch(e){} }, 0); }); }catch(e){}
-
 // src/app/main.js
 
 // 1) Отметка standalone (A2HS)
@@ -13,6 +8,8 @@ const isStandalone =
   (navigator.standalone === true);
 
 if (isStandalone) document.documentElement.classList.add('standalone');
+try{ document.documentElement.classList.remove('booting'); }catch(e){}
+
 
 // Viewer mode on /s/*
 const isViewer = /^\/s\//.test(location.pathname);
