@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>PWA Self‑Test — Lottie Preview</title>
+  <meta name="theme-color" content="#000000" />
+  <link rel="manifest" href="/viewer-manifest.webmanifest">
+  <style>html,body{height:100%;margin:0;background:#0b1220;color:#e5e7eb;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+  .wrap{max-width:920px;margin:0 auto;padding:16px;display:grid;gap:16px}
+  .card{background:#111827;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px}
+  .row{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid rgba(255,255,255,0.06)}
+  .row:first-child{border-top:0}.name{color:#cbd5e1}.val{font-family:ui-monospace,Menlo,Consolas,monospace}
+  .ok{color:#22c55e}.err{color:#ef4444}.warn{color:#f59e0b}.muted{color:#9ca3af}
+  button{border:0;border-radius:10px;padding:8px 12px;font-weight:600;cursor:pointer;background:#1f2937;color:#e5e7eb}
+  pre{white-space:pre-wrap;word-break:break-word;background:#0f172a;border-radius:12px;padding:10px}
+  a{color:#22d3ee;text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card"><h1>PWA Self‑Test</h1><div class="muted">Диагностика «/s/last» внутри проекта.</div></div>
+    <div class="card">
+      <div class="row"><div class="name">Install/PWA</div><div id="pwa" class="val">—</div></div>
+      <div class="row"><div class="name">Service Worker</div><div id="sw" class="val">—</div></div>
+      <div class="row"><div class="name">Base URL</div><div id="base" class="val">—</div></div>
+      <div class="row"><div class="name">Pathname</div><div id="path" class="val">—</div></div>
+      <div class="row"><div class="name">Viewer detect</div><div id="viewer" class="val">—</div></div>
+      <div class="row"><div class="name">isViewingLast()</div><div id="islast" class="val">—</div></div>
+      <div class="row"><div class="name">API Base</div><div id="api" class="val">—</div></div>
+      <div class="row"><div class="name">Rev probe</div><div id="rev" class="val">—</div></div>
+      <div class="row"><div class="name">Payload probe</div><div id="payload" class="val">—</div></div>
+    </div>
+    <div class="card">
+      <div class="row" style="gap:12px;justify-content:flex-start">
+        <button id="btnFollow">Симулировать /s/last</button>
+        <button id="btnTick">Тестовый tick</button>
+        <button id="btnCache">Сравнить кэш</button>
+      </div>
+      <div><div class="name">Логи</div><pre id="log"></pre></div>
+    </div>
+    <div class="card"><div class="muted">Если <b>Viewer detect</b> = <span class="err">нет</span>, автообновление не стартует. Если <b>Rev/Payload</b> = <span class="err">ошибка</span> — сеть/кэш/хедеры.</div></div>
+  </div>
+
+  <script type="module">
+    import { API_BASE as SHARE_API_BASE } from '../src/app/shareClient.js';
+    const $ = (id) => document.getElementById(id);
+    const log = (m, meta) => { const t=new Date().toLocaleTimeString(); $('log').textContent += '['+t+'] '+m+(meta?' '+JSON.stringify(meta):'')+'\n'; $('log').scrollTop=$('log').scrollHeight; };
+
+    const isStandalone = (window.matchMedia && (window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: fullscreen)').matches)) || (navigator.standalone === true);
+    $('pwa').textContent = isStandalone ? 'установлено (standalone)' : 'обычный браузер';
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(l => $('sw').textContent = l.length ? `есть (${l.length})` : 'нет').catch(()=> $('sw').textContent = 'нет'); } else { $('sw').textContent = 'не поддерживается'; }
+    $('base').textContent = document.baseURI; $('path').textContent = location.pathname;
+    const viewer = /(?:^|\/)s\/[^/]/.test(location.pathname); $('viewer').innerHTML = viewer ? '<span class="ok">да</span>' : '<span class="err">нет</span>';
+
+    function isViewingLast(){
+      try {
+        const m = location.pathname.match(/(?:^|\/)s\/([^\/?#]+)/);
+        if (m) { const id = decodeURIComponent(m[1]||''); if (id==='last'||id==='__last__') return true; }
+        const q=new URL(location.href).searchParams; const follow=(q.get('follow')||'').toLowerCase();
+        if (follow==='1'||follow==='true'||follow==='yes') return true;
+        const ss=(sessionStorage.getItem('lp_follow_last')||'').toLowerCase();
+        if (ss==='1'||ss==='true'||ss==='yes'||ss==='on') return true;
+      } catch(e){}; return false;
+    }
+    $('islast').innerHTML = isViewingLast() ? '<span class="ok">да</span>' : '<span class="warn">не определён</span>';
+
+    const API_BASE = (typeof SHARE_API_BASE === 'string' && SHARE_API_BASE) ? SHARE_API_BASE : '/api/share';
+    $('api').textContent = API_BASE;
+
+    async function revProbe(){
+      try { const t0=performance.now(); const u=API_BASE.replace(/\/+$/,'')+'?id=last&rev=1&_='+Date.now(); const r=await fetch(u,{cache:'no-store'}); const t1=performance.now();
+        if(!r.ok) throw new Error('HTTP '+r.status); const j=await r.json(); $('rev').innerHTML='<span class="ok">ok</span> rev='+JSON.stringify(j.rev)+' ('+Math.round(t1-t0)+'ms)'; log('rev ok',{ms:Math.round(t1-t0),rev:j.rev}); return j.rev||null;
+      } catch(e){ $('rev').innerHTML='<span class="err">ошибка</span>'; log('rev error',{err:String(e)}); return null; }
+    }
+    async function payloadProbe(){
+      try { const t0=performance.now(); const u=API_BASE.replace(/\/+$/,'')+'?id=last&_='+Date.now(); const r=await fetch(u,{cache:'no-store'}); const t1=performance.now();
+        if(!r.ok) throw new Error('HTTP '+r.status); const et=(r.headers.get('ETag')||'').replace(/"/g,''); const ct=r.headers.get('Content-Type')||''; const j=await r.json().catch(()=>null);
+        const keys=j&&typeof j==='object'?Object.keys(j).slice(0,6):[]; $('payload').innerHTML='<span class="ok">ok</span> ETag='+et+' ct='+ct+' '+Math.round(t1-t0)+'ms keys='+keys.join(','); log('payload ok',{ms:Math.round(t1-t0),etag:et,keys}); return {et,j};
+      } catch(e){ $('payload').innerHTML='<span class="err">ошибка</span>'; log('payload error',{err:String(e)}); return null; }
+    }
+
+    $('btnTick').addEventListener('click', async()=>{ await revProbe(); await payloadProbe(); });
+    $('btnCache').addEventListener('click', async()=>{
+      try{ const r1=await fetch(API_BASE+'?id=last',{cache:'no-store'}); const r2=await fetch(API_BASE+'?id=last&_='+Date.now(),{cache:'no-store'});
+        const e1=(r1.headers.get('ETag')||'').replace(/"/g,''); const e2=(r2.headers.get('ETag')||'').replace(/"/g,''); log('cache compare',{e1,e2,same:e1&&e1===e2});
+      }catch(e){ log('cache compare error',{err:String(e)}); }
+    });
+    $('btnFollow').addEventListener('click', ()=>{
+      try{ sessionStorage.setItem('lp_follow_last','1'); }catch(e){}
+      const u=new URL(location.href); u.pathname=(u.pathname.replace(/\/?viewer\/selftest\.html$/,'')+'/s/last').replace(/\/+/g,'/'); u.searchParams.set('follow','1'); history.replaceState({},'',u.toString());
+      $('path').textContent=location.pathname; $('islast').innerHTML=isViewingLast()?'<span class="ok">да</span>':'<span class="warn">не определён</span>';
+      $('viewer').innerHTML=/(?:^|\/)s\/[^/]/.test(location.pathname)?'<span class="ok">да</span>':'<span class="err">нет</span>'; log('simulated /s/last',{href:location.href});
+    });
+
+    (async()=>{ await revProbe(); await payloadProbe(); })();
+  </script>
+</body>
+</html>
