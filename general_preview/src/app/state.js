@@ -3,12 +3,9 @@ export const state = {
   loopOn: false,
   autoplayOn: true,
   lastLottieJSON: null,
-  // legacy single-offset for compat
-  lotOffset: { x: 0, y: 0 },
-  // multi-layer
+  lotOffset: { x: 0, y: 0 }, // legacy, keep
   layers: [],
   activeLayerId: null,
-  // layout/env
   A2HS: false,
   lastBgSize: { w: 0, h: 0 },
   lastBgMeta: { fileName: '', assetScale: 1 },
@@ -19,7 +16,7 @@ export function setAutoplay(on){ state.autoplayOn = !!on; }
 export function setLastLottie(json){ state.lastLottieJSON = json || null; }
 
 export function setLastBgSize(w,h){
-  const nw = +w||0, nh = +h||0; state.lastBgSize = { w:nw, h:nh };
+  var nw = +w||0, nh = +h||0; state.lastBgSize = { w:nw, h:nh };
 }
 export function setLastBgMeta(meta){
   state.lastBgMeta = Object.assign({}, state.lastBgMeta, meta || {});
@@ -33,35 +30,36 @@ export function addLayer(layer){
 }
 export function setActiveLayer(id){ state.activeLayerId = id || null; }
 export function getActiveLayer(){
-  const id = state.activeLayerId; if (!id) return null;
-  return state.layers.find(l=>l.id===id) || null;
+  var id = state.activeLayerId; if (!id) return null;
+  for (var i=0;i<state.layers.length;i++){ if (state.layers[i].id===id) return state.layers[i]; }
+  return null;
 }
 function _ensureActiveLayer(){
   if (!state.activeLayerId && state.layers.length) state.activeLayerId = state.layers[state.layers.length-1].id;
 }
 
-// Offsets
+// Offsets (layer-aware)
 export function setLotOffset(x,y){
   _ensureActiveLayer();
-  const L = getActiveLayer();
-  const nx = +x||0, ny = +y||0;
+  var L = getActiveLayer();
+  var nx = +x||0, ny = +y||0;
   if (L){ L.offset = {x:nx,y:ny}; } else { state.lotOffset = {x:nx,y:ny}; }
-  try{ window.__lotOffsetX = nx; window.__lotOffsetY = ny; }catch{}
+  try{ window.__lotOffsetX = nx; window.__lotOffsetY = ny; }catch(e){}
 }
 export function bumpLotOffset(dx,dy){
   _ensureActiveLayer();
-  const L = getActiveLayer();
+  var L = getActiveLayer();
   if (L){
-    const cx = (L.offset?.x||0), cy = (L.offset?.y||0);
+    var cx = (L.offset && L.offset.x) || 0, cy = (L.offset && L.offset.y) || 0;
     setLotOffset(cx + (+dx||0), cy + (+dy||0));
   } else {
-    const cx = (state.lotOffset?.x||0), cy = (state.lotOffset?.y||0);
-    setLotOffset(cx + (+dx||0), cy + (+dy||0));
+    var cx2 = (state.lotOffset && state.lotOffset.x) || 0, cy2 = (state.lotOffset && state.lotOffset.y) || 0;
+    setLotOffset(cx2 + (+dx||0), cy2 + (+dy||0));
   }
 }
 export function getLotOffset(){
   _ensureActiveLayer();
-  const L = getActiveLayer();
+  var L = getActiveLayer();
   if (L) return L.offset || {x:0,y:0};
   return state.lotOffset || {x:0,y:0};
 }

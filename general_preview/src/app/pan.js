@@ -4,7 +4,7 @@ import { setLotOffset, getLotOffset, setActiveLayer } from './state.js';
 import { layoutLottie } from './lottie.js';
 
 export function initLottiePan({ refs }) {
-  const target = (refs?.lotStage) || document.getElementById('lotStage') || document;
+  const target = (refs && refs.lotStage) ? refs.lotStage : (document.getElementById('lotStage') || document);
               || (refs?.lotStage)     || document.getElementById('lotStage');
   if (!target) return;
 
@@ -17,9 +17,9 @@ export function initLottiePan({ refs }) {
   let raf = 0;
 
   const onPointerDown = (e) => {
-  const hit = e.target && (e.target.closest ? e.target.closest('.lot-item') : null);
+  var hit = e.target && e.target.closest ? e.target.closest('.lot-item') : null;
   if (!hit) return;
-  try{ if (hit.dataset && hit.dataset.layerId) setActiveLayer(hit.dataset.layerId); }catch{}
+  try{ if (hit.dataset && hit.dataset.layerId) setActiveLayer(hit.dataset.layerId); }catch(e){}
 
     // primary mouse or any touch; разрешаем только по Lottie
     if (e.pointerType !== 'touch' && e.button !== 0) return;

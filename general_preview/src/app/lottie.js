@@ -86,14 +86,17 @@ if (cssW > 0 && cssH > 0 && realW > 0 && realH > 0) {
   stage.style.transform = `translate(-50%, -50%) scale(${fitScale})`;
 /* APPLY PER-LAYER OFFSETS */
 try{
- const items = (refs.lotStage||document.getElementById('lotStage')).querySelectorAll('.lot-item');
- items.forEach(el=>{
-  const id = el.dataset.layerId; const L=(state.layers||[]).find(x=>x.id===id);
-  const off = (L && L.offset) ? L.offset : {x:0,y:0};
-  el.style.position='absolute'; el.style.left='50%'; el.style.top='50%'; el.style.transformOrigin='50% 50%';
-  el.style.transform = `translate(${off.x}px, ${off.y}px)`;
- });
-}catch{}
+  var st = refs.lotStage || document.getElementById('lotStage');
+  var items = st ? st.querySelectorAll('.lot-item') : [];
+  for (var i=0;i<items.length;i++){
+    var el = items[i];
+    var id = el.dataset.layerId;
+    var L=null; for (var j=0;j<(state.layers||[]).length;j++){ if(state.layers[j].id===id){ L=state.layers[j]; break; } }
+    var off = (L && L.offset) ? L.offset : {x:0,y:0};
+    el.style.position='absolute'; el.style.left='50%'; el.style.top='50%'; el.style.transformOrigin='50% 50%';
+    el.style.transform='translate('+off.x+'px,'+off.y+'px)';
+  }
+}catch(e){}
 
   // [TEST OVERLAY] capture metrics for debug overlay
   try {
@@ -215,7 +218,7 @@ export async function loadLottieFromData(refs, data) {
   try {
     const lotJson = typeof data === 'string' ? JSON.parse(data) : data;
     if (!lotJson || typeof lotJson !== 'object') return null;
-// keep previous animation instances for multi-layer
+// keep previous animation instances
     const w = Number(lotJson.w || 0) || 512;
     const h = Number(lotJson.h || 0) || 512;
     if (refs.lotStage) {
@@ -232,22 +235,23 @@ const autoplay = !!state.loopOn;
     if (engine === 'rlottie') {
       anim = createRlottiePlayer({
         container: (function(){
-      const stage = refs.lotStage || document.getElementById('lotStage');
-      const layerId = genLayerId();
-      const item = document.createElement('div');
-      item.className = 'lot-item'; item.dataset.layerId = layerId;
-      const mount = document.createElement('div'); mount.className = 'lottie-mount'; item.appendChild(mount);
-      // size from comp if possible
-      try{ if(lotJson?.w && lotJson?.h){ item.style.width = `${lotJson.w}px`; item.style.height = `${lotJson.h}px`; } }catch{}
-      // fallback size from bg or 512
+      var stage = refs.lotStage || document.getElementById('lotStage');
+      var layerId = genLayerId();
+      var item = document.createElement('div'); item.className='lot-item'; item.dataset.layerId=layerId;
+      var mount = document.createElement('div'); mount.className='lottie-mount'; item.appendChild(mount);
+      try{ var lj=lotJson; if(lj && lj.w && lj.h){ item.style.width = lj.w + 'px'; item.style.height = lj.h + 'px'; } }catch(e){}
+      // fallback size
       try{
-        const bw = (state.lastBgSize&&state.lastBgSize.w)||0; const bh=(state.lastBgSize&&state.lastBgSize.h)||0;
-        if ((!item.style.width||item.style.width==='0px'||item.style.width==='') && (!item.style.height||item.style.height==='0px'||item.style.height==='')){
-          const fw = bw>0?bw:512; const fh = bh>0?bh:fw; item.style.width = `${fw}px`; item.style.height = `${fh}px`; }
-      }catch{}
+        var bw = (state.lastBgSize && state.lastBgSize.w) || 0;
+        var bh = (state.lastBgSize && state.lastBgSize.h) || 0;
+        if ((!item.style.width || item.style.width==='0px') && (!item.style.height || item.style.height==='0px')){
+          var fw = bw>0?bw:512; var fh = bh>0?bh:fw; item.style.width = fw+'px'; item.style.height = fh+'px';
+        }
+      }catch(e){}
       if(stage) stage.appendChild(item);
-      try{ addLayer({ id: layerId, name: (lotJson?.nm || 'Layer') }); }catch{}
-      refs.__lastAddedLayerEl = item; return mount; })(),
+      try{ addLayer({ id: layerId, name: 'Layer '+layerId }); }catch(e){}
+      return mount;
+    })(),
         loop,
         autoplay,
         animationData: lotJson
@@ -255,22 +259,23 @@ const autoplay = !!state.loopOn;
     } else {
       anim = window.lottie.loadAnimation({
       container: (function(){
-      const stage = refs.lotStage || document.getElementById('lotStage');
-      const layerId = genLayerId();
-      const item = document.createElement('div');
-      item.className = 'lot-item'; item.dataset.layerId = layerId;
-      const mount = document.createElement('div'); mount.className = 'lottie-mount'; item.appendChild(mount);
-      // size from comp if possible
-      try{ if(lotJson?.w && lotJson?.h){ item.style.width = `${lotJson.w}px`; item.style.height = `${lotJson.h}px`; } }catch{}
-      // fallback size from bg or 512
+      var stage = refs.lotStage || document.getElementById('lotStage');
+      var layerId = genLayerId();
+      var item = document.createElement('div'); item.className='lot-item'; item.dataset.layerId=layerId;
+      var mount = document.createElement('div'); mount.className='lottie-mount'; item.appendChild(mount);
+      try{ var lj=lotJson; if(lj && lj.w && lj.h){ item.style.width = lj.w + 'px'; item.style.height = lj.h + 'px'; } }catch(e){}
+      // fallback size
       try{
-        const bw = (state.lastBgSize&&state.lastBgSize.w)||0; const bh=(state.lastBgSize&&state.lastBgSize.h)||0;
-        if ((!item.style.width||item.style.width==='0px'||item.style.width==='') && (!item.style.height||item.style.height==='0px'||item.style.height==='')){
-          const fw = bw>0?bw:512; const fh = bh>0?bh:fw; item.style.width = `${fw}px`; item.style.height = `${fh}px`; }
-      }catch{}
+        var bw = (state.lastBgSize && state.lastBgSize.w) || 0;
+        var bh = (state.lastBgSize && state.lastBgSize.h) || 0;
+        if ((!item.style.width || item.style.width==='0px') && (!item.style.height || item.style.height==='0px')){
+          var fw = bw>0?bw:512; var fh = bh>0?bh:fw; item.style.width = fw+'px'; item.style.height = fh+'px';
+        }
+      }catch(e){}
       if(stage) stage.appendChild(item);
-      try{ addLayer({ id: layerId, name: (lotJson?.nm || 'Layer') }); }catch{}
-      refs.__lastAddedLayerEl = item; return mount; })(),
+      try{ addLayer({ id: layerId, name: 'Layer '+layerId }); }catch(e){}
+      return mount;
+    })(),
       renderer: 'svg',
       loop,
       autoplay,

@@ -3,83 +3,85 @@ import { setPlaceholderVisible, setDropActive } from './utils.js';
 import { setLastLottie } from './state.js';
 
 async function processFilesSequential(refs, files) {
-  let imgFile = null;
-  const jsonFiles = [];
-  for (const f of files) {
-    if (!imgFile && f.type?.startsWith?.('image/')) imgFile = f;
-    const isJson = f.type === 'application/json' || f.name?.toLowerCase?.().endsWith('.json') || f.type === 'text/plain';
+  var imgFile = null;
+  var jsonFiles = [];
+  for (var i=0;i<files.length;i++){
+    var f = files[i];
+    if (!imgFile && f.type && f.type.indexOf('image/')===0) imgFile = f;
+    var isJson = (f.type==='application/json') || (f.name && f.name.toLowerCase && f.name.toLowerCase().endsWith('.json')) || (f.type==='text/plain');
     if (isJson) jsonFiles.push(f);
   }
   if (imgFile) {
-    const url = URL.createObjectURL(imgFile);
-    await setBackgroundFromSrc(refs, url, { fileName: imgFile?.name });
+    var url = URL.createObjectURL(imgFile);
+    await setBackgroundFromSrc(refs, url, { fileName: imgFile && imgFile.name });
     setPlaceholderVisible(refs, false);
-    try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); window.dispatchEvent?.(new CustomEvent('lp:content-painted')); } catch {}
+    try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); if (window.dispatchEvent) window.dispatchEvent(new CustomEvent('lp:content-painted')); } catch(e){}
   }
-  for (const jf of jsonFiles) {
+  for (var j=0;j<jsonFiles.length;j++){
     try {
-      const text = await jf.text();
-      const json = JSON.parse(text);
+      var jf = jsonFiles[j];
+      var text = jf.text ? await jf.text() : await new Response(jf).text();
+      var json = JSON.parse(text);
       await loadLottieFromData(refs, json);
       setLastLottie(json);
       setPlaceholderVisible(refs, false);
-      try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); window.dispatchEvent?.(new CustomEvent('lp:content-painted')); } catch {}
-    } catch (e) { console.error(e); }
+      try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); if (window.dispatchEvent) window.dispatchEvent(new CustomEvent('lp:content-painted')); } catch(e){}
+    } catch(e){ console.error(e); }
   }
 }
 
 export function initDnd({ refs }) {
-  let depth = 0;
-  let __dropGuard = false;
+  var depth = 0;
+  var __dropGuard = false;
 
-  const onDragEnter = (e) => { e.preventDefault(); if (++depth === 1) setDropActive(true); };
-  const onDragOver  = (e) => { e.preventDefault(); };
-  const onDragLeave = (e) => { e.preventDefault(); if (--depth <= 0) { depth = 0; setDropActive(false); } };
-  const onDrop = async (e) => {
+  function onDragEnter(e){ e.preventDefault(); depth++; if (depth===1) setDropActive(true); }
+  function onDragOver(e){ e.preventDefault(); }
+  function onDragLeave(e){ e.preventDefault(); depth--; if (depth<=0){ depth=0; setDropActive(false); } }
+  async function onDrop(e){
     e.preventDefault();
-    if (__dropGuard) return; __dropGuard = true; setTimeout(()=>__dropGuard=false, 300);
+    if (__dropGuard) return; __dropGuard = true; setTimeout(function(){ __dropGuard=false; }, 300);
     depth = 0; setDropActive(false);
-    const dt = e.dataTransfer;
-    const files = [];
-    if (dt?.files?.length) {
-      for (const f of Array.from(dt.files)) files.push(f);
-    } else if (dt?.items?.length) {
-      for (const it of dt.items) if (it.kind === 'file') { const f = it.getAsFile(); if (f) files.push(f); }
+    var dt = e.dataTransfer;
+    var files = [];
+    if (dt && dt.files && dt.files.length){
+      for (var i=0;i<dt.files.length;i++) files.push(dt.files[i]);
+    } else if (dt && dt.items && dt.items.length){
+      for (var k=0;k<dt.items.length;k++){ var it = dt.items[k]; if (it.kind==='file'){ var f = it.getAsFile(); if (f) files.push(f); } }
     }
     if (files.length) await processFilesSequential(refs, files);
-  };
+  }
 
   window.addEventListener('dragenter', onDragEnter);
   window.addEventListener('dragover', onDragOver);
   window.addEventListener('dragleave', onDragLeave);
   window.addEventListener('drop', onDrop);
-  // no document-level drop
 
-  document.addEventListener('paste', async (e) => {
-    const items = Array.from(e.clipboardData?.items || []);
-    const files = [];
-    const textCandidates = [];
-    for (const it of items) {
-      if (it.type?.startsWith?.('image/')) { const f = it.getAsFile(); if (f) files.push(f); }
-      else if (it.type === 'application/json' || it.type === 'text/plain') {
-        const str = await (it.getAsString ? new Promise(r => it.getAsString(r)) : Promise.resolve(e.clipboardData.getData('text')));
-        if (str) textCandidates.push(str);
+  document.addEventListener('paste', async function(e){
+    var items = (e.clipboardData && e.clipboardData.items) ? Array.prototype.slice.call(e.clipboardData.items) : [];
+    var files = [];
+    var texts = [];
+    for (var i=0;i<items.length;i++){
+      var it = items[i];
+      if (it.type && it.type.indexOf('image/')===0){ var f = it.getAsFile(); if (f) files.push(f); }
+      else if (it.type==='application/json' || it.type==='text/plain'){
+        var str = await (it.getAsString ? new Promise(function(r){ it.getAsString(r); }) : Promise.resolve(e.clipboardData.getData('text')));
+        if (str) texts.push(str);
       }
     }
     if (files.length) await processFilesSequential(refs, files);
-    for (const text of textCandidates) {
-      try {
-        const json = JSON.parse(text);
+    for (var t=0;t<texts.length;t++){
+      try{
+        var json = JSON.parse(texts[t]);
         await loadLottieFromData(refs, json);
         setLastLottie(json);
         setPlaceholderVisible(refs, false);
-        try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); window.dispatchEvent?.(new CustomEvent('lp:content-painted')); } catch {}
-      } catch {}
+        try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); if (window.dispatchEvent) window.dispatchEvent(new CustomEvent('lp:content-painted')); } catch(e){}
+      }catch(e){}
     }
   });
 
   return {
-    destroy() {
+    destroy: function(){
       window.removeEventListener('dragenter', onDragEnter);
       window.removeEventListener('dragover', onDragOver);
       window.removeEventListener('dragleave', onDragLeave);
