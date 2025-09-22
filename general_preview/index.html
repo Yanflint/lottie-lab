@@ -97,6 +97,39 @@ html.viewer .bg img {
 @supports not (height: 100dvh) {
   html.viewer .wrapper { height: 100vh !important; }
 }
+
+/* Desktop web viewer: square 1:1 centered, editor-like, no controls */
+@media (hover: hover) and (pointer: fine) {
+  /* restore some breathing room on desktop */
+  html.viewer .page { padding: 16px !important; }
+
+  /* center container */
+  html.viewer .app {
+    width: 100% !important;
+    max-width: 1000px !important;
+    align-items: center !important;
+  }
+
+  /* square stage centered; size limited by the smaller viewport side minus padding */
+  html.viewer .wrapper {
+    aspect-ratio: 1 / 1 !important;
+    width: min(calc(100dvh - 32px), calc(100vw - 32px)) !important;
+    height: min(calc(100dvh - 32px), calc(100vw - 32px)) !important;
+    margin: 0 auto !important;
+  }
+  @supports not (height: 100dvh) {
+    html.viewer .wrapper {
+      width: min(calc(100vh - 32px), calc(100vw - 32px)) !important;
+      height: min(calc(100vh - 32px), calc(100vw - 32px)) !important;
+    }
+  }
+
+  /* background fits the square box without stretching */
+  html.viewer .bg img {
+    width: auto !important;
+    height: 100% !important;
+  }
+}
 </style>
 </head>
 
