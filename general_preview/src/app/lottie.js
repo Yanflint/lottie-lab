@@ -5,9 +5,7 @@ import { createPlayer as createRlottiePlayer } from './rlottieAdapter.js';
 import { setPlaceholderVisible } from './utils.js';
 
 let anim = null;
-let __layerSeq = 0;
-function genLayerId(){ return 'L'+(++__layerSeq); }
-
+let __layerSeq=0; function genLayerId(){ return 'L'+(++__layerSeq); }
 
 /* ========= ENV DETECT (PWA + mobile) ========= */
 (function detectEnv(){
@@ -87,19 +85,16 @@ if (cssW > 0 && cssH > 0 && realW > 0 && realH > 0) {
   stage.style.transformOrigin = '50% 50%';
   stage.style.transform = `translate(-50%, -50%) scale(${fitScale})`;
 /* APPLY PER-LAYER OFFSETS */
-try {
-  const items = stage.querySelectorAll('.lot-item');
-  items.forEach(el => {
-    const id = el.dataset.layerId;
-    const L = (state.layers || []).find(x => x.id === id);
-    const off = (L && L.offset) ? L.offset : {x:0,y:0};
-    el.style.position = 'absolute';
-    el.style.left = '50%';
-    el.style.top  = '50%';
-    el.style.transformOrigin = '50% 50%';
-    el.style.transform = `translate(${off.x}px, ${off.y}px)`;
-  });
-} catch {}
+try{
+ const items = (refs.lotStage||document.getElementById('lotStage')).querySelectorAll('.lot-item');
+ items.forEach(el=>{
+  const id = el.dataset.layerId; const L=(state.layers||[]).find(x=>x.id===id);
+  const off = (L && L.offset) ? L.offset : {x:0,y:0};
+  el.style.position='absolute'; el.style.left='50%'; el.style.top='50%'; el.style.transformOrigin='50% 50%';
+  el.style.transform = `translate(${off.x}px, ${off.y}px)`;
+ });
+}catch{}
+
   // [TEST OVERLAY] capture metrics for debug overlay
   try {
     const stageRect = stage.getBoundingClientRect ? stage.getBoundingClientRect() : { width: 0, height: 0 };
@@ -220,7 +215,7 @@ export async function loadLottieFromData(refs, data) {
   try {
     const lotJson = typeof data === 'string' ? JSON.parse(data) : data;
     if (!lotJson || typeof lotJson !== 'object') return null;
-// keep previous animations alive to allow multiple layers
+// keep previous animation instances for multi-layer
     const w = Number(lotJson.w || 0) || 512;
     const h = Number(lotJson.h || 0) || 512;
     if (refs.lotStage) {
@@ -237,38 +232,22 @@ const autoplay = !!state.loopOn;
     if (engine === 'rlottie') {
       anim = createRlottiePlayer({
         container: (function(){
-        // create a new layer item wrapper
-        const stage = refs.lotStage || document.getElementById('lotStage');
-        const layerId = genLayerId();
-        const item = document.createElement('div');
-        item.className = 'lot-item';
-        item.dataset.layerId = layerId;
-        // inner mount
-        const mount = document.createElement('div');
-        mount.className = 'lottie-mount';
-        item.appendChild(mount);
-        // set item base size from composition if available
-        try { if (lotJson && lotJson.w && lotJson.h) { item.style.width = `${lotJson.w}px`; item.style.height = `${lotJson.h}px`; } } catch {}
-
-// Fallback size if composition dimensions are missing
-try {
-  const bw = (state.lastBgSize && state.lastBgSize.w) || 0;
-  const bh = (state.lastBgSize && state.lastBgSize.h) || 0;
-  if ((!item.style.width || item.style.width === '0px' || item.style.width === '') &&
-      (!item.style.height || item.style.height === '0px' || item.style.height === '')) {
-    const fw = bw > 0 ? bw : 512;
-    const fh = bh > 0 ? bh : fw;
-    item.style.width  = typeof fw === 'number' ? `${fw}px` : fw;
-    item.style.height = typeof fh === 'number' ? `${fh}px` : fh;
-  }
-} catch {}
-        // attach and register layer in state
-        if (stage) stage.appendChild(item);
-        try { addLayer({ id: layerId, name: (lotJson?.nm || 'Layer') }); } catch {}
-        // expose refs mapping for pan and layout
-        refs.__lastAddedLayerEl = item;
-        return mount;
-      })(),
+      const stage = refs.lotStage || document.getElementById('lotStage');
+      const layerId = genLayerId();
+      const item = document.createElement('div');
+      item.className = 'lot-item'; item.dataset.layerId = layerId;
+      const mount = document.createElement('div'); mount.className = 'lottie-mount'; item.appendChild(mount);
+      // size from comp if possible
+      try{ if(lotJson?.w && lotJson?.h){ item.style.width = `${lotJson.w}px`; item.style.height = `${lotJson.h}px`; } }catch{}
+      // fallback size from bg or 512
+      try{
+        const bw = (state.lastBgSize&&state.lastBgSize.w)||0; const bh=(state.lastBgSize&&state.lastBgSize.h)||0;
+        if ((!item.style.width||item.style.width==='0px'||item.style.width==='') && (!item.style.height||item.style.height==='0px'||item.style.height==='')){
+          const fw = bw>0?bw:512; const fh = bh>0?bh:fw; item.style.width = `${fw}px`; item.style.height = `${fh}px`; }
+      }catch{}
+      if(stage) stage.appendChild(item);
+      try{ addLayer({ id: layerId, name: (lotJson?.nm || 'Layer') }); }catch{}
+      refs.__lastAddedLayerEl = item; return mount; })(),
         loop,
         autoplay,
         animationData: lotJson
@@ -276,38 +255,22 @@ try {
     } else {
       anim = window.lottie.loadAnimation({
       container: (function(){
-        // create a new layer item wrapper
-        const stage = refs.lotStage || document.getElementById('lotStage');
-        const layerId = genLayerId();
-        const item = document.createElement('div');
-        item.className = 'lot-item';
-        item.dataset.layerId = layerId;
-        // inner mount
-        const mount = document.createElement('div');
-        mount.className = 'lottie-mount';
-        item.appendChild(mount);
-        // set item base size from composition if available
-        try { if (lotJson && lotJson.w && lotJson.h) { item.style.width = `${lotJson.w}px`; item.style.height = `${lotJson.h}px`; } } catch {}
-
-// Fallback size if composition dimensions are missing
-try {
-  const bw = (state.lastBgSize && state.lastBgSize.w) || 0;
-  const bh = (state.lastBgSize && state.lastBgSize.h) || 0;
-  if ((!item.style.width || item.style.width === '0px' || item.style.width === '') &&
-      (!item.style.height || item.style.height === '0px' || item.style.height === '')) {
-    const fw = bw > 0 ? bw : 512;
-    const fh = bh > 0 ? bh : fw;
-    item.style.width  = typeof fw === 'number' ? `${fw}px` : fw;
-    item.style.height = typeof fh === 'number' ? `${fh}px` : fh;
-  }
-} catch {}
-        // attach and register layer in state
-        if (stage) stage.appendChild(item);
-        try { addLayer({ id: layerId, name: (lotJson?.nm || 'Layer') }); } catch {}
-        // expose refs mapping for pan and layout
-        refs.__lastAddedLayerEl = item;
-        return mount;
-      })(),
+      const stage = refs.lotStage || document.getElementById('lotStage');
+      const layerId = genLayerId();
+      const item = document.createElement('div');
+      item.className = 'lot-item'; item.dataset.layerId = layerId;
+      const mount = document.createElement('div'); mount.className = 'lottie-mount'; item.appendChild(mount);
+      // size from comp if possible
+      try{ if(lotJson?.w && lotJson?.h){ item.style.width = `${lotJson.w}px`; item.style.height = `${lotJson.h}px`; } }catch{}
+      // fallback size from bg or 512
+      try{
+        const bw = (state.lastBgSize&&state.lastBgSize.w)||0; const bh=(state.lastBgSize&&state.lastBgSize.h)||0;
+        if ((!item.style.width||item.style.width==='0px'||item.style.width==='') && (!item.style.height||item.style.height==='0px'||item.style.height==='')){
+          const fw = bw>0?bw:512; const fh = bh>0?bh:fw; item.style.width = `${fw}px`; item.style.height = `${fh}px`; }
+      }catch{}
+      if(stage) stage.appendChild(item);
+      try{ addLayer({ id: layerId, name: (lotJson?.nm || 'Layer') }); }catch{}
+      refs.__lastAddedLayerEl = item; return mount; })(),
       renderer: 'svg',
       loop,
       autoplay,

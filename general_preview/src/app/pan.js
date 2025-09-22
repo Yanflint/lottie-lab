@@ -5,8 +5,7 @@ import { layoutLottie } from './lottie.js';
 
 export function initLottiePan({ refs }) {
   const target = (refs?.lotStage) || document.getElementById('lotStage') || document;
-  const rootEl = (refs?.lotStage) || document.getElementById('lotStage') || document;
-
+              || (refs?.lotStage)     || document.getElementById('lotStage');
   if (!target) return;
 
   try { target.style.touchAction = 'none'; } catch {}
@@ -18,11 +17,11 @@ export function initLottiePan({ refs }) {
   let raf = 0;
 
   const onPointerDown = (e) => {
-    // primary mouse or any touch; разрешаем только по Lottie
-    const hit = e.target && (e.target.closest ? e.target.closest('.lot-item') : null);
-    if (!hit) return; // начинаем перетаскивание только если попали по слою
-    try { if (hit.dataset && hit.dataset.layerId) setActiveLayer(hit.dataset.layerId); } catch {}
+  const hit = e.target && (e.target.closest ? e.target.closest('.lot-item') : null);
+  if (!hit) return;
+  try{ if (hit.dataset && hit.dataset.layerId) setActiveLayer(hit.dataset.layerId); }catch{}
 
+    // primary mouse or any touch; разрешаем только по Lottie
     if (e.pointerType !== 'touch' && e.button !== 0) return;
     dragging = true;
     startX = e.clientX; startY = e.clientY;

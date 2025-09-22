@@ -8,7 +8,7 @@ const isStandalone =
   (navigator.standalone === true);
 
 if (isStandalone) document.documentElement.classList.add('standalone');
-try{ document.documentElement.classList.remove('booting'); }catch(e){}
+try{ document.documentElement.classList.remove('booting'); }catch{}
 
 
 // Viewer mode on /s/*

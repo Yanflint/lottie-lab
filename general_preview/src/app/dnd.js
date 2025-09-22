@@ -30,11 +30,11 @@ async function processFilesSequential(refs, files) {
 
 export function initDnd({ refs }) {
   let depth = 0;
+  let __dropGuard = false;
 
   const onDragEnter = (e) => { e.preventDefault(); if (++depth === 1) setDropActive(true); };
   const onDragOver  = (e) => { e.preventDefault(); };
   const onDragLeave = (e) => { e.preventDefault(); if (--depth <= 0) { depth = 0; setDropActive(false); } };
-  let __dropGuard = false;
   const onDrop = async (e) => {
     e.preventDefault();
     if (__dropGuard) return; __dropGuard = true; setTimeout(()=>__dropGuard=false, 300);
@@ -53,11 +53,7 @@ export function initDnd({ refs }) {
   window.addEventListener('dragover', onDragOver);
   window.addEventListener('dragleave', onDragLeave);
   window.addEventListener('drop', onDrop);
-  document.addEventListener('dragenter', onDragEnter);
-  document.addEventListener('dragover', onDragOver);
-  document.addEventListener('dragleave', onDragLeave);
-  // document-level drop removed to avoid double handling
-  // document.addEventListener('drop', onDrop);
+  // no document-level drop
 
   document.addEventListener('paste', async (e) => {
     const items = Array.from(e.clipboardData?.items || []);
@@ -88,10 +84,6 @@ export function initDnd({ refs }) {
       window.removeEventListener('dragover', onDragOver);
       window.removeEventListener('dragleave', onDragLeave);
       window.removeEventListener('drop', onDrop);
-      document.removeEventListener('dragenter', onDragEnter);
-      document.removeEventListener('dragover', onDragOver);
-      document.removeEventListener('dragleave', onDragLeave);
-      document.removeEventListener('drop', onDrop);
       document.removeEventListener('paste', this._onPaste);
     }
   };
