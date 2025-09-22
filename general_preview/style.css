@@ -391,7 +391,7 @@ button::-moz-focus-inner{ border:0 !important; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* Нулевые отступы у чекбокса цикла */
-#loopChk{ margin-left:0; margin-right:0; }
+#loopChk{margin-left:0;margin-right:0}
 
 
 /* cursor hints for panning in editor */
