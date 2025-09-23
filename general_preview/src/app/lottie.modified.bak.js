@@ -5,8 +5,10 @@ import { createPlayer as createRlottiePlayer } from './rlottieAdapter.js';
 import { setPlaceholderVisible } from './utils.js';
 import { addLottieItem, setSelected, getSelectedItem, getLottieItems } from './state.js';
 
-let anim = null;
+
+let anim = null; // legacy selected anim
 const items = []; // multi-lottie items
+
 function createLotItem(refs, w, h){
   const stage = refs?.lotStage; if (!stage) return null;
   const wrap = document.createElement('div');
@@ -29,6 +31,7 @@ function createLotItem(refs, w, h){
   stage.appendChild(wrap);
   return { wrap, mount };
 }
+
 
 /* ========= ENV DETECT (PWA + mobile) ========= */
 (function detectEnv(){
@@ -61,7 +64,7 @@ function parseAssetScale(nameOrUrl) {
 
 /** Центрируем лотти-стейдж без масштаба (1:1) */
 /** Центрируем и масштабируем лотти-стейдж синхронно с фоном */
-export function layoutLottie(refs) {
+export function layoutLottie(refs){
   const stage = refs?.lotStage;
   const wrap  = refs?.wrapper || refs?.previewBox || refs?.preview;
   if (!stage || !wrap) return;
@@ -69,6 +72,7 @@ export function layoutLottie(refs) {
   const cssW = +((state.lastBgSize && state.lastBgSize.w) || 0);
   const cssH = +((state.lastBgSize && state.lastBgSize.h) || 0);
 
+  // Real rendered size of background
   let realW = 0, realH = 0;
   const bgEl = refs?.bgImg;
   if (bgEl && bgEl.getBoundingClientRect) {
@@ -76,10 +80,12 @@ export function layoutLottie(refs) {
     realW = bgr.width || 0; realH = bgr.height || 0;
   }
 
+  // Fallback if no bg known yet
   const baseW = cssW || realW || 1;
   const baseH = cssH || realH || 1;
   const fitScale = baseW > 0 ? (realW / baseW) : 1;
 
+  // Stage covers base coordinate system
   stage.style.position = 'absolute';
   stage.style.left = '50%';
   stage.style.top  = '50%';
@@ -88,17 +94,20 @@ export function layoutLottie(refs) {
   stage.style.transformOrigin = '50% 50%';
   stage.style.transform = `translate(-50%, -50%) scale(${fitScale})`;
 
+  // Position each item with its own pre-scale offsets
   const list = (typeof getLottieItems === 'function') ? getLottieItems() : items;
   for (const it of list) {
     const w = +it.w || 0, h = +it.h || 0;
     if (it.wrapEl) { it.wrapEl.style.width = w+'px'; it.wrapEl.style.height = h+'px'; }
     const x = (it.offset?.x || 0), y = (it.offset?.y || 0);
+    const xpx = x; const ypx = y; // pre-scale pixels
     if (it.wrapEl) {
       it.wrapEl.style.transformOrigin = '50% 50%';
-      it.wrapEl.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+      it.wrapEl.style.transform = `translate(calc(-50% + ${xpx}px), calc(-50% + ${ypx}px))`;
     }
   }
 
+  // Store metrics for overlays / debug
   try {
     const stageRect = stage.getBoundingClientRect();
     window.__lpMetrics = {
@@ -108,9 +117,6 @@ export function layoutLottie(refs) {
     };
     if (typeof window.__updateOverlay === 'function') window.__updateOverlay(window.__lpMetrics);
   } catch (e) {}
-}
-catch {}
-
 }
 /**
  * Установка фоновой картинки из data:/blob:/http(s)
@@ -149,7 +155,7 @@ export async function setBackgroundFromSrc(refs, src, meta = {}) {
   })();
 
   refs.bgImg.onload = async () => {
-    try { __bgResolve && __bgResolve(); } catch {}
+    try { __bgResolve && __bgResolve(); } catch (e) {}
 
     const iw = Number(refs.bgImg.naturalWidth || 0) || 1;
     const ih = Number(refs.bgImg.naturalHeight || 0) || 1;
@@ -173,28 +179,33 @@ export async function setBackgroundFromSrc(refs, src, meta = {}) {
     }
 
     setPlaceholderVisible(refs, false);
-    try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); } catch {}
+    try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); } catch (e) {}
   };
 
   refs.bgImg.onerror = () => {
-    try { __bgResolve && __bgResolve(); } catch {}
+    try { __bgResolve && __bgResolve(); } catch (e) {}
 
     console.warn('Background image failed to load');
   };
 
   refs.bgImg.src = src;
-  try { await __bgDone; } catch {}
+  try { await __bgDone; } catch (e) {}
 }
 
 /** Жёсткий перезапуск проигрывания */
 export function restart() {
   try {
     let it = null;
-    try { if (typeof getSelectedItem === 'function') it = getSelectedItem(); } catch (e) {}
+    try {
+      // Prefer selected item if available
+      if (typeof getSelectedItem === 'function') {
+        it = getSelectedItem();
+      }
+    } catch (e) {}
     const player = (it && it.anim) ? it.anim : anim;
-    if (player && player.goToAndPlay) player.goToAndPlay(0, true);
+    try { player && player.goToAndPlay && player.goToAndPlay(0, true); } catch (e) {}
   } catch (e) {}
-} catch (_) {}
+} catch (e) {} } catch (_) {}
 }
 
 /** Переключение loop "на лету" */
@@ -208,97 +219,88 @@ export function setLoop(on) {
  * — создаём инстанс
  * — задаём габариты стейджа по w/h из JSON
  */
-export async function loadLottieFromData(refs, data) {
+export async function loadLottieFromData(refs, data){
   try {
     const lotJson = typeof data === 'string' ? JSON.parse(data) : data;
     if (!lotJson || typeof lotJson !== 'object') return null;
 
-    if (anim) {
-      try { anim.destroy?.(); } catch (_) {}
-      anim = null;
-    }
-
     const w = Number(lotJson.w || 0) || 512;
     const h = Number(lotJson.h || 0) || 512;
-    if (refs.lotStage) {
-      refs.lotStage.style.width = `${w}px`;
-      refs.lotStage.style.height = `${h}px`;
-    }
 
-    const loop = !!state.loopOn;
-    
-const autoplay = !!state.loopOn;
+    // Create wrapper & mount
+    let mountEl = null, wrapEl = null;
+    // Reuse the initial #lottie mount for the first item to stay backward compatible
+    const stage = refs?.lotStage;
+    const firstMount = refs?.lottie;
+    if (items.length === 0 && firstMount) {
+      wrapEl = document.createElement('div');
+      wrapEl.className = 'lot-item';
+      wrapEl.style.position = 'absolute';
+      wrapEl.style.left = '50%'; wrapEl.style.top = '50%';
+      wrapEl.style.transformOrigin = '50% 50%';
+      wrapEl.style.width = w+'px'; wrapEl.style.height = h+'px';
 
+      const overlay = document.createElement('div'); overlay.className = 'lot-select-overlay';
+      wrapEl.appendChild(overlay);
 
-    const engine = pickEngine();
-    if (engine === 'rlottie') {
-      anim = createRlottiePlayer({
-        container: refs.lottieMount,
-        loop,
-        autoplay,
-        animationData: lotJson
-      });
+      // move existing #lottie inside the wrapper
+      mountEl = firstMount;
+      mountEl.parentElement?.replaceChild(wrapEl, mountEl);
+      wrapEl.appendChild(mountEl);
+      stage?.appendChild(wrapEl);
     } else {
-      anim = window.lottie.loadAnimation({
-      container: refs.lottieMount,
-      renderer: 'svg',
-      loop,
-      autoplay,
-      animationData: lotJson
-    });
+      const pair = createLotItem(refs, w, h);
+      if (!pair) return null;
+      wrapEl = pair.wrap; mountEl = pair.mount;
     }
 
-    anim.addEventListener('DOMLoaded', () => {
-      try { if (!state.loopOn && anim && anim.stop) { anim.stop(); anim.goToAndStop?.(0, true); } } catch {}
-      setPlaceholderVisible(refs, false);
-      if (refs.wrapper) refs.wrapper.classList.add('has-lottie');
-      layoutLottie(refs);
+    const id = 'lot_'+Date.now()+'_'+Math.floor(Math.random()*99999);
+    const loop = !!(window.__forceLoop ?? false);
+    const autoplay = !!(window.__forceAutoplay ?? true);
+
+    // Instantiate Lottie
+    const animInst = window.lottie?.loadAnimation?.({
+      container: mountEl,
+      renderer: 'svg',
+      loop: loop,
+      autoplay: autoplay,
+      animationData: lotJson,
     });
-        // Click/Tap to play once when loop is off — guard against double fire (touch + click)
-    try {
-      const mount = refs.lottieMount || refs.preview || refs.wrapper;
-      const root  = refs.preview || refs.wrapper || document.body;
-      if (mount && !mount.__lp_clickBound) {
-        mount.__lp_clickBound = true;
-        let lastUserPlayAt = 0;
-        const SUPPRESS_MS = 500;
 
-        // capture-phase suppressor to block synthetic click after touch/pointer
-        if (root && !root.__lp_clickSuppressor) {
-          root.__lp_clickSuppressor = true;
-          root.addEventListener('click', (ev) => {
-            const now = Date.now();
-            if (now - lastUserPlayAt < SUPPRESS_MS) {
-              try { ev.stopImmediatePropagation(); ev.stopPropagation(); ev.preventDefault(); } catch {}
-            }
-          }, true);
-        }
+    const item = { id, loop, offset: {x: 0, y: 0}, w, h, mountEl, wrapEl, anim: animInst, json: lotJson };
+    items.push(item);
+    try { addLottieItem(item); } catch (e) {}
 
-        const userPlay = (ev) => {
-          const now = Date.now();
-          lastUserPlayAt = now;
-          try { ev.stopPropagation(); } catch {}
-          try { ev.preventDefault && ev.preventDefault(); } catch {}
-          if (!state.loopOn) {
-            try { restart(); } catch {}
-          }
-        };
+    // Selection
+    const selectItem = () => {
+      try { items.forEach(it => it.wrapEl?.classList?.toggle('selected', it.id===item.id)); } catch (e) {}
+      try { setSelected(item.id); } catch (e) {}
+      anim = item.anim; // legacy: selected anim
+      // sync loop checkbox UI
+      try { const chk = document.getElementById('loopChk'); if (chk) chk.checked = !!item.loop; } catch (e) {}
+    };
+    selectItem();
+    wrapEl.addEventListener('pointerdown', (e)=>{
+      selectItem();
+      // Start dragging
+      let lastX = e.clientX, lastY = e.clientY;
+      const onMove = (ev)=>{
+        const dx = (ev.clientX - lastX), dy = (ev.clientY - lastY);
+        lastX = ev.clientX; lastY = ev.clientY;
+        item.offset = { x: (item.offset?.x||0) + dx, y: (item.offset?.y||0) + dy };
+        // move in pre-scale coords; layout will reapply
+        try{ layoutLottie(refs); } catch (e) {}
+      };
+      const onUp = ()=>{ window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); };
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp, { once: true });
+      e.stopPropagation();
+      e.preventDefault();
+    });
 
-        if (window.PointerEvent) {
-          mount.addEventListener('pointerdown', userPlay);
-        } else {
-          mount.addEventListener('touchstart', userPlay, { passive: false });
-          mount.addEventListener('click', (ev) => {
-            const now = Date.now();
-            if (now - lastUserPlayAt > SUPPRESS_MS) userPlay(ev);
-          });
-        }
-      }
-    } catch {}
-
-    anim.addEventListener('complete', () => {});
-
-    return anim;
+    try { layoutLottie(refs); } catch (e) {}
+    try { setPlaceholderVisible(refs, false); } catch (e) {}
+    return animInst;
   } catch (e) {
     console.error('loadLottieFromData error:', e);
     return null;
