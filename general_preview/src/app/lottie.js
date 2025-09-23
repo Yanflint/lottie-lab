@@ -1,7 +1,6 @@
 // src/app/lottie.js
 import { state, setLastBgSize, setLastBgMeta } from './state.js';
 import { pickEngine } from './engine.js';
-import { updateSceneScaleFromBackground, remapPositionsOnBackgroundChange } from './multi.js';
 import { createPlayer as createRlottiePlayer } from './rlottieAdapter.js';
 import { setPlaceholderVisible } from './utils.js';
 
@@ -75,29 +74,12 @@ if (cssW > 0 && cssH > 0 && realW > 0 && realH > 0) {
     if (!isFinite(fitScale) || fitScale <= 0) fitScale = 1;
   }
 
-  let x = (window.__lotOffsetX || 0);
-  let y = (window.__lotOffsetY || 0);
-  try { if (window.__lp_multi_on) { x = 0; y = 0; } } catch {}
+  const x = (window.__lotOffsetX || 0);
+  const y = (window.__lotOffsetY || 0);
   const xpx = x * fitScale;
   const ypx = y * fitScale;
 
-  try {
-    const bgr = refs?.bgImg?.getBoundingClientRect?.();
-    const realW = bgr?.width || wrap.getBoundingClientRect().width || 0;
-    const realH = bgr?.height || wrap.getBoundingClientRect().height || 0;
-    stage.style.width = realW + 'px';
-    stage.style.height = realH + 'px';
-  } catch {}
-
   stage.style.left = '50%';
-  try {
-    const rect = refs?.bgImg?.getBoundingClientRect?.();
-    const cssW2 = rect?.width || cssW; const cssH2 = rect?.height || cssH;
-    stage.style.width = (cssW2>0? cssW2:0) + 'px';
-    stage.style.height = (cssH2>0? cssH2:0) + 'px';
-  } catch {}
-  try { updateSceneScaleFromBackground(refs); } catch {}
-
   stage.style.top  = '50%';
   stage.style.transformOrigin = '50% 50%';
   stage.style.transform = `translate(calc(-50% + ${xpx}px), calc(-50% + ${ypx}px)) scale(${fitScale})`;
@@ -135,7 +117,6 @@ if (cssW > 0 && cssH > 0 && realW > 0 && realH > 0) {
  * @param {string} src
  * @param {object} [meta] - опционально { fileName?: string }
  */
-let __bgNatW = 0, __bgNatH = 0;
 export async function setBackgroundFromSrc(refs, src, meta = {}) {
   // [PATCH] make function awaitable until image is loaded
   let __bgResolve = null; const __bgDone = new Promise((r)=>{ __bgResolve = r; });

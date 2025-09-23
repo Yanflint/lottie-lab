@@ -1,7 +1,6 @@
 // Загружаем по /s/:id. Если id нет и это standalone, пробуем "последний" снимок.
 // Флаг цикла (opts.loop) применяем до создания анимации.
 import { setPlaceholderVisible, afterTwoFrames } from './utils.js';
-import { initMulti, addLottieFromJSON } from './multi.js';
 
 async function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 async function fetchStableLastPayload(maxMs=2000){
@@ -65,24 +64,7 @@ async function applyPayload(refs, data) {
     if (!meta.fileName && data.lot && data.lot.meta && data.lot.meta._lpBgMeta) { meta.fileName = data.lot.meta._lpBgMeta.fileName; meta.assetScale = data.lot.meta._lpBgMeta.assetScale; }
     if (src) await setBackgroundFromSrc(refs, src, meta);
   }
-
-// Multi-restore
-if (Array.isArray(data.multi) && data.multi.length) {
-  try {
-    initMulti(refs);
-    for (const it of data.multi) {
-      if (!it?.json) continue;
-      const inst = await addLottieFromJSON(refs, it.json, it.name || '');
-      try { inst.pos = { x: +(it.pos?.x || 0), y: +(it.pos?.y || 0) }; /* transform handled by multi.applyTransform */ } catch {}
-      try { inst.loop = !!it.loop; if ('loop' in inst.player) inst.player.loop = inst.loop; } catch {}
-    }
-    setPlaceholderVisible(refs, false);
-    try { layoutLottie(refs); } catch {}
-    return true;
-  } catch (e) { console.error('apply multi failed', e); }
-}
-if (data.lot) {
-
+  if (data.lot) {
     try {
       const m = data?.lot?.meta?._lpOffset;
       if (m && typeof m.x === 'number' && typeof m.y === 'number') setLotOffset(m.x || 0, m.y || 0);
