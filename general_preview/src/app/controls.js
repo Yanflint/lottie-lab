@@ -1,7 +1,6 @@
 // src/app/controls.js
 import { restart } from './lottie.js';
-import { state as appState, setLoop } from './appState.js';
-import { state as appState } from './appState.js';
+import { state as appState, setLoop } from './state.js';
 
 export function initControls({ refs }) {
   // Кнопка повторного проигрывания
