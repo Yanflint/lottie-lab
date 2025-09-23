@@ -238,3 +238,34 @@ export function initMultiLottie({ refs }) {
     }
   });
 }
+
+
+export function clearAll({ refs }) {
+  (state.lottieList || []).forEach(it => { try { it.__anim?.destroy?.(); } catch {}; try { it.__wrap?.remove?.(); } catch {} });
+  state.lottieList = [];
+  state.selectedId = null;
+}
+
+export function hydrateLots({ refs }, lots = []) {
+  clearAll({ refs });
+  const items = [];
+  for (const src of (lots || [])) {
+    const w = Number(src?.data?.w || src?.w || 0) || 256;
+    const h = Number(src?.data?.h || src?.h || 0) || 256;
+    const item = {
+      id: `lot_${Math.random().toString(36).slice(2,8)}`,
+      name: src?.name || 'animation.json',
+      data: src?.data,
+      w, h,
+      x: +src?.x || 0,
+      y: +src?.y || 0,
+      loop: !!src?.loop
+    };
+    items.push(item);
+    createAnimForItem(refs, item);
+  }
+  state.lottieList = items;
+  state.selectedId = items[0]?.id || null;
+  updateSelectionStyles();
+  try { const el = document.getElementById('loopChk'); if (el) el.checked = !!items[0]?.loop; } catch {}
+}

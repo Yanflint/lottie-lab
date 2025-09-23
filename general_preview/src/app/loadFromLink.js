@@ -64,7 +64,14 @@ async function applyPayload(refs, data) {
     if (!meta.fileName && data.lot && data.lot.meta && data.lot.meta._lpBgMeta) { meta.fileName = data.lot.meta._lpBgMeta.fileName; meta.assetScale = data.lot.meta._lpBgMeta.assetScale; }
     if (src) await setBackgroundFromSrc(refs, src, meta);
   }
-  if (data.lot) {
+  // Multi-lottie support
+  if (Array.isArray(data.lots) && data.lots.length) {
+    try {
+      const { hydrateLots } = await import('./multi.js');
+      hydrateLots({ refs }, data.lots);
+      // When lots are present, skip single lot branch
+    } catch (e) { console.error('hydrateLots failed', e); }
+  } else if (data.lot) {
     try {
       const m = data?.lot?.meta?._lpOffset;
       if (m && typeof m.x === 'number' && typeof m.y === 'number') setLotOffset(m.x || 0, m.y || 0);

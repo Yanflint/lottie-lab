@@ -67,8 +67,26 @@ async function collectPayloadOrThrow() {
     }
   } catch {}
 
+  
+  // Build multi-lottie payload
+  let lots = [];
+  try {
+    const arr = Array.isArray(state.lottieList) ? state.lottieList : [];
+    lots = arr.map(it => ({
+      name: it?.name || '',
+      data: it?.data || null,
+      x: +it?.x || 0,
+      y: +it?.y || 0,
+      w: +it?.w || 0,
+      h: +it?.h || 0,
+      loop: !!it?.loop
+    })).filter(it => !!it.data);
+  } catch {}
+
   const opts = { loop: !!state.loopOn };
-  return { lot, bg, opts };
+
+  // Backward compatibility: keep single lot as selected/current
+  return { lot, lots, bg, opts };
 }
 
 async function postPayload(payload) {
@@ -111,7 +129,7 @@ export function initShare({ onSuccess, onError } = {}) {
     try {
       e?.preventDefault?.();
       // Pre-check: specific toasts depending on what's missing
-      const hasLot = !!state.lastLottieJSON;
+      const hasLot = !!(state.lastLottieJSON || (state.lottieList && state.lottieList.length));
       const hasBg  = !!readCurrentBg();
       if (!hasLot && !hasBg) {
         showErrorToast('Загрузите графику', btn);
