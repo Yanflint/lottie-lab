@@ -417,3 +417,9 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 .lot-list .item.active { border-color: #111; font-weight: 600; }
 .lot-list .item .name { max-width: 220px; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
 .lot-list .empty { color: #888; font-size: 12px; }
+
+
+/* === Multiple Lottie items on canvas === */
+.lot-item { position:absolute; box-sizing: border-box; }
+.lot-item .sel-overlay{ position:absolute; inset:0; pointer-events:none; border:2px solid transparent; background:transparent; border-radius:4px; }
+.lot-item.selected .sel-overlay{ border-color: rgba(0,123,255,1); background: rgba(0,123,255,0.10); }
