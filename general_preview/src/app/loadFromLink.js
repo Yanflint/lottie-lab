@@ -97,10 +97,29 @@ async function applyPayload(refs, data) {
 return true;
 }
 
+function readDataParam(){
+  try{
+    const u = new URL(location.href);
+    let d = u.searchParams.get('d');
+    if (!d && u.hash) {
+      const sp = new URLSearchParams(u.hash.replace(/^#/, ''));
+      d = sp.get('d') || null;
+    }
+    if (!d) return null;
+    // URL-safe base64 -> normal base64
+    d = d.replace(/-/g,'+').replace(/_/g,'/');
+    const pad = d.length % 4; if (pad) d += '='.repeat(4-pad);
+    const json = decodeURIComponent(escape(atob(d)));
+    const payload = JSON.parse(json);
+    return payload || null;
+  }catch(e){ return null; }
+}
+
 export async function initLoadFromLink({ refs, isStandalone }) {
   setPlaceholderVisible(refs, true);
-
-  // 1) Пробуем id из URL
+  // 0) data-url payload
+  try{ const data = readDataParam(); if (data){ await applyPayload(refs, data); return; } } catch(e) {}
+// 1) Пробуем id из URL
   const id = getShareIdFromLocation();
   if (id) {
     try {

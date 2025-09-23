@@ -7,6 +7,19 @@ import { state, getLotOffset } from './state.js';
 // API endpoint (Yandex Cloud Function). No trailing slash.
 export const API_BASE = 'https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p'.replace(/\/+$/, '');
 // Use only the base path (no /share) to avoid CORS noise.
+
+function __lp_makeDataLink(payload){
+  try{
+    const json = JSON.stringify(payload);
+    // URL-safe base64
+    const b64 = btoa(unescape(encodeURIComponent(json))).replace(/=+$/,'').replace(/\+/g,'-').replace(/\//g,'_');
+    const base = (window.__PUBLIC_ORIGIN__) || location.origin;
+    const url = new URL(base.replace(/\/$/, '') + '/s/__data__');
+    url.searchParams.set('d', b64);
+    return url.toString();
+  }catch(e){ return null; }
+}
+
 const PATHS = [''];
 
 function bgMeta() {
@@ -103,7 +116,7 @@ async function postPayload(payload) {
       const txt = await resp.text();
       let data = null; try { data = txt ? JSON.parse(txt) : null; } catch {}
       if (!resp.ok) throw new Error(`share failed: ${resp.status}`);
-      if (data && typeof data.url === 'string') return data.url;
+      if (data && typeof data.url === 'string'){ const dl = __lp_makeDataLink(payload); return dl || data.url; }
       if (data && data.id) {
         const origin = (window.__PUBLIC_ORIGIN__) || location.origin;
         return origin.replace(/\/$/, '') + '/s/' + encodeURIComponent(data.id);
