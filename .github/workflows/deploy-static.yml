@@ -2,7 +2,7 @@ name: Deploy static site to Yandex Object Storage
 
 on:
   push:
-    branches: [ "main", "wip" ]   # деплоим из main и wip
+    branches: [ "main", "wip" ]
   workflow_dispatch:
 
 jobs:
@@ -11,61 +11,64 @@ jobs:
     env:
       AWS_DEFAULT_REGION: ru-central1
       AWS_ENDPOINT_URL: https://storage.yandexcloud.net
-      S3_BUCKET: ${{ vars.S3_BUCKET }}   # задаётся в Settings → Variables
+      S3_BUCKET: ${{ vars.S3_BUCKET }}
     steps:
       - uses: actions/checkout@v4
 
-      # 1) Генерируем build.js с информацией о коммите/ветке/времени
-      - name: Generate build.js with commit info
+      # 1) Генерируем build.js, который ожидает build-tag.js (window.__BUILD__ с полями run/branch/sha/ts)
+      - name: Generate build.js with CI info
         run: |
           mkdir -p ./general_preview
           SHORT_SHA="${GITHUB_SHA::7}"
-          DATE_ISO="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-          cat > ./general_preview/build.js <<EOF
-          (function(){
-            window.__BUILD = {
-              sha: "${GITHUB_SHA}",
-              short: "${SHORT_SHA}",
-              branch: "${GITHUB_REF_NAME}",
-              runId: "${GITHUB_RUN_ID}",
-              dateISO: "${DATE_ISO}"
-            };
-            try { console.log('BUILD', window.__BUILD); } catch(e){}
+          RUN_NUM="${GITHUB_RUN_NUMBER}"
+          DATE_TS="$(date -u +'%Y-%m-%d %H:%M:%SZ')"
+          cat > ./general_preview/build.js <<'EOF'
+          ;(function () {
+            try {
+              window.__BUILD__ = {
+                run: "__RUN__",       // монотонный номер ранa GitHub Actions
+                branch: "__BRANCH__", // имя ветки
+                sha: "__SHA__",       // короткий SHA коммита
+                ts: "__TS__"          // время сборки (UTC)
+              };
+              console.log('BUILD', window.__BUILD__);
+            } catch (e) {}
           })();
           EOF
+          sed -i "s|__RUN__|${RUN_NUM}|g" ./general_preview/build.js
+          sed -i "s|__BRANCH__|${GITHUB_REF_NAME}|g" ./general_preview/build.js
+          sed -i "s|__SHA__|${SHORT_SHA}|g" ./general_preview/build.js
+          sed -i "s|__TS__|${DATE_TS}|g" ./general_preview/build.js
 
-      # 2) Выбираем префикс выкладки: корень для main, /wip/ для wip
+      # 2) Выбираем префикс: корень для main, /wip/ для wip
       - name: Decide deploy prefix (root for main, /wip/ for wip)
         id: path
         run: |
           if [ "${{ github.ref_name }}" = "main" ]; then
-            echo "prefix=" >> $GITHUB_OUTPUT           # корень бакета
+            echo "prefix=" >> $GITHUB_OUTPUT
           else
-            echo "prefix=wip/" >> $GITHUB_OUTPUT       # папка wip/
+            echo "prefix=wip/" >> $GITHUB_OUTPUT
           fi
           echo "Deploying to s3://${{ env.S3_BUCKET }}/${{ steps.path.outputs.prefix }}"
 
-      # 3) Заливаем все файлы, кроме index.html (долгий кэш — ок)
-      - name: Upload all files except index.html (long cache ok)
+      # 3) Заливаем всё, кроме index.html и build.js (их положим отдельно без кэша)
+      - name: Upload assets (exclude index.html & build.js)
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
         run: |
-          aws s3 sync ./general_preview "s3://${S3_BUCKET}/${{ steps.path.outputs.prefix }}"             --endpoint-url "$AWS_ENDPOINT_URL"             --delete             --exclude "index.html"             --cache-control "public,max-age=31536000,immutable"
+          aws s3 sync ./general_preview "s3://${S3_BUCKET}/${{ steps.path.outputs.prefix }}"             --endpoint-url "$AWS_ENDPOINT_URL"             --delete             --exclude "index.html"             --exclude "build.js"             --cache-control "public,max-age=31536000,immutable"
 
-      # 4) Кладём build.js повторно без кэша (чтобы номер коммита обновлялся сразу)
-      - name: Force no-cache for build.js
-        if: always()
+      # 4) Кладём build.js без кэша (обновляется каждый пуш)
+      - name: Upload build.js (no cache)
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
         run: |
-          if [ -f ./general_preview/build.js ]; then
-            aws s3 cp ./general_preview/build.js "s3://${S3_BUCKET}/${{ steps.path.outputs.prefix }}build.js"               --endpoint-url "$AWS_ENDPOINT_URL"               --cache-control "no-store"               --content-type "application/javascript"               --metadata-directive REPLACE
-          fi
+          aws s3 cp ./general_preview/build.js "s3://${S3_BUCKET}/${{ steps.path.outputs.prefix }}build.js"             --endpoint-url "$AWS_ENDPOINT_URL"             --cache-control "no-store"             --content-type "application/javascript"             --metadata-directive REPLACE
 
-      # 5) Кладём index.html ПОСЛЕДНИМ и без кэша
-      - name: Upload index.html last (no cache)
+      # 5) Кладём index.html без кэша и ПОСЛЕДНИМ
+      - name: Upload index.html (no cache, last)
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
