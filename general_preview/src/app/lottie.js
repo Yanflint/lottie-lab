@@ -5,6 +5,19 @@ import { createPlayer as createRlottiePlayer } from './rlottieAdapter.js';
 import { setPlaceholderVisible, afterTwoFrames } from './utils.js';
 
 let anim = null;
+// Dynamically ensure lottie-web is loaded when needed (editor runtime)
+function ensureLottie(){
+  return new Promise((resolve) => {
+    if (window.lottie && typeof window.lottie.loadAnimation === 'function') return resolve(true);
+    const s = document.createElement('script');
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js";
+    s.async = true;
+    s.onload = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.head.appendChild(s);
+  });
+}
+
 
 function genId(){ return 'lot' + Math.random().toString(36).slice(2,9); }
 
@@ -135,11 +148,16 @@ export async function addLottieFromData(refs, data){
   wrap.appendChild(sel);
   itemsEl.appendChild(wrap);
 
-  const engine = pickEngine();
+  let engine = pickEngine();
+  // Prefer lottie-web if rlottie is unavailable in editor
+  if (engine === 'rlottie' && !(window.RLOTTIE_READY || window.createRlottieInstance)) {
+    engine = 'lottiejs';
+  }
+  if (engine !== 'rlottie') { await ensureLottie(); }
   const loop = !!state.loopOn;
   const autoplay = !!state.autoplayOn;
   let inst = null;
-  if (engine === 'rlottie') {
+  if (engine === 'rlottie' && typeof createRlottiePlayer === 'function') {
     inst = createRlottiePlayer({ container: mount, loop, autoplay, animationData: lotJson });
   } else {
     try {
