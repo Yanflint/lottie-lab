@@ -42,7 +42,10 @@ function makeSelectionOverlay(){
 
 function applyTransform(inst){
   if (!inst?.el) return;
-  inst.el.style.transform = `translate(${inst.pos.x}px, ${inst.pos.y}px)`;
+  const s = getSceneScale(state.refs);
+  const x = (inst.pos.x || 0) * s;
+  const y = (inst.pos.y || 0) * s;
+  inst.el.style.transform = `translate(${x}px, ${y}px) scale(${s})`;
 }
 
 function select(inst){
@@ -105,9 +108,10 @@ function attachDrag(inst){
 }
 
 export function moveSelectedBy(dx, dy){
-  const inst = getSelected();
-  if (!inst) return;
-  inst.pos.x += dx; inst.pos.y += dy;
+  const inst = getSelected(); if (!inst) return;
+  const s = getSceneScale(state.refs);
+  const k = s || 1;
+  inst.pos.x += (dx || 0) / k; inst.pos.y += (dy || 0) / k;
   applyTransform(inst);
 }
 
@@ -177,4 +181,34 @@ export async function addLottieFromJSON(refs, lotJson, name=''){
   select(inst);
   applyTransform(inst);
   return inst;
+}
+
+
+function getSceneScale(refs){
+  try {
+    const img = refs?.bgImg;
+    const rect = img?.getBoundingClientRect?.();
+    const cssW = rect?.width || 0, cssH = rect?.height || 0;
+    const natW = img?.naturalWidth || 0, natH = img?.naturalHeight || 0;
+    if (natW > 0 && natH > 0) {
+      const sW = cssW / natW, sH = cssH / natH;
+      const s = Math.min(sW || 0, sH || 0) || 1;
+      return s;
+    }
+  } catch {}
+  return 1;
+}
+
+function applyTransformAll(){
+  try { state.items.forEach(applyTransform); } catch {}
+}
+export function updateSceneScaleFromBackground(refs){ try { state.refs = refs || state.refs; } catch {} applyTransformAll(); }
+export function remapPositionsOnBackgroundChange(oldW, oldH, newW, newH){
+  if (!(oldW>0 && oldH>0 && newW>0 && newH>0)) { applyTransformAll(); return; }
+  const sx = newW/oldW, sy = newH/oldH;
+  for (const inst of state.items) {
+    inst.pos.x = (inst.pos.x || 0) * sx;
+    inst.pos.y = (inst.pos.y || 0) * sy;
+  }
+  applyTransformAll();
 }

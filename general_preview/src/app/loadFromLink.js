@@ -73,7 +73,7 @@ if (Array.isArray(data.multi) && data.multi.length) {
     for (const it of data.multi) {
       if (!it?.json) continue;
       const inst = await addLottieFromJSON(refs, it.json, it.name || '');
-      try { inst.pos = { x: +(it.pos?.x || 0), y: +(it.pos?.y || 0) }; inst.el.style.transform = `translate(${inst.pos.x}px, ${inst.pos.y}px)`; } catch {}
+      try { inst.pos = { x: +(it.pos?.x || 0), y: +(it.pos?.y || 0) }; /* transform handled by multi.applyTransform */ } catch {}
       try { inst.loop = !!it.loop; if ('loop' in inst.player) inst.player.loop = inst.loop; } catch {}
     }
     setPlaceholderVisible(refs, false);
