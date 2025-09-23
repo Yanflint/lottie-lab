@@ -22,20 +22,3 @@ export function initControls({ refs }) {
     });
   }
 }
-
-// Sync loop checkbox when selection changes
-try {
-  window.addEventListener('lp:selected-changed', (e) => {
-    try {
-      const refs = window.__lpRefs || null;
-      const chk = document.getElementById('loopChk');
-      if (!chk || !refs) return;
-      // Pull selected item loop
-      try{
-        import('./state.js').then(({ getSelectedItem }) => {
-        const it = getSelectedItem && getSelectedItem();
-        if (it && typeof it.loop === 'boolean') chk.checked = !!it.loop;
-      }catch{}
-    } catch {}
-  });
-} catch {}
