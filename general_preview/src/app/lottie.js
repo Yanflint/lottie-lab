@@ -1,11 +1,37 @@
 // src/app/lottie.js
 import { state, setLastBgSize, setLastBgMeta } from './state.js';
 import { pickEngine } from './engine.js';
-import { updateSceneScaleFromBackground, remapPositionsOnBackgroundChange } from './multi.js';
 import { createPlayer as createRlottiePlayer } from './rlottieAdapter.js';
 import { setPlaceholderVisible } from './utils.js';
+import { addLottieItem, setSelected, getSelectedItem, getLottieItems } from './state.js';
 
-let anim = null;
+
+let anim = null; // legacy selected anim
+const items = []; // multi-lottie items
+
+function createLotItem(refs, w, h){
+  const stage = refs?.lotStage; if (!stage) return null;
+  const wrap = document.createElement('div');
+  wrap.className = 'lot-item';
+  wrap.style.position = 'absolute';
+  wrap.style.left = '50%';
+  wrap.style.top  = '50%';
+  wrap.style.transformOrigin = '50% 50%';
+  wrap.style.width = w+'px';
+  wrap.style.height = h+'px';
+
+  const overlay = document.createElement('div');
+  overlay.className = 'lot-select-overlay';
+  wrap.appendChild(overlay);
+
+  const mount = document.createElement('div');
+  mount.className = 'lottie-mount';
+  wrap.appendChild(mount);
+
+  stage.appendChild(wrap);
+  return { wrap, mount };
+}
+
 
 /* ========= ENV DETECT (PWA + mobile) ========= */
 (function detectEnv(){
@@ -38,7 +64,7 @@ function parseAssetScale(nameOrUrl) {
 
 /** Центрируем лотти-стейдж без масштаба (1:1) */
 /** Центрируем и масштабируем лотти-стейдж синхронно с фоном */
-export function layoutLottie(refs) {
+export function layoutLottie(refs){
   const stage = refs?.lotStage;
   const wrap  = refs?.wrapper || refs?.previewBox || refs?.preview;
   if (!stage || !wrap) return;
@@ -46,82 +72,51 @@ export function layoutLottie(refs) {
   const cssW = +((state.lastBgSize && state.lastBgSize.w) || 0);
   const cssH = +((state.lastBgSize && state.lastBgSize.h) || 0);
 
-  
-  // Берём реальные рендерные размеры фоновой картинки (если есть),
-  // чтобы масштаб лотти соответствовал именно фону, а не контейнеру превью.
+  // Real rendered size of background
   let realW = 0, realH = 0;
   const bgEl = refs?.bgImg;
   if (bgEl && bgEl.getBoundingClientRect) {
     const bgr = bgEl.getBoundingClientRect();
-    realW = bgr.width || 0;
-    realH = bgr.height || 0;
-  }
-  // Фолбэк: если по какой-то причине фон недоступен — используем контейнер
-  if (!(realW > 0 && realH > 0)) {
-    const br = wrap.getBoundingClientRect();
-    realW = br.width || 0;
-    realH = br.height || 0;
+    realW = bgr.width || 0; realH = bgr.height || 0;
   }
 
+  // Fallback if no bg known yet
+  const baseW = cssW || realW || 1;
+  const baseH = cssH || realH || 1;
+  const fitScale = baseW > 0 ? (realW / baseW) : 1;
 
-  let fitScale = 1;
-  
-  if (cssW > 0 && cssH > 0 && realW > 0 && realH > 0) {
-    // Масштаб подгоняем так, чтобы 1 CSS-пиксель лотти = 1 CSS-пиксель фона
-    fitScale = Math.min(realW / cssW, realH / cssH);
-  }
-if (cssW > 0 && cssH > 0 && realW > 0 && realH > 0) {
-    fitScale = Math.min(realW / cssW, realH / cssH);
-    if (!isFinite(fitScale) || fitScale <= 0) fitScale = 1;
-  }
-
-  let x = (window.__lotOffsetX || 0);
-  let y = (window.__lotOffsetY || 0);
-  try { if (window.__lp_multi_on) { x = 0; y = 0; } } catch {}
-  const xpx = x * fitScale;
-  const ypx = y * fitScale;
-
-  try {
-    const bgr = refs?.bgImg?.getBoundingClientRect?.();
-    const realW = bgr?.width || wrap.getBoundingClientRect().width || 0;
-    const realH = bgr?.height || wrap.getBoundingClientRect().height || 0;
-    stage.style.width = realW + 'px';
-    stage.style.height = realH + 'px';
-  } catch {}
-
+  // Stage covers base coordinate system
+  stage.style.position = 'absolute';
   stage.style.left = '50%';
-  try {
-    const rect = refs?.bgImg?.getBoundingClientRect?.();
-    const cssW2 = rect?.width || cssW; const cssH2 = rect?.height || cssH;
-    stage.style.width = (cssW2>0? cssW2:0) + 'px';
-    stage.style.height = (cssH2>0? cssH2:0) + 'px';
-  } catch {}
-  try { updateSceneScaleFromBackground(refs); } catch {}
-
   stage.style.top  = '50%';
+  stage.style.width  = baseW + 'px';
+  stage.style.height = baseH + 'px';
   stage.style.transformOrigin = '50% 50%';
-  stage.style.transform = `translate(calc(-50% + ${xpx}px), calc(-50% + ${ypx}px)) scale(${fitScale})`;
-  // [TEST OVERLAY] capture metrics for debug overlay
-  try {
-    const stageRect = stage.getBoundingClientRect ? stage.getBoundingClientRect() : { width: 0, height: 0 };
-    const baseW = parseFloat(stage.style.width || '0') || stageRect.width / (fitScale || 1) || 0;
-    const baseH = parseFloat(stage.style.height || '0') || stageRect.height / (fitScale || 1) || 0;
-    window.__lpMetrics = {
-      fitScale: fitScale,
-      baseW: Math.round(baseW),
-      baseH: Math.round(baseH),
-      dispW: Math.round(stageRect.width),
-      dispH: Math.round(stageRect.height),
-      offsetX: x,
-      offsetY: y,
-      offsetXpx: Math.round(xpx),
-      offsetYpx: Math.round(ypx)
-    };
-    if (typeof window.__updateOverlay === 'function') {
-      window.__updateOverlay(window.__lpMetrics);
-    }
-  } catch {}
+  stage.style.transform = `translate(-50%, -50%) scale(${fitScale})`;
 
+  // Position each item with its own pre-scale offsets
+  const list = (typeof getLottieItems === 'function') ? getLottieItems() : items;
+  for (const it of list) {
+    const w = +it.w || 0, h = +it.h || 0;
+    if (it.wrapEl) { it.wrapEl.style.width = w+'px'; it.wrapEl.style.height = h+'px'; }
+    const x = (it.offset?.x || 0), y = (it.offset?.y || 0);
+    const xpx = x; const ypx = y; // pre-scale pixels
+    if (it.wrapEl) {
+      it.wrapEl.style.transformOrigin = '50% 50%';
+      it.wrapEl.style.transform = `translate(calc(-50% + ${xpx}px), calc(-50% + ${ypx}px))`;
+    }
+  }
+
+  // Store metrics for overlays / debug
+  try {
+    const stageRect = stage.getBoundingClientRect();
+    window.__lpMetrics = {
+      baseW: Math.round(baseW), baseH: Math.round(baseH),
+      dispW: Math.round(stageRect.width), dispH: Math.round(stageRect.height),
+      fitScale
+    };
+    if (typeof window.__updateOverlay === 'function') window.__updateOverlay(window.__lpMetrics);
+  } catch {}
 }
 /**
  * Установка фоновой картинки из data:/blob:/http(s)
@@ -135,7 +130,6 @@ if (cssW > 0 && cssH > 0 && realW > 0 && realH > 0) {
  * @param {string} src
  * @param {object} [meta] - опционально { fileName?: string }
  */
-let __bgNatW = 0, __bgNatH = 0;
 export async function setBackgroundFromSrc(refs, src, meta = {}) {
   // [PATCH] make function awaitable until image is loaded
   let __bgResolve = null; const __bgDone = new Promise((r)=>{ __bgResolve = r; });
@@ -199,12 +193,7 @@ export async function setBackgroundFromSrc(refs, src, meta = {}) {
 }
 
 /** Жёсткий перезапуск проигрывания */
-export function restart() {
-  if (!anim) return;
-  try {
-    anim.stop();
-    anim.goToAndPlay(0, true);
-  } catch (_) {}
+export function restart(){ try{ const it = (typeof getSelectedItem==='function') ? getSelectedItem() : null; (it?.anim||anim)?.goToAndPlay?.(0,true); }catch{} } catch (_) {}
 }
 
 /** Переключение loop "на лету" */
@@ -218,97 +207,88 @@ export function setLoop(on) {
  * — создаём инстанс
  * — задаём габариты стейджа по w/h из JSON
  */
-export async function loadLottieFromData(refs, data) {
+export async function loadLottieFromData(refs, data){
   try {
     const lotJson = typeof data === 'string' ? JSON.parse(data) : data;
     if (!lotJson || typeof lotJson !== 'object') return null;
 
-    if (anim) {
-      try { anim.destroy?.(); } catch (_) {}
-      anim = null;
-    }
-
     const w = Number(lotJson.w || 0) || 512;
     const h = Number(lotJson.h || 0) || 512;
-    if (refs.lotStage) {
-      refs.lotStage.style.width = `${w}px`;
-      refs.lotStage.style.height = `${h}px`;
-    }
 
-    const loop = !!state.loopOn;
-    
-const autoplay = !!state.loopOn;
+    // Create wrapper & mount
+    let mountEl = null, wrapEl = null;
+    // Reuse the initial #lottie mount for the first item to stay backward compatible
+    const stage = refs?.lotStage;
+    const firstMount = refs?.lottie;
+    if (items.length === 0 && firstMount) {
+      wrapEl = document.createElement('div');
+      wrapEl.className = 'lot-item';
+      wrapEl.style.position = 'absolute';
+      wrapEl.style.left = '50%'; wrapEl.style.top = '50%';
+      wrapEl.style.transformOrigin = '50% 50%';
+      wrapEl.style.width = w+'px'; wrapEl.style.height = h+'px';
 
+      const overlay = document.createElement('div'); overlay.className = 'lot-select-overlay';
+      wrapEl.appendChild(overlay);
 
-    const engine = pickEngine();
-    if (engine === 'rlottie') {
-      anim = createRlottiePlayer({
-        container: refs.lottieMount,
-        loop,
-        autoplay,
-        animationData: lotJson
-      });
+      // move existing #lottie inside the wrapper
+      mountEl = firstMount;
+      mountEl.parentElement?.replaceChild(wrapEl, mountEl);
+      wrapEl.appendChild(mountEl);
+      stage?.appendChild(wrapEl);
     } else {
-      anim = window.lottie.loadAnimation({
-      container: refs.lottieMount,
-      renderer: 'svg',
-      loop,
-      autoplay,
-      animationData: lotJson
-    });
+      const pair = createLotItem(refs, w, h);
+      if (!pair) return null;
+      wrapEl = pair.wrap; mountEl = pair.mount;
     }
 
-    anim.addEventListener('DOMLoaded', () => {
-      try { if (!state.loopOn && anim && anim.stop) { anim.stop(); anim.goToAndStop?.(0, true); } } catch {}
-      setPlaceholderVisible(refs, false);
-      if (refs.wrapper) refs.wrapper.classList.add('has-lottie');
-      layoutLottie(refs);
+    const id = 'lot_'+Date.now()+'_'+Math.floor(Math.random()*99999);
+    const loop = !!(window.__forceLoop ?? false);
+    const autoplay = !!(window.__forceAutoplay ?? true);
+
+    // Instantiate Lottie
+    const animInst = window.lottie?.loadAnimation?.({
+      container: mountEl,
+      renderer: 'svg',
+      loop: loop,
+      autoplay: autoplay,
+      animationData: lotJson,
     });
-        // Click/Tap to play once when loop is off — guard against double fire (touch + click)
-    try {
-      const mount = refs.lottieMount || refs.preview || refs.wrapper;
-      const root  = refs.preview || refs.wrapper || document.body;
-      if (mount && !mount.__lp_clickBound) {
-        mount.__lp_clickBound = true;
-        let lastUserPlayAt = 0;
-        const SUPPRESS_MS = 500;
 
-        // capture-phase suppressor to block synthetic click after touch/pointer
-        if (root && !root.__lp_clickSuppressor) {
-          root.__lp_clickSuppressor = true;
-          root.addEventListener('click', (ev) => {
-            const now = Date.now();
-            if (now - lastUserPlayAt < SUPPRESS_MS) {
-              try { ev.stopImmediatePropagation(); ev.stopPropagation(); ev.preventDefault(); } catch {}
-            }
-          }, true);
-        }
+    const item = { id, loop, offset: {x: 0, y: 0}, w, h, mountEl, wrapEl, anim: animInst, json: lotJson };
+    items.push(item);
+    try { addLottieItem(item); } catch {}
 
-        const userPlay = (ev) => {
-          const now = Date.now();
-          lastUserPlayAt = now;
-          try { ev.stopPropagation(); } catch {}
-          try { ev.preventDefault && ev.preventDefault(); } catch {}
-          if (!state.loopOn) {
-            try { restart(); } catch {}
-          }
-        };
+    // Selection
+    const selectItem = () => {
+      try { items.forEach(it => it.wrapEl?.classList?.toggle('selected', it.id===item.id)); } catch {}
+      try { setSelected(item.id); } catch {}
+      anim = item.anim; // legacy: selected anim
+      // sync loop checkbox UI
+      try { const chk = document.getElementById('loopChk'); if (chk) chk.checked = !!item.loop; } catch {}
+    };
+    selectItem();
+    wrapEl.addEventListener('pointerdown', (e)=>{
+      selectItem();
+      // Start dragging
+      let lastX = e.clientX, lastY = e.clientY;
+      const onMove = (ev)=>{
+        const dx = (ev.clientX - lastX), dy = (ev.clientY - lastY);
+        lastX = ev.clientX; lastY = ev.clientY;
+        item.offset = { x: (item.offset?.x||0) + dx, y: (item.offset?.y||0) + dy };
+        // move in pre-scale coords; layout will reapply
+        try{ layoutLottie(refs); }catch{}
+      };
+      const onUp = ()=>{ window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); };
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp, { once: true });
+      e.stopPropagation();
+      e.preventDefault();
+    });
 
-        if (window.PointerEvent) {
-          mount.addEventListener('pointerdown', userPlay);
-        } else {
-          mount.addEventListener('touchstart', userPlay, { passive: false });
-          mount.addEventListener('click', (ev) => {
-            const now = Date.now();
-            if (now - lastUserPlayAt > SUPPRESS_MS) userPlay(ev);
-          });
-        }
-      }
-    } catch {}
-
-    anim.addEventListener('complete', () => {});
-
-    return anim;
+    try { layoutLottie(refs); } catch {}
+    try { setPlaceholderVisible(refs, false); } catch {}
+    return animInst;
   } catch (e) {
     console.error('loadLottieFromData error:', e);
     return null;

@@ -410,10 +410,16 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 #lottie{pointer-events:auto;}
 
 
-/* === MULTI-LOTTIE v12 === */
-.lot-stage{position:relative}
-.lot-instance{position:absolute;left:0;top:0;will-change:transform;contain:content}
-.lot-instance svg{display:block}
-.lot-selection-overlay{position:absolute;inset:0;background:rgba(30,144,255,0.10);box-shadow:inset 0 0 0 2px rgba(30,144,255,1);pointer-events:none}
-.drop-overlay{pointer-events:none}
-#loopChk{margin-left:0!important;margin-right:0!important}
+/* === Multi-Lottie selection styles === */
+.lot-stage { position: absolute; }
+.lot-item { position: absolute; }
+.lot-item .lot-select-overlay {
+  position: absolute;
+  left: 0; top: 0; right: 0; bottom: 0;
+  background: rgba(80, 160, 255, 0.10); /* 10% blue fill */
+  border: 2px solid rgba(80, 160, 255, 1.0); /* 2px inner border */
+  box-sizing: border-box;
+  opacity: 0;
+  pointer-events: none;
+}
+.lot-item.selected .lot-select-overlay { opacity: 1; }
