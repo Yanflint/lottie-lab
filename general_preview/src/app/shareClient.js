@@ -132,6 +132,10 @@ async function postPayload(payload) {
 // Public API
 export async function createShareLink() {
   const payload = await collectPayloadOrThrow();
+  // Prefer data-url link so viewer restores everything even if server trims fields
+  const dl = __lp_makeDataLink(payload);
+  if (dl) return dl;
+  // Fallback to server
   return postPayload(payload);
 }
 
