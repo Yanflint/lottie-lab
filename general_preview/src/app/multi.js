@@ -2,7 +2,7 @@
 // src/app/multi.js
 import { pickEngine } from './engine.js';
 import { createPlayer as createRlottiePlayer } from './rlottieAdapter.js';
-import { state } from './state.js';
+import { state, setLastLottie } from './state.js';
 
 function ensureRefs(refs) {
   refs = refs || {};
@@ -146,6 +146,7 @@ export function addLottieItems({ refs }, arr) {
   state.lottieList = items;
   if (!state.selectedId && items.length) state.selectedId = items[0].id;
   updateSelectionStyles();
+  syncSelectedToState();
   rerenderList(refs);
 }
 
@@ -158,6 +159,7 @@ export function selectByIndex({ refs }, idx) {
 export function selectById({ refs }, id) {
   state.selectedId = id;
   updateSelectionStyles();
+  syncSelectedToState();
   rerenderList(refs);
   // sync UI checkbox if present
   try {
@@ -180,6 +182,7 @@ export function deleteSelected({ refs }) {
   state.lottieList = items;
   state.selectedId = items[idx]?.id || items[idx-1]?.id || (items[0]?.id || null);
   updateSelectionStyles();
+  syncSelectedToState();
   rerenderList(refs);
 }
 
@@ -202,6 +205,13 @@ export function applyLoopToSelected({ refs }, on) {
     if (on)  { try { item.__anim?.play?.(); } catch {} }
   }
   updateSelectionStyles();
+}
+
+function syncSelectedToState(){
+  try {
+    const cur = (state.lottieList || []).find(i => i.id === state.selectedId) || null;
+    setLastLottie(cur ? cur.data : null);
+  } catch {}
 }
 
 function updateSelectionStyles() {
