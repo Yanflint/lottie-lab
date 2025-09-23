@@ -73,20 +73,36 @@ try {
   const off = getLotOffset && getLotOffset();
   if (off && lot) { lot.meta = lot.meta || {}; lot.meta._lpOffset = { x: +off.x || 0, y: +off.y || 0 }; }
 } catch {}
-// full multi snapshot
+
+// full multi snapshot (safe, without circular refs)
 let multi = null;
 try {
   const mod = await import('./multi.js');
   if (mod && typeof mod.snapshot === 'function') {
     const snap = mod.snapshot();
     if (Array.isArray(snap) && snap.length) {
-      multi = snap;
-      if (lot) { lot.meta = lot.meta || {}; lot.meta._lpMulti = snap; }
+      // Deep-copy each lottie JSON to detach references; also sanitize scalars
+      multi = snap.map((it) => ({
+        json: it?.json ? JSON.parse(JSON.stringify(it.json)) : null,
+        pos: { x: +(it?.pos?.x || 0), y: +(it?.pos?.y || 0) },
+        loop: !!it?.loop,
+        name: it?.name || ''
+      }));
+      // Back-compat: store shallow info (without json) in lot.meta._lpMulti to avoid cycles
+      if (lot) {
+        lot.meta = lot.meta || {};
+        lot.meta._lpMulti = snap.map((it) => ({
+          pos: { x: +(it?.pos?.x || 0), y: +(it?.pos?.y || 0) },
+          loop: !!it?.loop,
+          name: it?.name || ''
+        }));
+      }
     }
   }
 } catch {}
 const opts = { loop: !!state.loopOn };
 return { lot, bg, opts, multi };
+
 
 }
 
