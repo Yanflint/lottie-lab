@@ -408,18 +408,3 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 #preview, #lotStage { pointer-events: auto; touch-action: none; }
 
 #lottie{pointer-events:auto;}
-
-
-/* === Multi-Lottie selection styles === */
-.lot-stage { position: absolute; }
-.lot-item { position: absolute; }
-.lot-item .lot-select-overlay {
-  position: absolute;
-  left: 0; top: 0; right: 0; bottom: 0;
-  background: rgba(80, 160, 255, 0.10); /* 10% blue fill */
-  border: 2px solid rgba(80, 160, 255, 1.0); /* 2px inner border */
-  box-sizing: border-box;
-  opacity: 0;
-  pointer-events: none;
-}
-.lot-item.selected .lot-select-overlay { opacity: 1; }

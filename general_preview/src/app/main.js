@@ -211,12 +211,3 @@ window.addEventListener('resize', () => { try { layoutLottie(refs); } catch {} }
   } catch {}
 
 });
-
-// Export refs to window for cross-module updates
-try {
-  document.addEventListener('DOMContentLoaded', () => {
-    import('./dom.js').then(({ getRefs }) => {
-      try { window.__lpRefs = getRefs(); } catch {}
-    }).catch(()=>{});
-  }, { once: true });
-} catch {}
