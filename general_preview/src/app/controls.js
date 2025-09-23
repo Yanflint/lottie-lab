@@ -1,5 +1,6 @@
 // src/app/controls.js
-import { restart, setLoop } from './lottie.js';
+import { restart } from './lottie.js';
+import { state, setLoop } from './state.js';
 import { state } from './state.js';
 
 export function initControls({ refs }) {
@@ -13,7 +14,14 @@ export function initControls({ refs }) {
   // Чекбокс "Зацикленно"
   if (refs?.loopChk) {
     // Инициализация состоянием (если где-то выставляли ранее)
-    refs.loopChk.checked = !!state.loopOn;
+    refs.loopChk.checked = !!(state.items.find(x=>x.id===state.selectedId)?.loopOn ?? state.loopOn);
+
+    window.addEventListener('lp:selected-changed', () => {
+      try {
+        const it = state.items.find(x=>x.id===state.selectedId);
+        refs.loopChk.checked = !!(it?.loopOn ?? state.loopOn);
+      } catch {}
+    });
 
     refs.loopChk.addEventListener('change', (e) => {
       const on = !!e.target.checked;

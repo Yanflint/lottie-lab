@@ -1,82 +1,8 @@
 // src/app/lottie.js
-function requireSelectedState(){ return import('./state.js'); }
 import { state, setLastBgSize, setLastBgMeta } from './state.js';
-import { pickEngine } from './engine.js';
-import { createPlayer as createRlottiePlayer } from './rlottieAdapter.js';
 import { setPlaceholderVisible } from './utils.js';
 
 let anim = null;
-// === Multi-Lottie additions ===
-function genId(){ return 'lot' + Math.random().toString(36).slice(2,9); }
-
-function ensureItemsContainer(refs){
-  const stage = refs?.lotStage || document.getElementById('lotStage');
-  if (!stage) return null;
-  let items = stage.querySelector('#lotItems');
-  if (!items){
-    items = document.createElement('div');
-    items.id = 'lotItems';
-    items.className = 'lot-items';
-    stage.appendChild(items);
-  }
-  return items;
-}
-
-/** Create a single Lottie item inside lotStage */
-export async function addLottieFromData(refs, data){
-  const lotJson = typeof data === 'string' ? JSON.parse(data) : data;
-  if (!lotJson || typeof lotJson !== 'object') return null;
-  const w = Number(lotJson.w || 0) || 512;
-  const h = Number(lotJson.h || 0) || 512;
-  const itemsEl = ensureItemsContainer(refs);
-  if (!itemsEl) return null;
-
-  const id = genId();
-  const wrap = document.createElement('div');
-  wrap.className = 'lot-item';
-  wrap.dataset.id = id;
-  wrap.style.width = `${w}px`;
-  wrap.style.height = `${h}px`;
-  wrap.style.transform = `translate(-50%,-50%)`; // center by default
-  const mount = document.createElement('div');
-  mount.className = 'lottie-mount';
-  const sel = document.createElement('div');
-  sel.className = 'sel-overlay';
-  wrap.appendChild(mount);
-  wrap.appendChild(sel);
-  itemsEl.appendChild(wrap);
-
-  const engine = pickEngine();
-  const loop = !!state.loopOn;
-  const autoplay = !!state.autoplayOn;
-  let inst = null;
-  if (engine === 'rlottie') {
-    inst = createRlottiePlayer({ container: mount, loop, autoplay, animationData: lotJson });
-  } else {
-    inst = window.lottie.loadAnimation({ container: mount, renderer: 'svg', loop, autoplay, animationData: lotJson, rendererSettings: { preserveAspectRatio: 'xMidYMid meet' } });
-  }
-
-  // Selection behavior
-  wrap.addEventListener('pointerdown', (e) => {
-    try {
-      document.querySelectorAll('.lot-item.selected').forEach(el => el.classList.remove('selected'));
-      wrap.classList.add('selected');
-      import('./state.js').then(({ selectItem }) => selectItem(id));
-    } catch {}
-  });
-
-  // Save in state
-  try {
-    const mod = await import('./state.js');
-    mod.addItem({ id, el: wrap, anim: inst, w, h, offset: {x:0,y:0}, loopOn: loop });
-  } catch {}
-
-  // initial relayout for this item
-  try { layoutLottie(refs); } catch {}
-
-  return inst;
-}
-
 
 /* ========= ENV DETECT (PWA + mobile) ========= */
 (function detectEnv(){
@@ -117,11 +43,6 @@ export function layoutLottie(refs) {
   const cssW = +((state.lastBgSize && state.lastBgSize.w) || 0);
   const cssH = +((state.lastBgSize && state.lastBgSize.h) || 0);
 
-  // set base logical size for stage (fallback to 512x512)
-  const baseW = cssW || 512;
-  const baseH = cssH || 512;
-  try { stage.style.width = `${baseW}px`; stage.style.height = `${baseH}px`; } catch {}
-
   
   // Берём реальные рендерные размеры фоновой картинки (если есть),
   // чтобы масштаб лотти соответствовал именно фону, а не контейнеру превью.
@@ -151,12 +72,15 @@ if (cssW > 0 && cssH > 0 && realW > 0 && realH > 0) {
     if (!isFinite(fitScale) || fitScale <= 0) fitScale = 1;
   }
 
-  // per-item offsets — stage centered only
-  const xpx = 0, ypx = 0;
+  const x = (window.__lotOffsetX || 0);
+  const y = (window.__lotOffsetY || 0);
+  const xpx = x * fitScale;
+  const ypx = y * fitScale;
+
   stage.style.left = '50%';
   stage.style.top  = '50%';
   stage.style.transformOrigin = '50% 50%';
-  stage.style.transform = `translate(-50%, -50%) scale(${fitScale})`;
+  stage.style.transform = `translate(calc(-50% + ${xpx}px), calc(-50% + ${ypx}px)) scale(${fitScale})`;
   // [TEST OVERLAY] capture metrics for debug overlay
   try {
     const stageRect = stage.getBoundingClientRect ? stage.getBoundingClientRect() : { width: 0, height: 0 };
@@ -173,17 +97,6 @@ if (cssW > 0 && cssH > 0 && realW > 0 && realH > 0) {
       offsetXpx: Math.round(xpx),
       offsetYpx: Math.round(ypx)
     };
-    // Apply per-item transforms
-    try {
-      const items = Array.from((refs?.lotStage||document.getElementById('lotStage'))?.querySelectorAll?.('.lot-item') || []);
-      for (const el of items){
-        const id = el.dataset.id;
-        const it = (state && state.items) ? state.items.find(x => x.id === id) : null;
-        const ox = ((it && it.offset && it.offset.x) ? it.offset.x : 0) * fitScale;
-        const oy = ((it && it.offset && it.offset.y) ? it.offset.y : 0) * fitScale;
-        el.style.transform = `translate(calc(-50% + ${ox}px), calc(-50% + ${oy}px))`;
-      }
-    } catch {}
     if (typeof window.__updateOverlay === 'function') {
       window.__updateOverlay(window.__lpMetrics);
     }
@@ -266,19 +179,11 @@ export async function setBackgroundFromSrc(refs, src, meta = {}) {
 
 /** Жёсткий перезапуск проигрывания */
 export function restart() {
+  if (!anim) return;
   try {
-    const it = state.items.find(x => x.id === state.selectedId) || null;
-    const a = it?.anim || null;
-    if (!a) return;
-    try { a.stop?.(); } catch {}
-    try { a.goToAndPlay?.(0, true); } catch {}
-    try { a.play?.(); } catch {}
-  } catch (e) {
-    if (typeof anim?.stop === 'function') { try { anim.stop(); anim.goToAndPlay?.(0,true); anim.play?.(); } catch{} }
-  }
-}
-  }
-}
+    anim.stop();
+    anim.goToAndPlay(0, true);
+  } catch (_) {}
 }
 
 /** Переключение loop "на лету" */
@@ -293,9 +198,52 @@ export function setLoop(on) {
  * — задаём габариты стейджа по w/h из JSON
  */
 export async function loadLottieFromData(refs, data) {
-  try { return await addLottieFromData(refs, data); } catch(e){ console.error(e); return null; }
+  try {
+    const lotJson = typeof data === 'string' ? JSON.parse(data) : data;
+    if (!lotJson || typeof lotJson !== 'object') return null;
+
+    if (anim) {
+      try { anim.destroy?.(); } catch (_) {}
+      anim = null;
+    }
+
+    const w = Number(lotJson.w || 0) || 512;
+    const h = Number(lotJson.h || 0) || 512;
+    if (refs.lotStage) {
+      refs.lotStage.style.width = `${w}px`;
+      refs.lotStage.style.height = `${h}px`;
+    }
+
+    const loop = !!state.loopOn;
+    
+// Autoplay: off in web viewer mode (path /s/*), on elsewhere (incl. PWA standalone)
+const isStandalone = !!(window.matchMedia && (window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: fullscreen)').matches)) || (navigator.standalone === true);
+const isViewer = document.documentElement.classList.contains('viewer');
+const autoplay = isViewer && !isStandalone ? false : true;
+
+
+    anim = window.lottie.loadAnimation({
+      container: refs.lottieMount,
+      renderer: 'svg',
+      loop,
+      autoplay,
+      animationData: lotJson
+    });
+
+    anim.addEventListener('DOMLoaded', () => {
+      setPlaceholderVisible(refs, false);
+      if (refs.wrapper) refs.wrapper.classList.add('has-lottie');
+      layoutLottie(refs);
+    });
+
+    anim.addEventListener('complete', () => {});
+
+    return anim;
+  } catch (e) {
+    console.error('loadLottieFromData error:', e);
+    return null;
+  }
 }
 
 /** Экспорт текущей анимации (если нужно где-то ещё) */
 export function getAnim() { return anim; }
-export { setLoop } from './state.js';

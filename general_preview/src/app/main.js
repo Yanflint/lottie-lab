@@ -47,6 +47,7 @@ function collectRefs() {
     bgImg:        document.getElementById('bgImg'),
     lotStage:     document.getElementById('lotStage'),
     lottieMount:  document.getElementById('lottie'),
+    lotItems:     document.getElementById('lotItems'),
     sizeBtn:      document.getElementById('sizeBtn'),
     heightBtn:    document.getElementById('heightBtn'),
     restartBtn:   document.getElementById('restartBtn'),

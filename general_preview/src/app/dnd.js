@@ -2,13 +2,30 @@ import { setBackgroundFromSrc, loadLottieFromData } from './lottie.js';
 import { setPlaceholderVisible, setDropActive } from './utils.js';
 import { setLastLottie } from './state.js';
 
+
 async function processFilesSequential(refs, files) {
-  let imgFile = null, jsonFile = null;
+  let imgFile = null;
+  const jsonFiles = [];
   for (const f of files) {
     if (!imgFile && f.type?.startsWith?.('image/')) imgFile = f;
     const isJson = f.type === 'application/json' || f.name?.endsWith?.('.json') || f.type === 'text/plain';
-    if (!jsonFile && isJson) jsonFile = f;
+    if (isJson) jsonFiles.push(f);
   }
+  if (imgFile) {
+    const url = URL.createObjectURL(imgFile);
+    await setBackgroundFromSrc(refs, url, { fileName: imgFile?.name });
+    setPlaceholderVisible(refs, false);
+    try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); } catch {}
+  }
+  for (const jf of jsonFiles) {
+    try {
+      const txt = await jf.text();
+      await loadLottieFromData(refs, txt);
+      setPlaceholderVisible(refs, false);
+      try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); } catch {}
+    } catch {}
+  }
+}
   if (imgFile) {
     const url = URL.createObjectURL(imgFile);
     await setBackgroundFromSrc(refs, url, { fileName: imgFile?.name });
