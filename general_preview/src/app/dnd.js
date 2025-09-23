@@ -22,7 +22,6 @@ async function processFilesSequential(refs, files) {
     if (looksLikeJsonFile(f)) jsonFiles.push(f);
   }
 
-  // 1) Background (optional)
   if (imgFile) {
     const url = URL.createObjectURL(imgFile);
     await setBackgroundFromSrc(refs, url, { fileName: imgFile?.name });
@@ -30,7 +29,6 @@ async function processFilesSequential(refs, files) {
     try { await afterTwoFrames(); await afterTwoFrames(); } catch {}
   }
 
-  // 2) All Lottie JSONs — add each one
   for (const jf of jsonFiles) {
     try {
       const text = await jf.text();
@@ -70,7 +68,6 @@ export function initDnd({ refs }) {
   document.addEventListener('dragleave', onDragLeave);
   document.addEventListener('drop', onDrop);
 
-  // Paste: allow multiple items (images + multiple JSON texts)
   document.addEventListener('paste', async (e) => {
     const items = Array.from(e.clipboardData?.items || []);
     const files = []; const texts = [];

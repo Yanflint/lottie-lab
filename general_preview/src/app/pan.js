@@ -1,5 +1,4 @@
 // src/app/pan.js
-// Перетаскивание выбранной Lottie (.lot-item.selected) мышью/тачем
 import { setLotOffset, getLotOffset } from './state.js';
 import { layoutLottie } from './lottie.js';
 

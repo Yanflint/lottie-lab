@@ -1,5 +1,4 @@
 // src/app/lottie.js
-function requireSelectedState(){ return import('./state.js'); }
 import { state, setLastBgSize, setLastBgMeta } from './state.js';
 import { pickEngine } from './engine.js';
 import { createPlayer as createRlottiePlayer } from './rlottieAdapter.js';
@@ -37,7 +36,7 @@ export async function addLottieFromData(refs, data){
   wrap.dataset.id = id;
   wrap.style.width = `${w}px`;
   wrap.style.height = `${h}px`;
-  wrap.style.transform = `translate(-50%,-50%)`; // center by default
+  wrap.style.transform = `translate(-50%,-50%)`;
   const mount = document.createElement('div');
   mount.className = 'lottie-mount';
   const sel = document.createElement('div');
@@ -55,9 +54,9 @@ export async function addLottieFromData(refs, data){
   } else {
     try {
       inst = window.lottie.loadAnimation({ container: mount, renderer: 'svg', loop, autoplay, animationData: lotJson, rendererSettings: { preserveAspectRatio: 'xMidYMid meet' } });
+    } catch (e) { try { console.error('lottie load failed', e); } catch {} ; return null; }
   }
 
-  // Selection behavior
   wrap.addEventListener('pointerdown', (e) => {
     try {
       document.querySelectorAll('.lot-item.selected').forEach(el => el.classList.remove('selected'));
@@ -66,18 +65,13 @@ export async function addLottieFromData(refs, data){
     } catch {}
   });
 
-  // Save in state
   try {
     const mod = await import('./state.js');
     mod.addItem({ id, el: wrap, anim: inst, w, h, offset: {x:0,y:0}, loopOn: loop });
   } catch {}
 
-  // initial relayout for this item
+  try { inst.addEventListener?.('DOMLoaded', () => { try { layoutLottie(refs); } catch {} }); } catch {}
   try { layoutLottie(refs); } catch {}
-
-  try {
-    inst.addEventListener?.('DOMLoaded', () => { try { layoutLottie(refs); } catch {} });
-  } catch {}
   return inst;
 }
 
@@ -121,11 +115,6 @@ export function layoutLottie(refs) {
   const cssW = +((state.lastBgSize && state.lastBgSize.w) || 0);
   const cssH = +((state.lastBgSize && state.lastBgSize.h) || 0);
 
-  // set base logical size for stage (fallback to 512x512)
-  const baseW = cssW || 512;
-  const baseH = cssH || 512;
-  try { stage.style.width = `${baseW}px`; stage.style.height = `${baseH}px`; } catch {}
-
   
   // Берём реальные рендерные размеры фоновой картинки (если есть),
   // чтобы масштаб лотти соответствовал именно фону, а не контейнеру превью.
@@ -155,7 +144,6 @@ if (cssW > 0 && cssH > 0 && realW > 0 && realH > 0) {
     if (!isFinite(fitScale) || fitScale <= 0) fitScale = 1;
   }
 
-  // per-item offsets — stage centered only
   const xpx = 0, ypx = 0;
   stage.style.left = '50%';
   stage.style.top  = '50%';
@@ -281,8 +269,6 @@ export function restart() {
     if (typeof anim?.stop === 'function') { try { anim.stop(); anim.goToAndPlay?.(0,true); anim.play?.(); } catch{} }
   }
 }
-  }
-}
 }
 
 /** Переключение loop "на лету" */
@@ -297,7 +283,96 @@ export function setLoop(on) {
  * — задаём габариты стейджа по w/h из JSON
  */
 export async function loadLottieFromData(refs, data) {
-  try { return await addLottieFromData(refs, data); } catch(e){ console.error(e); return null; }
+  try { return await addLottieFromData(refs, data); } catch(e){ console.error('loadLottieFromData error', e); return null; }
+}
+      anim = null;
+    }
+
+    const w = Number(lotJson.w || 0) || 512;
+    const h = Number(lotJson.h || 0) || 512;
+    if (refs.lotStage) {
+      refs.lotStage.style.width = `${w}px`;
+      refs.lotStage.style.height = `${h}px`;
+    }
+
+    const loop = !!state.loopOn;
+    
+const autoplay = !!state.loopOn;
+
+
+    const engine = pickEngine();
+    if (engine === 'rlottie') {
+      anim = createRlottiePlayer({
+        container: refs.lottieMount,
+        loop,
+        autoplay,
+        animationData: lotJson
+      });
+    } else {
+      anim = window.lottie.loadAnimation({
+      container: refs.lottieMount,
+      renderer: 'svg',
+      loop,
+      autoplay,
+      animationData: lotJson
+    });
+    }
+
+    anim.addEventListener('DOMLoaded', () => {
+      try { if (!state.loopOn && anim && anim.stop) { anim.stop(); anim.goToAndStop?.(0, true); } } catch {}
+      setPlaceholderVisible(refs, false);
+      if (refs.wrapper) refs.wrapper.classList.add('has-lottie');
+      layoutLottie(refs);
+    });
+        // Click/Tap to play once when loop is off — guard against double fire (touch + click)
+    try {
+      const mount = refs.lottieMount || refs.preview || refs.wrapper;
+      const root  = refs.preview || refs.wrapper || document.body;
+      if (mount && !mount.__lp_clickBound) {
+        mount.__lp_clickBound = true;
+        let lastUserPlayAt = 0;
+        const SUPPRESS_MS = 500;
+
+        // capture-phase suppressor to block synthetic click after touch/pointer
+        if (root && !root.__lp_clickSuppressor) {
+          root.__lp_clickSuppressor = true;
+          root.addEventListener('click', (ev) => {
+            const now = Date.now();
+            if (now - lastUserPlayAt < SUPPRESS_MS) {
+              try { ev.stopImmediatePropagation(); ev.stopPropagation(); ev.preventDefault(); } catch {}
+            }
+          }, true);
+        }
+
+        const userPlay = (ev) => {
+          const now = Date.now();
+          lastUserPlayAt = now;
+          try { ev.stopPropagation(); } catch {}
+          try { ev.preventDefault && ev.preventDefault(); } catch {}
+          if (!state.loopOn) {
+            try { restart(); } catch {}
+          }
+        };
+
+        if (window.PointerEvent) {
+          mount.addEventListener('pointerdown', userPlay);
+        } else {
+          mount.addEventListener('touchstart', userPlay, { passive: false });
+          mount.addEventListener('click', (ev) => {
+            const now = Date.now();
+            if (now - lastUserPlayAt > SUPPRESS_MS) userPlay(ev);
+          });
+        }
+      }
+    } catch {}
+
+    anim.addEventListener('complete', () => {});
+
+    return anim;
+  } catch (e) {
+    console.error('loadLottieFromData error:', e);
+    return null;
+  }
 }
 
 /** Экспорт текущей анимации (если нужно где-то ещё) */
