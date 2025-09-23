@@ -36,7 +36,7 @@ import { initAutoRefreshIfViewingLast } from './autoRefresh.js'; // ← НОВО
 import { showToastIfFlag } from './updateToast.js'; // safe stub
 import { bumpLotOffset } from './state.js';
 import { initLottiePan }  from './pan.js';
-import { moveSelectedBy } from './multi.js';
+import { moveSelectedBy, hasAny as multiHasAny } from './multi.js';
 
 // 3) DOM-refs
 function collectRefs() {
@@ -100,61 +100,25 @@ if (!isViewer) initDnd({ refs });
 
   // Hotkey: Reset (R) in editor only; allow Ctrl/Cmd+R refresh; ignore inputs; ru/en layout safe
   window.addEventListener('keydown', (e) => {
-    try {
-      const isViewer = location.pathname.includes('/s/');
-      if (isViewer) return;
-    } catch {}
-
-    const hasMods = e.ctrlKey || e.metaKey || e.altKey || e.shiftKey;
-    if (hasMods) return;
-
-    const t = e.target;
-    const isEditable = !!(t && (t.closest?.('input, textarea') || t.isContentEditable || t.getAttribute?.('role') === 'textbox'));
-    if (isEditable) return;
-
-    const isRCode = e.code === 'KeyR';
-    const isRKey  = (e.key === 'r' || e.key === 'R' || e.key === 'к' || e.key === 'К');
-    if (isRCode || isRKey) {
-      e.preventDefault();
-      try { setLotOffset(0, 0); } catch {}
-      try { relayout(); } catch {}
-    }
-  }, { passive: false });
-
-  // Тап = перезапуск (если было добавлено ранее)
-  const restartByTap = (e) => {
-    if (isViewer) return;
-    const isTouch = e.pointerType ? (e.pointerType === 'touch') : (e.touches && e.touches.length === 1);
-    if (!isTouch && !isStandalone) return;
-    if (refs.mode && refs.mode.contains(e.target)) return;
-    refs.restartBtn?.click();
-  };
-  refs.preview?.addEventListener('pointerdown', restartByTap, { passive: true });
-  refs.preview?.addEventListener('touchstart',  restartByTap, { passive: true });
-
-  // In viewer mode: click to RESTART animation (always from start)
-  if (isViewer && refs.preview) {
-    refs.preview.addEventListener('click', (e) => {
-      if (refs.mode && refs.mode.contains(e.target)) return;
-      try { restart(); } catch {}
-    });
-  }
-
-
-window.addEventListener('keydown', (e) => {
-  const keys = ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];
-  if (!keys.includes(e.key)) return;
-  const tag = (document.activeElement?.tagName || '').toLowerCase();
-  if (['input','textarea','select'].includes(tag)) return;
-  const step = e.shiftKey ? 10 : 1;
+  try {
+    if (multiHasAny && typeof multiHasAny === 'function' && multiHasAny()) return; // в мультирежиме не двигаем сцену
+  } catch {}
+  const hasMods = e.ctrlKey || e.metaKey || e.altKey || e.shiftKey;
+  if (hasMods) return;
+  const t = e.target;
+  const isEditable = !!(t && (t.closest?.('input, textarea') || t.isContentEditable || t.getAttribute?.('role') === 'textbox'));
+  if (isEditable) return;
+  const step = 1;
   let dx = 0, dy = 0;
   if (e.key === 'ArrowLeft')  dx = -step;
   if (e.key === 'ArrowRight') dx = +step;
   if (e.key === 'ArrowUp')    dy = -step;
   if (e.key === 'ArrowDown')  dy = +step;
-  bumpLotOffset(dx, dy);
-  layoutLottie(refs);
-  e.preventDefault();
+  if (dx!==0 || dy!==0) {
+    bumpLotOffset(dx, dy);
+    layoutLottie(refs);
+    e.preventDefault();
+  }
 }, { passive: false });
 
 window.addEventListener('resize', () => { try { layoutLottie(refs); } catch {} });
@@ -215,10 +179,10 @@ window.addEventListener('resize', () => { try { layoutLottie(refs); } catch {} }
 
 // Дополнительные хоткеи для мультирежима: стрелки двигают выбранную лотти
 window.addEventListener('keydown', (e) => {
+  try { if (!(multiHasAny && multiHasAny())) return; } catch { return; }
   const t = e.target;
   const isEditable = !!(t && (t.closest?.('input, textarea') || t.isContentEditable || t.getAttribute?.('role') === 'textbox'));
   if (isEditable) return;
-
   const step = e.shiftKey ? 10 : 1;
   if (e.code === 'ArrowLeft')  { moveSelectedBy(-step, 0); e.preventDefault(); }
   if (e.code === 'ArrowRight') { moveSelectedBy(+step, 0); e.preventDefault(); }
@@ -227,19 +191,31 @@ window.addEventListener('keydown', (e) => {
 }, { passive: false });
 
 // Ленивая загрузка клиента шаринга — чтобы ошибки внутри него не ломали редактор
-(function setupLazyShare(){
+
+
+// Ленивая загрузка клиента шаринга — создаём ссылку, не перезагружая редактор
+(function setupLazyShareSafe(){
   const btn = document.getElementById('shareBtn');
   if (!btn) return;
   btn.addEventListener('click', async (e) => {
-    e.preventDefault();
     try {
+      e.preventDefault();
       const mod = await import('./shareClient.js?v=yc14');
-      if (mod && typeof mod.createShareLink === 'function') {
-        const url = await mod.createShareLink();
-        if (url) { try { location.href = url; } catch {} }
+      const url = await mod.createShareLink();
+      if (url) {
+        try { await navigator.clipboard.writeText(url); } catch {}
+        try {
+          const { showSuccessToast } = await import('./updateToast.js');
+          showSuccessToast('Ссылка скопирована в буфер обмена');
+        } catch {}
+        // остаёмся в редакторе
       }
     } catch (err) {
-      console.error('share module failed', err);
+      try {
+        const { showErrorToast } = await import('./updateToast.js');
+        showErrorToast('Не удалось создать ссылку');
+      } catch {}
+      console.error('share failed', err);
     }
-  }, { once: true });
+  });
 })();

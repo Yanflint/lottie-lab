@@ -30,6 +30,7 @@ function makeId() {
 }
 
 export function initMulti(refs) {
+  try { window.__lp_multi_on = true; } catch {}
   state.refs = refs;
   // Обеспечим относительное позиционирование сцены
   try {
