@@ -68,12 +68,12 @@ async function collectPayloadOrThrow() {
   } catch {}
 
 
-// attach offset for single mode
+// save single offset for backwards compatibility
 try {
   const off = getLotOffset && getLotOffset();
   if (off && lot) { lot.meta = lot.meta || {}; lot.meta._lpOffset = { x: +off.x || 0, y: +off.y || 0 }; }
 } catch {}
-// attach multi snapshot both to lot.meta (for backward compat) and to payload.multi
+// full multi snapshot
 let multi = null;
 try {
   const mod = await import('./multi.js');
@@ -81,14 +81,13 @@ try {
     const snap = mod.snapshot();
     if (Array.isArray(snap) && snap.length) {
       multi = snap;
-      lot.meta = lot.meta || {};
-      lot.meta._lpMulti = snap;
+      if (lot) { lot.meta = lot.meta || {}; lot.meta._lpMulti = snap; }
     }
   }
 } catch {}
 const opts = { loop: !!state.loopOn };
+return { lot, bg, opts, multi };
 
-  return { lot, bg, opts, multi };
 }
 
 async function postPayload(payload) {

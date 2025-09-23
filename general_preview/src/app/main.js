@@ -29,7 +29,7 @@ import { initDnd }           from './dnd.js';
 import { state }           from './state.js';
 import { getAnim, restart } from './lottie.js';
 import { initControls }      from './controls.js';
-// initShare removed (safe share inline)
+// initShare removed
 import { initLoadFromLink }  from './loadFromLink.js';
 import { layoutLottie }      from './lottie.js';
 import { initAutoRefreshIfViewingLast } from './autoRefresh.js'; // ← НОВОЕ
@@ -76,7 +76,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   applyVersion(refs);
 showToastIfFlag(); // покажет "Обновлено", если страница была перезагружена авто-рефрешом
 
-// Safe share: create link and copy to clipboard (no navigation)
+// v12: Safe share handler (no navigation)
 try {
   const btn = document.getElementById('shareBtn');
   if (btn) btn.addEventListener('click', async (e) => {
@@ -86,7 +86,7 @@ try {
       const url = await mod.createShareLink();
       if (url) {
         try { await navigator.clipboard.writeText(url); } catch {}
-        console.log('Share URL copied:', url);
+        console.log('[v12] Share URL copied:', url);
       }
     } catch (err) { console.error('share failed', err); }
   });
@@ -175,7 +175,7 @@ window.addEventListener('keydown', (e) => {
   e.preventDefault();
 }, { passive: false });
 
-// Multi-mode: arrow keys move selected lottie
+// v12: Multi-mode arrows move selected Lottie only
 window.addEventListener('keydown', (e) => {
   try { if (!(multiHasAny && multiHasAny())) return; } catch { return; }
   const tag = (document.activeElement?.tagName || '').toLowerCase();

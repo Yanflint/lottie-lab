@@ -409,7 +409,8 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 
 #lottie{pointer-events:auto;}
 
-/* === MULTI-LOTTIE === */
+
+/* === MULTI-LOTTIE v12 === */
 .lot-stage{position:relative}
 .lot-instance{position:absolute;left:0;top:0;will-change:transform;contain:content}
 .lot-instance svg{display:block}

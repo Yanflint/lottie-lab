@@ -65,8 +65,8 @@ async function applyPayload(refs, data) {
     if (!meta.fileName && data.lot && data.lot.meta && data.lot.meta._lpBgMeta) { meta.fileName = data.lot.meta._lpBgMeta.fileName; meta.assetScale = data.lot.meta._lpBgMeta.assetScale; }
     if (src) await setBackgroundFromSrc(refs, src, meta);
   }
-  
-// If payload contains multi array — restore it first
+
+// Multi-restore
 if (Array.isArray(data.multi) && data.multi.length) {
   try {
     initMulti(refs);
@@ -74,12 +74,12 @@ if (Array.isArray(data.multi) && data.multi.length) {
       if (!it?.json) continue;
       const inst = await addLottieFromJSON(refs, it.json, it.name || '');
       try { inst.pos = { x: +(it.pos?.x || 0), y: +(it.pos?.y || 0) }; inst.el.style.transform = `translate(${inst.pos.x}px, ${inst.pos.y}px)`; } catch {}
-      try { inst.loop = !!it.loop; if ('loop' in inst.player) inst.player.loop = !!inst.loop; } catch {}
+      try { inst.loop = !!it.loop; if ('loop' in inst.player) inst.player.loop = inst.loop; } catch {}
     }
     setPlaceholderVisible(refs, false);
     try { layoutLottie(refs); } catch {}
     return true;
-  } catch (e) { console.error('apply multi[] failed', e); }
+  } catch (e) { console.error('apply multi failed', e); }
 }
 if (data.lot) {
 

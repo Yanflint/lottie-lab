@@ -74,10 +74,19 @@ if (cssW > 0 && cssH > 0 && realW > 0 && realH > 0) {
     if (!isFinite(fitScale) || fitScale <= 0) fitScale = 1;
   }
 
-  const x = (window.__lotOffsetX || 0);
-  const y = (window.__lotOffsetY || 0);
+  let x = (window.__lotOffsetX || 0);
+  let y = (window.__lotOffsetY || 0);
+  try { if (window.__lp_multi_on) { x = 0; y = 0; } } catch {}
   const xpx = x * fitScale;
   const ypx = y * fitScale;
+
+  try {
+    const bgr = refs?.bgImg?.getBoundingClientRect?.();
+    const realW = bgr?.width || wrap.getBoundingClientRect().width || 0;
+    const realH = bgr?.height || wrap.getBoundingClientRect().height || 0;
+    stage.style.width = realW + 'px';
+    stage.style.height = realH + 'px';
+  } catch {}
 
   stage.style.left = '50%';
   stage.style.top  = '50%';
