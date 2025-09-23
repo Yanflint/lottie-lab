@@ -1,6 +1,6 @@
 // src/app/controls.js
 import { restart, setLoop } from './lottie.js';
-import { state as appState } from './state.js';
+import { state } from './state.js';
 
 export function initControls({ refs }) {
   // Кнопка повторного проигрывания
@@ -10,23 +10,15 @@ export function initControls({ refs }) {
     });
   }
 
-  // Чекбокс "Зацикленно" — синхронизируется с выбранной лотти
+  // Чекбокс "Зацикленно"
   if (refs?.loopChk) {
-    const syncLoopFromSelection = () => {
-      const it = appState.items.find(x => x.id === appState.selectedId);
-      refs.loopChk.checked = !!(it?.loopOn ?? appState.loopOn);
-    };
-    // начальная синхронизация
-    syncLoopFromSelection();
+    // Инициализация состоянием (если где-то выставляли ранее)
+    refs.loopChk.checked = !!state.loopOn;
 
-    // переключение пользователем
     refs.loopChk.addEventListener('change', (e) => {
       const on = !!e.target.checked;
-      appState.loopOn = on;      // запомним дефолт для новых лотти
-      setLoop(on);               // применим к выбранной лотти
+      state.loopOn = on;      // запомним в общем состоянии
+      setLoop(on);            // переключим текущую анимацию "на лету"
     });
-
-    // обновлять чекбокс при смене выделения
-    window.addEventListener('lp:selected-changed', syncLoopFromSelection);
   }
 }

@@ -2,212 +2,299 @@
 import { state, setLastBgSize, setLastBgMeta } from './state.js';
 import { pickEngine } from './engine.js';
 import { createPlayer as createRlottiePlayer } from './rlottieAdapter.js';
-import { setPlaceholderVisible, afterTwoFrames } from './utils.js';
+import { setPlaceholderVisible } from './utils.js';
 
 let anim = null;
-// Dynamically ensure lottie-web is loaded when needed (editor runtime)
-function ensureLottie(){
-  return new Promise((resolve) => {
-    if (window.lottie && typeof window.lottie.loadAnimation === 'function') return resolve(true);
-    const s = document.createElement('script');
-    s.src = "https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js";
-    s.async = true;
-    s.onload = () => resolve(true);
-    s.onerror = () => resolve(false);
-    document.head.appendChild(s);
-  });
+
+/* ========= ENV DETECT (PWA + mobile) ========= */
+(function detectEnv(){
+  try {
+    const isStandalone =
+      window.matchMedia?.('(display-mode: standalone)')?.matches ||
+      // iOS Safari
+      (typeof navigator !== 'undefined' && navigator.standalone === true);
+
+    const isMobile =
+      /Android|iPhone|iPod|Mobile|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent || ''
+      );
+
+    if (isStandalone) document.documentElement.classList.add('is-standalone');
+    if (isMobile) document.documentElement.classList.add('is-mobile');
+  } catch (_) {}
+})();
+
+/* ========= HELPERS ========= */
+function parseAssetScale(nameOrUrl) {
+  // match @2x, @3x, @1.5x before extension
+  const m = String(nameOrUrl || '').match(/@(\d+(?:\.\d+)?)x(?=\.[a-z0-9]+(\?|#|$))/i);
+  if (!m) return 1;
+  const s = parseFloat(m[1]);
+  if (!isFinite(s) || s <= 0) return 1;
+  // Ограничим разумными рамками
+  return Math.max(1, Math.min(4, s));
 }
 
-
-function genId(){ return 'lot' + Math.random().toString(36).slice(2,9); }
-
-function ensureItemsContainer(refs){
-  const stage = refs?.lotStage || document.getElementById('lotStage');
-  if (!stage) return null;
-  let items = stage.querySelector('#lotItems');
-  if (!items){
-    items = document.createElement('div');
-    items.id = 'lotItems';
-    items.className = 'lot-items';
-    stage.appendChild(items);
-  }
-  return items;
-}
-
-export async function layoutLottie(refs){
-  const stage = refs?.lotStage || document.getElementById('lotStage');
-  if (!stage) return;
+/** Центрируем лотти-стейдж без масштаба (1:1) */
+/** Центрируем и масштабируем лотти-стейдж синхронно с фоном */
+export function layoutLottie(refs) {
+  const stage = refs?.lotStage;
+  const wrap  = refs?.wrapper || refs?.previewBox || refs?.preview;
+  if (!stage || !wrap) return;
 
   const cssW = +((state.lastBgSize && state.lastBgSize.w) || 0);
   const cssH = +((state.lastBgSize && state.lastBgSize.h) || 0);
 
-  const baseW = cssW || 512;
-  const baseH = cssH || 512;
-  try { stage.style.width = `${baseW}px`; stage.style.height = `${baseH}px`; } catch {}
-
+  
+  // Берём реальные рендерные размеры фоновой картинки (если есть),
+  // чтобы масштаб лотти соответствовал именно фону, а не контейнеру превью.
   let realW = 0, realH = 0;
-  const bgEl = refs?.bgImg || document.getElementById('bgImg');
-  if (bgEl && typeof bgEl.getBoundingClientRect === 'function') {
+  const bgEl = refs?.bgImg;
+  if (bgEl && bgEl.getBoundingClientRect) {
     const bgr = bgEl.getBoundingClientRect();
     realW = bgr.width || 0;
     realH = bgr.height || 0;
   }
+  // Фолбэк: если по какой-то причине фон недоступен — используем контейнер
   if (!(realW > 0 && realH > 0)) {
-    const br = stage.getBoundingClientRect?.();
-    if (br) { realW = br.width || 0; realH = br.height || 0; }
+    const br = wrap.getBoundingClientRect();
+    realW = br.width || 0;
+    realH = br.height || 0;
   }
 
+
   let fitScale = 1;
-  if (baseW > 0 && baseH > 0 && realW > 0 && realH > 0) {
-    fitScale = Math.min(realW / baseW, realH / baseH);
+  
+  if (cssW > 0 && cssH > 0 && realW > 0 && realH > 0) {
+    // Масштаб подгоняем так, чтобы 1 CSS-пиксель лотти = 1 CSS-пиксель фона
+    fitScale = Math.min(realW / cssW, realH / cssH);
+  }
+if (cssW > 0 && cssH > 0 && realW > 0 && realH > 0) {
+    fitScale = Math.min(realW / cssW, realH / cssH);
     if (!isFinite(fitScale) || fitScale <= 0) fitScale = 1;
   }
+
+  const x = (window.__lotOffsetX || 0);
+  const y = (window.__lotOffsetY || 0);
+  const xpx = x * fitScale;
+  const ypx = y * fitScale;
 
   stage.style.left = '50%';
   stage.style.top  = '50%';
   stage.style.transformOrigin = '50% 50%';
-  stage.style.transform = `translate(-50%, -50%) scale(${fitScale})`;
-
+  stage.style.transform = `translate(calc(-50% + ${xpx}px), calc(-50% + ${ypx}px)) scale(${fitScale})`;
+  // [TEST OVERLAY] capture metrics for debug overlay
   try {
-    const items = Array.from(stage.querySelectorAll('.lot-item'));
-    for (const el of items){
-      const id = el.dataset.id;
-      const it = state.items.find(x => x.id === id);
-      const ox = (it?.offset?.x || 0) * fitScale;
-      const oy = (it?.offset?.y || 0) * fitScale;
-      el.style.transform = `translate(calc(-50% + ${ox}px), calc(-50% + ${oy}px))`;
+    const stageRect = stage.getBoundingClientRect ? stage.getBoundingClientRect() : { width: 0, height: 0 };
+    const baseW = parseFloat(stage.style.width || '0') || stageRect.width / (fitScale || 1) || 0;
+    const baseH = parseFloat(stage.style.height || '0') || stageRect.height / (fitScale || 1) || 0;
+    window.__lpMetrics = {
+      fitScale: fitScale,
+      baseW: Math.round(baseW),
+      baseH: Math.round(baseH),
+      dispW: Math.round(stageRect.width),
+      dispH: Math.round(stageRect.height),
+      offsetX: x,
+      offsetY: y,
+      offsetXpx: Math.round(xpx),
+      offsetYpx: Math.round(ypx)
+    };
+    if (typeof window.__updateOverlay === 'function') {
+      window.__updateOverlay(window.__lpMetrics);
     }
   } catch {}
 
-  try {
-    const sr = stage.getBoundingClientRect?.() || { width: 0, height: 0 };
-    window.__lpMetrics = { cssW: baseW, cssH: baseH, realW, realH, fitScale, stageW: sr.width, stageH: sr.height };
-  } catch {}
-
-  if (typeof window.__updateOverlay === 'function') {
-    try { window.__updateOverlay(refs); } catch {}
-  }
 }
+/**
+ * Установка фоновой картинки из data:/blob:/http(s)
+ * — считываем naturalWidth/naturalHeight
+ * — учитываем @2x/@3x/@1.5x из имени
+ * — прокидываем в .wrapper CSS-переменные:
+ *     --preview-ar : (w/scale) / (h/scale)
+ *     --preview-h  : (h/scale)px
+ *
+ * @param {object} refs
+ * @param {string} src
+ * @param {object} [meta] - опционально { fileName?: string }
+ */
+export async function setBackgroundFromSrc(refs, src, meta = {}) {
+  // [PATCH] make function awaitable until image is loaded
+  let __bgResolve = null; const __bgDone = new Promise((r)=>{ __bgResolve = r; });
 
-export async function setBackgroundFromSrc(refs, src, { fileName = '' } = {}){
-  const el = refs?.bgImg || document.getElementById('bgImg');
-  if (!el) return;
+  if (!refs?.bgImg) return;
 
-  const img = new Image();
-  img.decoding = 'async';
-  const done = new Promise((resolve) => {
-    img.onload = () => resolve(true);
-    img.onerror = () => resolve(false);
-  });
-  img.src = src;
+  // Пытаемся вычислить название файла для парсинга @2x
+  const guessName = (() => {
+    // при передаче meta.fileName используем его
+    if (meta.fileName) return meta.fileName;
+    // попробуем достать из атрибутов, если кто-то положил туда
+    const fromAttr = refs.bgImg.getAttribute('data-filename') || refs.bgImg.alt;
+    if (fromAttr) return fromAttr;
+    // как крайний случай — попробуем вытащить имя из обычного URL
+    try {
+      const u = new URL(src);
+      const pathname = u.pathname || '';
+      const base = pathname.split('/').pop();
+      return base || src;
+    } catch (_) {
+      return src; // data:/blob: сюда свалится — шанса достать имя нет
+    }
+  })();
 
-  const ok = await done;
-  const w = ok ? (img.naturalWidth || 0) : 0;
-  const h = ok ? (img.naturalHeight || 0) : 0;
-  const assetScale = 1;
+  refs.bgImg.onload = async () => {
+    try { __bgResolve && __bgResolve(); } catch {}
 
-  try {
-    const wrap = refs?.wrapper || document.getElementById('wrapper');
+    const iw = Number(refs.bgImg.naturalWidth || 0) || 1;
+    const ih = Number(refs.bgImg.naturalHeight || 0) || 1;
+
+    // Парсим коэффициент ретины из имени (mob@2x.png -> 2)
+    const assetScale = (typeof meta.assetScale === 'number' && meta.assetScale > 0) ? meta.assetScale : parseAssetScale(guessName);
+
+    // Приводим к «CSS-размеру», как это было бы на сайте
+    const cssW = iw / assetScale;
+    const cssH = ih / assetScale;
+
+    const wrap = refs.wrapper;
     if (wrap) {
-      wrap.style.setProperty('--preview-ar', `${w} / ${h}`);
-      wrap.style.setProperty('--preview-h', `${h}px`);
+      wrap.style.setProperty('--preview-ar', `${cssW} / ${cssH}`);
+      wrap.style.setProperty('--preview-h', `${cssH}px`);
       wrap.style.setProperty('--asset-scale', String(assetScale));
+      // Сохраняем логический (CSS) размер и метаданные фона
+      setLastBgSize(cssW, cssH);
+      setLastBgMeta({ fileName: guessName, assetScale });
       wrap.classList.add('has-bg');
     }
-    setLastBgSize(w, h);
-    setLastBgMeta({ fileName, assetScale });
-  } catch {}
 
-  el.src = src;
-  setPlaceholderVisible(refs, false);
-  try { await afterTwoFrames(); await afterTwoFrames(); } catch {}
-  try { await layoutLottie(refs); } catch {}
+    setPlaceholderVisible(refs, false);
+    try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); } catch {}
+  };
+
+  refs.bgImg.onerror = () => {
+    try { __bgResolve && __bgResolve(); } catch {}
+
+    console.warn('Background image failed to load');
+  };
+
+  refs.bgImg.src = src;
+  try { await __bgDone; } catch {}
 }
 
-export async function addLottieFromData(refs, data){
-  const lotJson = typeof data === 'string' ? JSON.parse(data) : data;
-  if (!lotJson || typeof lotJson !== 'object') return null;
-
-  const w = Number(lotJson.w || 0) || 512;
-  const h = Number(lotJson.h || 0) || 512;
-  const itemsEl = ensureItemsContainer(refs);
-  if (!itemsEl) return null;
-
-  const id = genId();
-  const wrap = document.createElement('div');
-  wrap.className = 'lot-item';
-  wrap.dataset.id = id;
-  wrap.style.width = `${w}px`;
-  wrap.style.height = `${h}px`;
-  wrap.style.transform = `translate(-50%,-50%)`;
-  const mount = document.createElement('div');
-  mount.className = 'lottie-mount';
-  const sel = document.createElement('div');
-  sel.className = 'sel-overlay';
-  wrap.appendChild(mount);
-  wrap.appendChild(sel);
-  itemsEl.appendChild(wrap);
-
-  let engine = pickEngine();
-  // Prefer lottie-web if rlottie is unavailable in editor
-  if (engine === 'rlottie' && !(window.RLOTTIE_READY || window.createRlottieInstance)) {
-    engine = 'lottiejs';
-  }
-  if (engine !== 'rlottie') { await ensureLottie(); }
-  const loop = !!state.loopOn;
-  const autoplay = !!state.autoplayOn;
-  let inst = null;
-  if (engine === 'rlottie' && typeof createRlottiePlayer === 'function') {
-    inst = createRlottiePlayer({ container: mount, loop, autoplay, animationData: lotJson });
-  } else {
-    try {
-      inst = window.lottie.loadAnimation({
-        container: mount, renderer: 'svg', loop, autoplay,
-        animationData: lotJson,
-        rendererSettings: { preserveAspectRatio: 'xMidYMid meet' }
-      });
-    } catch (e) {
-      try { console.error('lottie load failed', e); } catch {}
-      return null;
-    }
-  }
-
-  wrap.addEventListener('pointerdown', () => {
-    try {
-      document.querySelectorAll('.lot-item.selected').forEach(el => el.classList.remove('selected'));
-      wrap.classList.add('selected');
-      import('./state.js').then(({ selectItem }) => selectItem(id));
-    } catch {}
-  });
-
-  try {
-    const mod = await import('./state.js');
-    mod.addItem({ id, el: wrap, anim: inst, w, h, offset: {x:0,y:0}, loopOn: loop });
-  } catch {}
-
-  try { inst?.addEventListener?.('DOMLoaded', () => { try { layoutLottie(refs); } catch {} }); } catch {}
-  try { await layoutLottie(refs); } catch {}
-
-  return inst;
-}
-
-export async function loadLottieFromData(refs, data) {
-  try { return await addLottieFromData(refs, data); }
-  catch(e){ console.error('loadLottieFromData error', e); return null; }
-}
-
+/** Жёсткий перезапуск проигрывания */
 export function restart() {
+  if (!anim) return;
   try {
-    const it = state.items.find(x => x.id === state.selectedId) || null;
-    const a = it?.anim || null;
-    if (!a) return;
-    try { a.stop?.(); } catch {}
-    try { a.goToAndPlay?.(0, true); } catch {}
-    try { a.play?.(); } catch {}
+    anim.stop();
+    anim.goToAndPlay(0, true);
+  } catch (_) {}
+}
+
+/** Переключение loop "на лету" */
+export function setLoop(on) {
+  state.loopOn = !!on;
+  if (anim) anim.loop = !!on;
+}
+
+/**
+ * Загрузка Lottie из JSON (string|object)
+ * — создаём инстанс
+ * — задаём габариты стейджа по w/h из JSON
+ */
+export async function loadLottieFromData(refs, data) {
+  try {
+    const lotJson = typeof data === 'string' ? JSON.parse(data) : data;
+    if (!lotJson || typeof lotJson !== 'object') return null;
+
+    if (anim) {
+      try { anim.destroy?.(); } catch (_) {}
+      anim = null;
+    }
+
+    const w = Number(lotJson.w || 0) || 512;
+    const h = Number(lotJson.h || 0) || 512;
+    if (refs.lotStage) {
+      refs.lotStage.style.width = `${w}px`;
+      refs.lotStage.style.height = `${h}px`;
+    }
+
+    const loop = !!state.loopOn;
+    
+const autoplay = !!state.loopOn;
+
+
+    const engine = pickEngine();
+    if (engine === 'rlottie') {
+      anim = createRlottiePlayer({
+        container: refs.lottieMount,
+        loop,
+        autoplay,
+        animationData: lotJson
+      });
+    } else {
+      anim = window.lottie.loadAnimation({
+      container: refs.lottieMount,
+      renderer: 'svg',
+      loop,
+      autoplay,
+      animationData: lotJson
+    });
+    }
+
+    anim.addEventListener('DOMLoaded', () => {
+      try { if (!state.loopOn && anim && anim.stop) { anim.stop(); anim.goToAndStop?.(0, true); } } catch {}
+      setPlaceholderVisible(refs, false);
+      if (refs.wrapper) refs.wrapper.classList.add('has-lottie');
+      layoutLottie(refs);
+    });
+        // Click/Tap to play once when loop is off — guard against double fire (touch + click)
+    try {
+      const mount = refs.lottieMount || refs.preview || refs.wrapper;
+      const root  = refs.preview || refs.wrapper || document.body;
+      if (mount && !mount.__lp_clickBound) {
+        mount.__lp_clickBound = true;
+        let lastUserPlayAt = 0;
+        const SUPPRESS_MS = 500;
+
+        // capture-phase suppressor to block synthetic click after touch/pointer
+        if (root && !root.__lp_clickSuppressor) {
+          root.__lp_clickSuppressor = true;
+          root.addEventListener('click', (ev) => {
+            const now = Date.now();
+            if (now - lastUserPlayAt < SUPPRESS_MS) {
+              try { ev.stopImmediatePropagation(); ev.stopPropagation(); ev.preventDefault(); } catch {}
+            }
+          }, true);
+        }
+
+        const userPlay = (ev) => {
+          const now = Date.now();
+          lastUserPlayAt = now;
+          try { ev.stopPropagation(); } catch {}
+          try { ev.preventDefault && ev.preventDefault(); } catch {}
+          if (!state.loopOn) {
+            try { restart(); } catch {}
+          }
+        };
+
+        if (window.PointerEvent) {
+          mount.addEventListener('pointerdown', userPlay);
+        } else {
+          mount.addEventListener('touchstart', userPlay, { passive: false });
+          mount.addEventListener('click', (ev) => {
+            const now = Date.now();
+            if (now - lastUserPlayAt > SUPPRESS_MS) userPlay(ev);
+          });
+        }
+      }
+    } catch {}
+
+    anim.addEventListener('complete', () => {});
+
+    return anim;
   } catch (e) {
-    if (typeof anim?.stop === 'function') { try { anim.stop(); anim.goToAndPlay?.(0,true); anim.play?.(); } catch{} }
+    console.error('loadLottieFromData error:', e);
+    return null;
   }
 }
 
+/** Экспорт текущей анимации (если нужно где-то ещё) */
 export function getAnim() { return anim; }
-export { setLoop } from './state.js';

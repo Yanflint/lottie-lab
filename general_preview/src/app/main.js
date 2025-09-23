@@ -47,7 +47,7 @@ function collectRefs() {
     bgImg:        document.getElementById('bgImg'),
     lotStage:     document.getElementById('lotStage'),
     lottieMount:  document.getElementById('lottie'),
-    lotItems:     document.getElementById('lotItems'),
+    lotList:      document.getElementById('lotList'),
     sizeBtn:      document.getElementById('sizeBtn'),
     heightBtn:    document.getElementById('heightBtn'),
     restartBtn:   document.getElementById('restartBtn'),
@@ -70,10 +70,13 @@ function applyVersion(refs) {
   }
 }
 
+import { initMultiLottie } from './multi.js';
+
 // 5) Init
 window.addEventListener('DOMContentLoaded', async () => {
   const refs = collectRefs();
-  applyVersion(refs);
+  initMultiLottie({ refs });
+applyVersion(refs);
 showToastIfFlag(); // покажет "Обновлено", если страница была перезагружена авто-рефрешом
 
   // Авто-рефреш для /s/last (Viewer)
