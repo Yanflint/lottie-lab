@@ -31,6 +31,7 @@ let __id = 1;
 function nextId(){ return `lot_${__id++}`; }
 
 function createAnimForItem(refs, item) {
+  try { console.log('[createAnim]', {id:item.id, name:item.name, x:item.x, y:item.y, w:item.w, h:item.h, loop:item.loop}); } catch {}
   const engine = pickEngine();
   const mount = document.createElement('div');
   mount.className = 'lottie-mount';
@@ -144,6 +145,7 @@ export function addLottieItems({ refs }, arr) {
     createAnimForItem(refs, item);
   }
   state.lottieList = items;
+  try { console.log('[hydrateLots] created items:', items.length, items); } catch {}
   if (!state.selectedId && items.length) state.selectedId = items[0].id;
   updateSelectionStyles();
   syncSelectedToState();
@@ -180,6 +182,7 @@ export function deleteSelected({ refs }) {
   const [item] = items.splice(idx, 1);
   destroyItem(item);
   state.lottieList = items;
+  try { console.log('[hydrateLots] created items:', items.length, items); } catch {}
   state.selectedId = items[idx]?.id || items[idx-1]?.id || (items[0]?.id || null);
   updateSelectionStyles();
   syncSelectedToState();
@@ -247,6 +250,11 @@ export function clearAll({ refs }) {
 }
 
 export function hydrateLots({ refs }, lots = []) {
+  try {
+    console.groupCollapsed('[hydrateLots] incoming');
+    console.log('count:', Array.isArray(lots)?lots.length:0, lots);
+    console.groupEnd();
+  } catch {}
   clearAll({ refs });
   const items = [];
   for (const src of (lots || [])) {
@@ -265,6 +273,7 @@ export function hydrateLots({ refs }, lots = []) {
     createAnimForItem(refs, item);
   }
   state.lottieList = items;
+  try { console.log('[hydrateLots] created items:', items.length, items); } catch {}
   state.selectedId = items[0]?.id || null;
   updateSelectionStyles();
   try { const el = document.getElementById('loopChk'); if (el) el.checked = !!items[0]?.loop; } catch {}

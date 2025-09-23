@@ -46,6 +46,15 @@ function applyLoopFromPayload(refs, data) {
 }
 
 async function applyPayload(refs, data) {
+  try { 
+    console.groupCollapsed('LOAD PAYLOAD');
+    console.log('payload keys:', Object.keys(data||{}));
+    console.log('has bg:', !!(data && data.bg));
+    console.log('top-level lots length:', Array.isArray(data && data.lots) ? data.lots.length : 0);
+    try { console.log('embedded lot.meta._lpLots length:', Array.isArray(data && data.lot && data.lot.meta && data.lot.meta._lpLots) ? data.lot.meta._lpLots.length : 0); } catch {}
+    console.log('has single lot:', !!(data && data.lot));
+    console.groupEnd();
+  } catch(e){}
   let _hid=false; try {
 
   if (!data || typeof data !== 'object') return false;
@@ -90,6 +99,14 @@ async function applyPayload(refs, data) {
 
   setPlaceholderVisible(refs, false);
   layoutLottie(refs);
+  try {
+    console.groupCollapsed('APPLY RESULT');
+    const s = (await import('./state.js'));
+    const items = s.state && s.state.lottieList || [];
+    console.log('items on canvas:', items.length);
+    items.forEach((it, i) => console.log(i, {id: it.id, name: it.name, x: it.x, y: it.y, w: it.w, h: it.h, loop: it.loop}));
+    console.groupEnd();
+  } catch(e) {}
   try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); document.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
   
   } finally { try { if (_hid && refs?.lotStage) refs.lotStage.style.visibility = ''; } catch {} }
