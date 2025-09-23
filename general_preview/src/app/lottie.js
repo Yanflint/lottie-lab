@@ -3,8 +3,32 @@ import { state, setLastBgSize, setLastBgMeta } from './state.js';
 import { pickEngine } from './engine.js';
 import { createPlayer as createRlottiePlayer } from './rlottieAdapter.js';
 import { setPlaceholderVisible } from './utils.js';
+import { addLottieItem, setSelected, getSelectedItem, getLottieItems } from './state.js';
 
 let anim = null;
+const items = []; // multi-lottie items
+function createLotItem(refs, w, h){
+  const stage = refs?.lotStage; if (!stage) return null;
+  const wrap = document.createElement('div');
+  wrap.className = 'lot-item';
+  wrap.style.position = 'absolute';
+  wrap.style.left = '50%';
+  wrap.style.top  = '50%';
+  wrap.style.transformOrigin = '50% 50%';
+  wrap.style.width = w+'px';
+  wrap.style.height = h+'px';
+
+  const overlay = document.createElement('div');
+  overlay.className = 'lot-select-overlay';
+  wrap.appendChild(overlay);
+
+  const mount = document.createElement('div');
+  mount.className = 'lottie-mount';
+  wrap.appendChild(mount);
+
+  stage.appendChild(wrap);
+  return { wrap, mount };
+}
 
 /* ========= ENV DETECT (PWA + mobile) ========= */
 (function detectEnv(){
@@ -21,8 +45,8 @@ let anim = null;
 
     if (isStandalone) document.documentElement.classList.add('is-standalone');
     if (isMobile) document.documentElement.classList.add('is-mobile');
-  } catch (_) {}
-})();
+  } catch (e) {}
+})();;
 
 /* ========= HELPERS ========= */
 function parseAssetScale(nameOrUrl) {
@@ -45,66 +69,47 @@ export function layoutLottie(refs) {
   const cssW = +((state.lastBgSize && state.lastBgSize.w) || 0);
   const cssH = +((state.lastBgSize && state.lastBgSize.h) || 0);
 
-  
-  // Берём реальные рендерные размеры фоновой картинки (если есть),
-  // чтобы масштаб лотти соответствовал именно фону, а не контейнеру превью.
   let realW = 0, realH = 0;
   const bgEl = refs?.bgImg;
   if (bgEl && bgEl.getBoundingClientRect) {
     const bgr = bgEl.getBoundingClientRect();
-    realW = bgr.width || 0;
-    realH = bgr.height || 0;
-  }
-  // Фолбэк: если по какой-то причине фон недоступен — используем контейнер
-  if (!(realW > 0 && realH > 0)) {
-    const br = wrap.getBoundingClientRect();
-    realW = br.width || 0;
-    realH = br.height || 0;
+    realW = bgr.width || 0; realH = bgr.height || 0;
   }
 
+  const baseW = cssW || realW || 1;
+  const baseH = cssH || realH || 1;
+  const fitScale = baseW > 0 ? (realW / baseW) : 1;
 
-  let fitScale = 1;
-  
-  if (cssW > 0 && cssH > 0 && realW > 0 && realH > 0) {
-    // Масштаб подгоняем так, чтобы 1 CSS-пиксель лотти = 1 CSS-пиксель фона
-    fitScale = Math.min(realW / cssW, realH / cssH);
-  }
-if (cssW > 0 && cssH > 0 && realW > 0 && realH > 0) {
-    fitScale = Math.min(realW / cssW, realH / cssH);
-    if (!isFinite(fitScale) || fitScale <= 0) fitScale = 1;
-  }
-
-  const x = (window.__lotOffsetX || 0);
-  const y = (window.__lotOffsetY || 0);
-  const xpx = x * fitScale;
-  const ypx = y * fitScale;
-
+  stage.style.position = 'absolute';
   stage.style.left = '50%';
   stage.style.top  = '50%';
+  stage.style.width  = baseW + 'px';
+  stage.style.height = baseH + 'px';
   stage.style.transformOrigin = '50% 50%';
-  stage.style.transform = `translate(calc(-50% + ${xpx}px), calc(-50% + ${ypx}px)) scale(${fitScale})`;
-  // [TEST OVERLAY] capture metrics for debug overlay
-  try {
-    const stageRect = stage.getBoundingClientRect ? stage.getBoundingClientRect() : { width: 0, height: 0 };
-    const baseW = parseFloat(stage.style.width || '0') || stageRect.width / (fitScale || 1) || 0;
-    const baseH = parseFloat(stage.style.height || '0') || stageRect.height / (fitScale || 1) || 0;
-    window.__lpMetrics = {
-      fitScale: fitScale,
-      baseW: Math.round(baseW),
-      baseH: Math.round(baseH),
-      dispW: Math.round(stageRect.width),
-      dispH: Math.round(stageRect.height),
-      offsetX: x,
-      offsetY: y,
-      offsetXpx: Math.round(xpx),
-      offsetYpx: Math.round(ypx)
-    };
-    if (typeof window.__updateOverlay === 'function') {
-      window.__updateOverlay(window.__lpMetrics);
-    }
-  } catch {}
+  stage.style.transform = `translate(-50%, -50%) scale(${fitScale})`;
 
+  const list = (typeof getLottieItems === 'function') ? getLottieItems() : items;
+  for (const it of list) {
+    const w = +it.w || 0, h = +it.h || 0;
+    if (it.wrapEl) { it.wrapEl.style.width = w+'px'; it.wrapEl.style.height = h+'px'; }
+    const x = (it.offset?.x || 0), y = (it.offset?.y || 0);
+    if (it.wrapEl) {
+      it.wrapEl.style.transformOrigin = '50% 50%';
+      it.wrapEl.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+    }
+  }
+
+  try {
+    const stageRect = stage.getBoundingClientRect();
+    window.__lpMetrics = {
+      baseW: Math.round(baseW), baseH: Math.round(baseH),
+      dispW: Math.round(stageRect.width), dispH: Math.round(stageRect.height),
+      fitScale
+    };
+    if (typeof window.__updateOverlay === 'function') window.__updateOverlay(window.__lpMetrics);
+  } catch (e) {}
 }
+
 /**
  * Установка фоновой картинки из data:/blob:/http(s)
  * — считываем naturalWidth/naturalHeight
@@ -181,11 +186,12 @@ export async function setBackgroundFromSrc(refs, src, meta = {}) {
 
 /** Жёсткий перезапуск проигрывания */
 export function restart() {
-  if (!anim) return;
   try {
-    anim.stop();
-    anim.goToAndPlay(0, true);
-  } catch (_) {}
+    let it = null;
+    try { if (typeof getSelectedItem === 'function') it = getSelectedItem(); } catch (e) {}
+    const player = (it && it.anim) ? it.anim : anim;
+    if (player && player.goToAndPlay) player.goToAndPlay(0, true);
+  } catch (e) {}
 }
 
 /** Переключение loop "на лету" */
@@ -205,7 +211,7 @@ export async function loadLottieFromData(refs, data) {
     if (!lotJson || typeof lotJson !== 'object') return null;
 
     if (anim) {
-      try { anim.destroy?.(); } catch (_) {}
+      try { anim.destroy?.(); } catch (e) {}
       anim = null;
     }
 
