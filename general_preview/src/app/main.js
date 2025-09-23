@@ -29,13 +29,14 @@ import { initDnd }           from './dnd.js';
 import { state }           from './state.js';
 import { getAnim, restart } from './lottie.js';
 import { initControls }      from './controls.js';
-import { initShare }         from './shareClient.js?v=yc14';
+// initShare removed
 import { initLoadFromLink }  from './loadFromLink.js';
 import { layoutLottie }      from './lottie.js';
 import { initAutoRefreshIfViewingLast } from './autoRefresh.js'; // ← НОВОЕ
 import { showToastIfFlag } from './updateToast.js';
 import { bumpLotOffset } from './state.js';
 import { initLottiePan }  from './pan.js';
+import { moveSelectedBy, hasAny as multiHasAny } from './multi.js';
 
 // 3) DOM-refs
 function collectRefs() {
@@ -75,6 +76,45 @@ window.addEventListener('DOMContentLoaded', async () => {
   applyVersion(refs);
 showToastIfFlag(); // покажет "Обновлено", если страница была перезагружена авто-рефрешом
 
+// Safe share handler: create link and copy to clipboard (no navigation)
+try {
+  const btn = document.getElementById('shareBtn');
+  if (btn && !btn.__lpShareBound) {
+    btn.__lpShareBound = true;
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      try {
+        const mod = await import('./shareClient.js?v=yc14');
+        const url = await mod.createShareLink();
+        if (url) {
+          try { await navigator.clipboard.writeText(url); } catch {}
+          console.log('[share] URL copied:', url);
+        }
+      } catch (err) {
+        console.error('share failed', err);
+      }
+    });
+  }
+} catch {}
+
+
+// v12: Safe share handler (no navigation)
+try {
+  const btn = document.getElementById('shareBtn');
+  if (btn) btn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    try {
+      const mod = await import('./shareClient.js?v=yc14');
+      const url = await mod.createShareLink();
+      if (url) {
+        try { await navigator.clipboard.writeText(url); } catch {}
+        console.log('[v12] Share URL copied:', url);
+      }
+    } catch (err) { console.error('share failed', err); }
+  });
+} catch {}
+
+
   // Авто-рефреш для /s/last (Viewer)
   if (isViewer) initAutoRefreshIfViewingLast(); // run only on /s/* viewer
 
@@ -84,9 +124,8 @@ showToastIfFlag(); // покажет "Обновлено", если страни
   if (!isViewer) initLottiePan({ refs });
 if (!isViewer) initDnd({ refs });
   initControls({ refs });
-  initShare({ refs, isStandalone });
-
-  /* DISABLE TAB FOCUS */
+  // initShare disabled
+/* DISABLE TAB FOCUS */
   try { document.querySelectorAll('button').forEach(b => b.setAttribute('tabindex','-1')); } catch {}
   /* REMOVE SHARE TITLE */
   try { refs.shareBtn?.removeAttribute('title'); } catch {}
@@ -151,19 +190,22 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight') dx = +step;
   if (e.key === 'ArrowUp')    dy = -step;
   if (e.key === 'ArrowDown')  dy = +step;
-  if (dx || dy) {
-    try {
-      const m = window.__multi;
-      if (m && m.isActive && m.isActive()) {
-        m.nudgeSelected(dx, dy);
-        e.preventDefault();
-        return;
-      }
-    } catch {}
-    bumpLotOffset(dx, dy);
-    layoutLottie(refs);
-    e.preventDefault();
-  }
+  try { if (multiHasAny && multiHasAny()) return; } catch {}
+  bumpLotOffset(dx, dy);
+  layoutLottie(refs);
+  e.preventDefault();
+}, { passive: false });
+
+// v12: Multi-mode arrows move selected Lottie only
+window.addEventListener('keydown', (e) => {
+  try { if (!(multiHasAny && multiHasAny())) return; } catch { return; }
+  const tag = (document.activeElement?.tagName || '').toLowerCase();
+  if (['input','textarea','select'].includes(tag)) return;
+  const step = e.shiftKey ? 10 : 1;
+  if (e.code === 'ArrowLeft')  { moveSelectedBy(-step, 0); e.preventDefault(); }
+  if (e.code === 'ArrowRight') { moveSelectedBy(+step, 0); e.preventDefault(); }
+  if (e.code === 'ArrowUp')    { moveSelectedBy(0, -step); e.preventDefault(); }
+  if (e.code === 'ArrowDown')  { moveSelectedBy(0, +step); e.preventDefault(); }
 }, { passive: false });
 
 window.addEventListener('resize', () => { try { layoutLottie(refs); } catch {} });

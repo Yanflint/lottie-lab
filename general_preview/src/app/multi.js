@@ -1,234 +1,214 @@
 
-// src/app/multi.js
-// НОВОЕ: Поддержка нескольких лотти, выделение, перемещение мышью/клавиатурой и per-item "цикл".
-import { state } from './state.js';
+// src/app/multi.js (v12)
+import { pickEngine } from './engine.js';
 
-let ACTIVE = false;
-const items = new Map(); // id -> { id, container, mount, anim, w, h, x, y, loop }
-let selectedId = null;
-let idSeq = 1;
-let refsCache = null;
+const BLUE = 'rgba(30,144,255,1)';
+const BLUE_BG = 'rgba(30,144,255,0.10)';
 
-const SEL_COLOR = '#2E90FF'; // голубой
-const SEL_FILL  = 'rgba(46,144,255,0.10)';
+const state = {
+  refs: null,
+  items: [], // {id, el, player, pos:{x,y}, loop, w, h, json, name}
+  selectedId: null,
+};
 
-function ensureStylesInjected() {
-  if (document.getElementById('multi-lottie-styles')) return;
-  const css = `
-  .lottie-item{ position:absolute; left:0; top:0; touch-action:none; }
-  .lottie-item .lottie-mount{ width:100%; height:100%; pointer-events:none; }
-  .lottie-item.selected{ background:${SEL_FILL}; box-shadow: inset 0 0 0 2px ${SEL_COLOR}; }
-  .lottie-item.grabbing{ cursor:grabbing; }
-  /* чтобы клики по элементам не проваливались под фон */
-  #lotStage{ position:relative; }
-  /* чекбокс без боковых отступов, как просили */
-  #loopChk{ margin-left:0; margin-right:0; }
-  `;
-  const style = document.createElement('style');
-  style.id = 'multi-lottie-styles';
-  style.textContent = css;
-  document.head.appendChild(style);
-}
+function makeId(){ return 'lot_' + Math.random().toString(36).slice(2,9); }
 
-function setSelected(id) {
-  selectedId = id;
-  for (const it of items.values()) it.container.classList.toggle('selected', it.id === id);
-  // обновим чекбокс цикла, если есть
-  try {
-    const chk = refsCache?.loopChk;
-    if (chk) {
-      const loop = id ? !!(items.get(id)?.loop) : !!state.loopOn;
-      chk.checked = loop;
-    }
-  } catch {}
-  // триггер callback для controls.js, если он подписан
-  try { window.__multiOnSelectionChange && window.__multiOnSelectionChange(getSelected()); } catch {}
-}
-
-function getSelected() {
-  return selectedId ? items.get(selectedId) : null;
-}
-
-function attachDragHandlers(it) {
-  const el = it.container;
-  let dragging = false;
-  let startX = 0, startY = 0, baseX = 0, baseY = 0;
-
-  const onPointerDown = (e) => {
-    if (e.button !== 0) return;
-    setSelected(it.id);
-    dragging = true;
-    el.classList.add('grabbing');
-    el.setPointerCapture?.(e.pointerId);
-    startX = e.clientX; startY = e.clientY;
-    baseX = it.x; baseY = it.y;
-    e.preventDefault();
-  };
-  const onPointerMove = (e) => {
-    if (!dragging) return;
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-    const nx = Math.round(baseX + dx);
-    const ny = Math.round(baseY + dy);
-    it.x = nx; it.y = ny;
-    el.style.transform = `translate(${nx}px, ${ny}px)`;
-  };
-  const onPointerUp = (e) => {
-    dragging = false;
-    el.classList.remove('grabbing');
-    try { el.releasePointerCapture?.(e.pointerId); } catch {}
-  };
-
-  el.addEventListener('pointerdown', onPointerDown);
-  window.addEventListener('pointermove', onPointerMove);
-  window.addEventListener('pointerup', onPointerUp);
-}
-
-export async function initMulti({ refs }) {
-  refsCache = refs;
-  ensureStylesInjected();
-  ACTIVE = true;
-  window.__multiActive = true;
-
-  // перехватываем клавиатуру для перемещения выделенного
-  window.addEventListener('keydown', (e) => {
-    if (!ACTIVE) return;
-    const sel = getSelected();
-    if (!sel) return;
-    const tag = (e.target?.tagName || '').toLowerCase();
-    if (['input','textarea','select'].includes(tag)) return;
-    const step = e.shiftKey ? 10 : 1;
-    let dx = 0, dy = 0;
-    if (e.key === 'ArrowLeft')  dx = -step;
-    if (e.key === 'ArrowRight') dx = +step;
-    if (e.key === 'ArrowUp')    dy = -step;
-    if (e.key === 'ArrowDown')  dy = +step;
-    if (!dx && !dy) return;
-    e.preventDefault();
-    sel.x = (sel.x||0) + dx;
-    sel.y = (sel.y||0) + dy;
-    sel.container.style.transform = `translate(${sel.x}px, ${sel.y}px)`;
-  }, { passive: false });
-}
-
-export function isActive() { return !!ACTIVE; }
-
-export function setLoopForSelected(on) {
-  const sel = getSelected();
-  if (!sel || !sel.anim) return;
-  sel.loop = !!on;
-  try { sel.anim.loop = !!on; } catch {}
-}
-
-export function getSelectedLoop() {
-  const sel = getSelected();
-  return sel ? !!sel.loop : !!state.loopOn;
-}
-
-export function nudgeSelected(dx, dy) {
-  const sel = getSelected();
-  if (!sel) return;
-  sel.x = (sel.x||0) + (+dx||0);
-  sel.y = (sel.y||0) + (+dy||0);
-  sel.container.style.transform = `translate(${sel.x}px, ${sel.y}px)`;
-}
-
-export function clearAll() {
-  for (const it of items.values()) {
-    try { it.anim?.destroy?.(); } catch {}
-    try { it.container?.remove?.(); } catch {}
+export function initMulti(refs){
+  state.refs = refs;
+  try { window.__lp_multi_on = true; } catch {}
+  if (refs?.lotStage) {
+    refs.lotStage.style.position = 'relative';
+    refs.lotStage.classList.add('lot-stage');
   }
-  items.clear();
-  selectedId = null;
 }
 
-function createItem({ lotJson, initialX=0, initialY=0 }) {
-  const w = Number(lotJson.w || 0) || 128;
-  const h = Number(lotJson.h || 0) || 128;
-  const id = `ml-${idSeq++}`;
+export function hasAny(){ return state.items.length > 0; }
+export function getAll(){ return state.items.slice(); }
 
+export function getSelected(){
+  return state.items.find(x => x.id === state.selectedId) || null;
+}
+
+function makeSelectionOverlay(){
+  const sel = document.createElement('div');
+  sel.className = 'lot-selection-overlay';
+  sel.style.position = 'absolute';
+  sel.style.inset = '0';
+  sel.style.pointerEvents = 'none';
+  sel.style.background = BLUE_BG;
+  sel.style.boxShadow = `inset 0 0 0 2px ${BLUE}`;
+  return sel;
+}
+
+function applyTransform(inst){
+  if (!inst?.el) return;
+  const s = getSceneScale(state.refs);
+  const x = (inst.pos.x || 0) * s;
+  const y = (inst.pos.y || 0) * s;
+  inst.el.style.transform = `translate(${x}px, ${y}px) scale(${s})`;
+}
+
+function select(inst){
+  state.items.forEach(i => {
+    try { i.el.querySelector('.lot-selection-overlay')?.remove(); } catch {}
+    try { i.el.style.zIndex = '0'; } catch {}
+  });
+  if (!inst) { state.selectedId = null; return; }
+  state.selectedId = inst.id;
+  try { inst.el.appendChild(makeSelectionOverlay()); inst.el.style.zIndex = '1'; } catch {}
+  try { const chk = document.getElementById('loopChk'); if (chk) chk.checked = !!inst.loop; } catch {}
+}
+
+function attachDrag(inst){
+  const el = inst.el;
+  let dragging = false, origin = {x:0,y:0}, start = {x:0,y:0};
+
+  const onDown = (e) => {
+    select(inst);
+    dragging = true;
+    origin = { ...inst.pos };
+    start = { x: e.clientX, y: e.clientY };
+    try { el.setPointerCapture(e.pointerId); } catch {}
+    el.style.cursor = 'grabbing';
+    e.preventDefault();
+  };
+  const onMove = (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    inst.pos = { x: origin.x + dx, y: origin.y + dy };
+    applyTransform(inst);
+    e.preventDefault();
+  };
+  const onUp = (e) => {
+    dragging = false;
+    try { el.releasePointerCapture(e.pointerId); } catch {}
+    el.style.cursor = 'grab';
+    e.preventDefault();
+  };
+
+  el.style.touchAction = 'none';
+  el.style.cursor = 'grab';
+  el.addEventListener('pointerdown', onDown);
+  el.addEventListener('pointermove', onMove);
+  el.addEventListener('pointerup', onUp);
+  el.addEventListener('pointercancel', onUp);
+  el.addEventListener('lostpointercapture', onUp);
+
+  // click-to-play once when loop is off
+  el.addEventListener('click', () => {
+    try {
+      if (!inst.loop && inst.player) {
+        inst.player.stop?.();
+        inst.player.goToAndStop?.(0, true);
+        inst.player.play?.();
+      }
+    } catch {}
+  });
+}
+
+export function moveSelectedBy(dx, dy){
+  const inst = getSelected(); if (!inst) return;
+  const s = getSceneScale(state.refs);
+  const k = s || 1;
+  inst.pos.x += (dx || 0) / k; inst.pos.y += (dy || 0) / k;
+  applyTransform(inst);
+}
+
+export function setLoopForSelected(on){
+  const inst = getSelected();
+  if (!inst) return;
+  inst.loop = !!on;
+  try {
+    if ('loop' in inst.player) inst.player.loop = !!on;
+    inst.player.setLoop?.(!!on);
+  } catch {}
+}
+
+export function restartSelected(){
+  const inst = getSelected();
+  if (!inst?.player) return;
+  try { inst.player.stop?.(); inst.player.goToAndStop?.(0, true); inst.player.play?.(); } catch {}
+}
+
+export function snapshot(){
+  return state.items.map(i => ({
+    json: i.json || null,
+    pos: { ...i.pos },
+    loop: !!i.loop,
+    name: i.name || ''
+  }));
+}
+
+export async function addLottieFromJSON(refs, lotJson, name=''){
+  if (!refs?.lotStage) return null;
   const mount = document.createElement('div');
-  mount.className = 'lottie-mount';
-  mount.style.width = `${w}px`;
-  mount.style.height = `${h}px`;
+  mount.className = 'lot-instance';
+  Object.assign(mount.style, {
+    position: 'absolute', left: '0', top: '0',
+    willChange: 'transform', contain: 'content',
+  });
+  refs.lotStage.appendChild(mount);
 
-  const container = document.createElement('div');
-  container.className = 'lottie-item';
-  container.style.width = `${w}px`;
-  container.style.height = `${h}px`;
-  container.style.transform = `translate(${initialX}px, ${initialY}px)`;
-  container.appendChild(mount);
+  let compW = 0, compH = 0;
+  try { compW = +lotJson?.w || 0; compH = +lotJson?.h || 0; } catch {}
+  if (compW>0 && compH>0) {
+    mount.style.width = compW + 'px';
+    mount.style.height = compH + 'px';
+  }
 
-  // поместим внутрь lotStage
-  refsCache?.lotStage?.appendChild(container);
-
-  // создаём анимацию через глобальный lottie (svg)
-  const loop = !!state.loopOn;
-  const autoplay = !!state.loopOn;
-  const anim = window.lottie?.loadAnimation?.({
+  const player = window.lottie?.loadAnimation ? window.lottie.loadAnimation({
     container: mount,
     renderer: 'svg',
-    loop,
-    autoplay,
+    loop: true,
+    autoplay: true,
     animationData: lotJson
-  });
+  }) : null;
 
-  const it = { id, container, mount, anim, w, h, x: initialX, y: initialY, loop };
-  items.set(id, it);
-
-  // выбор по клику
-  container.addEventListener('mousedown', () => setSelected(id));
-  container.addEventListener('click', () => setSelected(id));
-
-  // drag
-  attachDragHandlers(it);
-
-  return it;
+  const inst = {
+    id: makeId(),
+    el: mount,
+    player,
+    pos: { x: 0, y: 0 },
+    loop: true,
+    w: compW,
+    h: compH,
+    json: lotJson,
+    name
+  };
+  state.items.push(inst);
+  attachDrag(inst);
+  select(inst);
+  applyTransform(inst);
+  return inst;
 }
 
-export async function loadMultipleJsonFiles({ refs }, fileList) {
-  if (!refs) refs = refsCache;
-  refsCache = refs;
-  ensureStylesInjected();
-  ACTIVE = true;
-  window.__multiActive = true;
 
-  // спрячем одиночный mount, чтобы не мешал
-  try { refs.lottieMount && (refs.lottieMount.style.display = 'none'); } catch {}
+function getSceneScale(refs){
+  try {
+    const img = refs?.bgImg;
+    const rect = img?.getBoundingClientRect?.();
+    const cssW = rect?.width || 0, cssH = rect?.height || 0;
+    const natW = img?.naturalWidth || 0, natH = img?.naturalHeight || 0;
+    if (natW > 0 && natH > 0) {
+      const sW = cssW / natW, sH = cssH / natH;
+      const s = Math.min(sW || 0, sH || 0) || 1;
+      return s;
+    }
+  } catch {}
+  return 1;
+}
 
-  // читаем все json-файлы
-  const jsons = [];
-  for (const f of fileList) {
-    try {
-      const text = await f.text();
-      const data = JSON.parse(text);
-      jsons.push(data);
-    } catch {}
+function applyTransformAll(){
+  try { state.items.forEach(applyTransform); } catch {}
+}
+export function updateSceneScaleFromBackground(refs){ try { state.refs = refs || state.refs; } catch {} applyTransformAll(); }
+export function remapPositionsOnBackgroundChange(oldW, oldH, newW, newH){
+  if (!(oldW>0 && oldH>0 && newW>0 && newH>0)) { applyTransformAll(); return; }
+  const sx = newW/oldW, sy = newH/oldH;
+  for (const inst of state.items) {
+    inst.pos.x = (inst.pos.x || 0) * sx;
+    inst.pos.y = (inst.pos.y || 0) * sy;
   }
-  if (!jsons.length) return;
-
-  // разложим по центру с небольшими смещениями
-  let sx = 0, sy = 0;
-  const step = 24;
-  for (const j of jsons) {
-    const it = createItem({ lotJson: j, initialX: sx, initialY: sy });
-    sx += step; sy += step;
-    setSelected(it.id);
-  }
+  applyTransformAll();
 }
-
-export function onExternalSelectionChange(cb) {
-  // Controls.js подпишется сюда, чтобы синхронизировать чекбокс
-  window.__multiOnSelectionChange = cb;
-}
-
-// Утилиты для других модулей
-window.__multi = {
-  isActive,
-  getSelected,
-  setLoopForSelected,
-  getSelectedLoop,
-  nudgeSelected,
-  loadMultipleJsonFiles,
-  onExternalSelectionChange,
-};
