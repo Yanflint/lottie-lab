@@ -99,7 +99,7 @@ body{
 /* По умолчанию: подгоняем по высоте контейнера (контейнер уже держит aspect-ratio) */
 .bg img{ display:block; height:100%; width:auto; margin:0 auto; }
 
-.lottie-layer{ overflow:hidden; }
+.lottie-layer{ overflow:hidden; position:relative; z-index:2; }
 .lot-stage{
   position:absolute; left:50%; top:50%;
   transform-origin:50% 50%;
@@ -407,12 +407,12 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 /* drag-hotfix */
 #preview, #lotStage { pointer-events: auto; touch-action: none; }
 
-#lottie{pointer-events:auto;}
+#lottie{pointer-events:none; display:none;}
 
 
 /* === Multi-Lottie items & selection === */
 .lot-stage{ position:absolute; left:50%; top:50%; transform-origin:50% 50%; }
-.lot-items{ position:absolute; inset:0; }
+.lot-items{ position:absolute; inset:0; pointer-events:auto; }
 .lot-item{
   position:absolute;
   left:50%; top:50%;

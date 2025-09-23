@@ -8,7 +8,7 @@ async function processFilesSequential(refs, files) {
   const jsonFiles = [];
   for (const f of files) {
     if (!imgFile && f.type?.startsWith?.('image/')) imgFile = f;
-    const isJson = f.type === 'application/json' || f.name?.endsWith?.('.json') || f.type === 'text/plain';
+    const isJson = (f.type === 'application/json' || f.type === 'application/octet-stream' || f.type === '' || f.type === undefined || f.name?.endsWith?.('.json') || f.type === 'text/plain');
     if (isJson) jsonFiles.push(f);
   }
   if (imgFile) {

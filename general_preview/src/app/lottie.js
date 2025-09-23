@@ -53,7 +53,8 @@ export async function addLottieFromData(refs, data){
   if (engine === 'rlottie') {
     inst = createRlottiePlayer({ container: mount, loop, autoplay, animationData: lotJson });
   } else {
-    inst = window.lottie.loadAnimation({ container: mount, renderer: 'svg', loop, autoplay, animationData: lotJson, rendererSettings: { preserveAspectRatio: 'xMidYMid meet' } });
+    try {
+      inst = window.lottie.loadAnimation({ container: mount, renderer: 'svg', loop, autoplay, animationData: lotJson, rendererSettings: { preserveAspectRatio: 'xMidYMid meet' } });
   }
 
   // Selection behavior
@@ -74,6 +75,9 @@ export async function addLottieFromData(refs, data){
   // initial relayout for this item
   try { layoutLottie(refs); } catch {}
 
+  try {
+    inst.addEventListener?.('DOMLoaded', () => { try { layoutLottie(refs); } catch {} });
+  } catch {}
   return inst;
 }
 
