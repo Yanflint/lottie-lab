@@ -3,6 +3,30 @@ import { setPlaceholderVisible, setDropActive } from './utils.js';
 import { setLastLottie } from './state.js';
 
 async function processFilesSequential(refs, files) {
+  // [MULTI] detect multiple .json lottie files
+  const jsonFiles = [];
+  let imgFile = null;
+  for (const f of files) {
+    const isJson = (f.type === 'application/json') || (f.name?.toLowerCase?.().endsWith('.json')) || (f.type === 'text/plain');
+    if (isJson) jsonFiles.push(f);
+    if (!imgFile && f.type?.startsWith?.('image/')) imgFile = f;
+  }
+  // If multiple JSONs present => multi-mode
+  if (jsonFiles.length > 1) {
+    try {
+      if (imgFile) {
+        const url = URL.createObjectURL(imgFile);
+        await setBackgroundFromSrc(refs, url, { fileName: imgFile?.name });
+        setPlaceholderVisible(refs, false);
+      }
+      const mod = await import('./multi.js');
+      await mod.initMulti({ refs });
+      await mod.loadMultipleJsonFiles({ refs }, jsonFiles);
+      setDropActive(refs, false);
+      return;
+    } catch (e) { console.warn('[multi] failed, fallback to single', e); }
+  }
+
   let imgFile = null, jsonFile = null;
   for (const f of files) {
     if (!imgFile && f.type?.startsWith?.('image/')) imgFile = f;

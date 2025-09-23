@@ -151,9 +151,19 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight') dx = +step;
   if (e.key === 'ArrowUp')    dy = -step;
   if (e.key === 'ArrowDown')  dy = +step;
-  bumpLotOffset(dx, dy);
-  layoutLottie(refs);
-  e.preventDefault();
+  if (dx || dy) {
+    try {
+      const m = window.__multi;
+      if (m && m.isActive && m.isActive()) {
+        m.nudgeSelected(dx, dy);
+        e.preventDefault();
+        return;
+      }
+    } catch {}
+    bumpLotOffset(dx, dy);
+    layoutLottie(refs);
+    e.preventDefault();
+  }
 }, { passive: false });
 
 window.addEventListener('resize', () => { try { layoutLottie(refs); } catch {} });
