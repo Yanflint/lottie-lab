@@ -76,6 +76,28 @@ window.addEventListener('DOMContentLoaded', async () => {
   applyVersion(refs);
 showToastIfFlag(); // покажет "Обновлено", если страница была перезагружена авто-рефрешом
 
+// Safe share handler: create link and copy to clipboard (no navigation)
+try {
+  const btn = document.getElementById('shareBtn');
+  if (btn && !btn.__lpShareBound) {
+    btn.__lpShareBound = true;
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      try {
+        const mod = await import('./shareClient.js?v=yc14');
+        const url = await mod.createShareLink();
+        if (url) {
+          try { await navigator.clipboard.writeText(url); } catch {}
+          console.log('[share] URL copied:', url);
+        }
+      } catch (err) {
+        console.error('share failed', err);
+      }
+    });
+  }
+} catch {}
+
+
 // v12: Safe share handler (no navigation)
 try {
   const btn = document.getElementById('shareBtn');
@@ -102,9 +124,8 @@ try {
   if (!isViewer) initLottiePan({ refs });
 if (!isViewer) initDnd({ refs });
   initControls({ refs });
-  initShare({ refs, isStandalone });
-
-  /* DISABLE TAB FOCUS */
+  // initShare disabled
+/* DISABLE TAB FOCUS */
   try { document.querySelectorAll('button').forEach(b => b.setAttribute('tabindex','-1')); } catch {}
   /* REMOVE SHARE TITLE */
   try { refs.shareBtn?.removeAttribute('title'); } catch {}
