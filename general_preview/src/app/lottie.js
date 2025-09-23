@@ -109,9 +109,7 @@ export function layoutLottie(refs) {
     if (typeof window.__updateOverlay === 'function') window.__updateOverlay(window.__lpMetrics);
   } catch (e) {}
 }
-catch {}
 
-}
 /**
  * Установка фоновой картинки из data:/blob:/http(s)
  * — считываем naturalWidth/naturalHeight
