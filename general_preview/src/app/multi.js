@@ -1,134 +1,72 @@
 
 // src/app/multi.js
-// Простая "мультитрековая" прослойка для нескольких Lottie одновременно.
-// Не трогаем старую одно-лотовую логику — используем её как fallback.
-// Здесь каждая лотти — это собственный контейнер внутри #lotStage.
-
 import { pickEngine } from './engine.js';
 
-const BLUE = 'rgba(30,144,255,1)';        // dodgerblue
-const BLUE_BG = 'rgba(30,144,255,0.10)';  // 10% заливка
-
-/** @typedef {Object} LotInstance
- *  @property {string} id
- *  @property {HTMLElement} el          // контейнер
- *  @property {any} player              // lottie-web аниматор
- *  @property {{x:number,y:number}} pos // позиция в px
- *  @property {boolean} loop
- *  @property {number} w
- *  @property {number} h
- */
+const BLUE = 'rgba(30,144,255,1)';
+const BLUE_BG = 'rgba(30,144,255,0.10)';
 
 const state = {
   refs: null,
-  instances: /** @type {LotInstance[]} */([]),
+  items: [], // {id, el, player, pos:{x,y}, loop, w, h, json, name}
   selectedId: null,
 };
 
-function makeId() {
-  return 'lot_' + Math.random().toString(36).slice(2, 9);
-}
+function makeId(){ return 'lot_' + Math.random().toString(36).slice(2,9); }
 
-export function initMulti(refs) {
-  try { window.__lp_multi_on = true; } catch {}
+export function initMulti(refs){
   state.refs = refs;
-  // Обеспечим относительное позиционирование сцены
-  try {
-    if (refs?.lotStage) {
-      refs.lotStage.style.position = 'relative';
-      refs.lotStage.style.userSelect = 'none';
-    }
-  } catch {}
-  // Делегируем клавиши для перемещения
-  window.addEventListener('keydown', onKeyMove, { passive: false });
+  try { window.__lp_multi_on = true; } catch {}
+  if (refs?.lotStage) {
+    refs.lotStage.style.position = 'relative';
+    refs.lotStage.classList.add('lot-stage');
+  }
 }
 
-export function hasAny() { return state.instances.length > 0; }
-export function getSelected() {
-  return state.instances.find(it => it.id === state.selectedId) || null;
-}
-export function selectById(id) {
-  const inst = state.instances.find(it => it.id === id);
-  if (inst) select(inst);
-}
-export function setLoopForSelected(on) {
-  const inst = getSelected();
-  if (!inst) return;
-  inst.loop = !!on;
-  try {
-    if (inst.player && typeof inst.player.loop === 'boolean') {
-      inst.player.loop = !!on;
-    } else if (inst.player?.setLoop) {
-      inst.player.setLoop(!!on);
-    }
-  } catch {}
-}
-export function restartSelected() {
-  const inst = getSelected();
-  if (!inst || !inst.player) return;
-  try {
-    if (inst.player.stop) { inst.player.stop(); }
-    if (inst.player.goToAndStop) { inst.player.goToAndStop(0, true); }
-    if (inst.player.play) { inst.player.play(); }
-  } catch {}
+export function hasAny(){ return state.items.length > 0; }
+export function getAll(){ return state.items.slice(); }
+
+export function getSelected(){
+  return state.items.find(x => x.id === state.selectedId) || null;
 }
 
-export function moveSelectedBy(dx, dy) {
-  const inst = getSelected();
-  if (!inst) return;
-  inst.pos.x += dx; inst.pos.y += dy;
-  applyTransform(inst);
+function makeSelectionOverlay(){
+  const sel = document.createElement('div');
+  sel.className = 'lot-selection-overlay';
+  sel.style.position = 'absolute';
+  sel.style.inset = '0';
+  sel.style.pointerEvents = 'none';
+  sel.style.background = BLUE_BG;
+  sel.style.boxShadow = `inset 0 0 0 2px ${BLUE}`;
+  return sel;
 }
 
-function onKeyMove(e) {
-  // стрелки двигают выбранную лотти
-  const codes = ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];
-  if (!codes.includes(e.code)) return;
-  // не мешаем когда вводится в поле
-  const t = e.target;
-  const isEditable = !!(t && (t.closest?.('input, textarea') || t.isContentEditable || t.getAttribute?.('role') === 'textbox'));
-  if (isEditable) return;
-  const step = e.shiftKey ? 10 : 1;
-  if (e.code === 'ArrowLeft')  moveSelectedBy(-step, 0);
-  if (e.code === 'ArrowRight') moveSelectedBy(+step, 0);
-  if (e.code === 'ArrowUp')    moveSelectedBy(0, -step);
-  if (e.code === 'ArrowDown')  moveSelectedBy(0, +step);
-  e.preventDefault();
-}
-
-function applyTransform(inst) {
+function applyTransform(inst){
   if (!inst?.el) return;
   inst.el.style.transform = `translate(${inst.pos.x}px, ${inst.pos.y}px)`;
 }
 
-function makeSelectionEl() {
-  const sel = document.createElement('div');
-  sel.className = 'lot-selection-overlay';
-  // Заполняем 10% голубым и рисуем рамку 2px ВНУТРИ
-  sel.style.position = 'absolute';
-  sel.style.inset = '0';
-  sel.style.pointerEvents = 'none';
-  sel.style.background = BLUE_BG;                  // 10% голубого
-  sel.style.boxShadow = `inset 0 0 0 2px ${BLUE}`; // рамка 2px внутрь
-  return sel;
+function select(inst){
+  state.items.forEach(i => {
+    try { i.el.querySelector('.lot-selection-overlay')?.remove(); } catch {}
+    try { i.el.style.zIndex = '0'; } catch {}
+  });
+  if (!inst) { state.selectedId = null; return; }
+  state.selectedId = inst.id;
+  try { inst.el.appendChild(makeSelectionOverlay()); inst.el.style.zIndex = '1'; } catch {}
+  try { const chk = document.getElementById('loopChk'); if (chk) chk.checked = !!inst.loop; } catch {}
 }
 
-
-function attachDrag(inst) {
-
+function attachDrag(inst){
   const el = inst.el;
-  let dragging = false;
-  let origin = {x:0, y:0};
-  let start = {x:0, y:0};
+  let dragging = false, origin = {x:0,y:0}, start = {x:0,y:0};
 
   const onDown = (e) => {
-    // Выделяем по клику
     select(inst);
     dragging = true;
+    origin = { ...inst.pos };
+    start = { x: e.clientX, y: e.clientY };
     try { el.setPointerCapture(e.pointerId); } catch {}
     el.style.cursor = 'grabbing';
-    start = { x: e.clientX, y: e.clientY };
-    origin = { ...inst.pos };
     e.preventDefault();
   };
   const onMove = (e) => {
@@ -148,62 +86,73 @@ function attachDrag(inst) {
 
   el.style.touchAction = 'none';
   el.style.cursor = 'grab';
-  
-// Клик = проигрывание один раз, если loop выключен
-const userPlayOnce = (e) => {
-  try {
-    if (!inst.loop && inst.player) {
-      if (inst.player.stop) inst.player.stop();
-      if (inst.player.goToAndStop) inst.player.goToAndStop(0, true);
-      if (inst.player.play) inst.player.play();
-    }
-  } catch {}
-};
-el.addEventListener('pointerdown', onDown);
+  el.addEventListener('pointerdown', onDown);
   el.addEventListener('pointermove', onMove);
   el.addEventListener('pointerup', onUp);
   el.addEventListener('pointercancel', onUp);
   el.addEventListener('lostpointercapture', onUp);
+
+  // click-to-play once when loop is off
+  el.addEventListener('click', () => {
+    try {
+      if (!inst.loop && inst.player) {
+        inst.player.stop?.();
+        inst.player.goToAndStop?.(0, true);
+        inst.player.play?.();
+      }
+    } catch {}
+  });
 }
 
-function select(inst) {
-  // Снимаем выделение со всех
-  state.instances.forEach(i => { try {
-    const s = i.el.querySelector('.lot-selection-overlay');
-    if (s) s.remove();
-    i.el.style.zIndex = '0';
-  } catch {} });
-  state.selectedId = inst.id;
-  // Подсветка — добавим overlay
-  const sel = makeSelectionEl();
-  inst.el.appendChild(sel);
-  inst.el.style.zIndex = '1';
-  // Подсинхроним чекбокс цикла, если он есть
+export function moveSelectedBy(dx, dy){
+  const inst = getSelected();
+  if (!inst) return;
+  inst.pos.x += dx; inst.pos.y += dy;
+  applyTransform(inst);
+}
+
+export function setLoopForSelected(on){
+  const inst = getSelected();
+  if (!inst) return;
+  inst.loop = !!on;
   try {
-    const chk = document.getElementById('loopChk');
-    if (chk) chk.checked = !!inst.loop;
+    if ('loop' in inst.player) inst.player.loop = !!on;
+    inst.player.setLoop?.(!!on);
   } catch {}
 }
 
-export async function addLottieFromJSON(refs, lotJson, name='') {
+export function restartSelected(){
+  const inst = getSelected();
+  if (!inst?.player) return;
+  try { inst.player.stop?.(); inst.player.goToAndStop?.(0, true); inst.player.play?.(); } catch {}
+}
+
+export function snapshot(){
+  return state.items.map(i => ({
+    json: i.json || null,
+    pos: { ...i.pos },
+    loop: !!i.loop,
+    name: i.name || ''
+  }));
+}
+
+export async function addLottieFromJSON(refs, lotJson, name=''){
   if (!refs?.lotStage) return null;
-  const engine = pickEngine(); // 'lottie-web' or 'rlottie' (здесь используем lottie-web)
-  if (engine !== 'lottie-web') {
-    console.warn('[multi] RLottie не поддерживается в мультирежиме; переключаю на lottie-web');
-  }
-  // Контейнер
   const mount = document.createElement('div');
   mount.className = 'lot-instance';
-  mount.style.position = 'absolute';
-  mount.style.left = '0';
-  mount.style.top  = '0';
-  mount.style.transform = 'translate(0px, 0px)';
-  mount.style.willChange = 'transform';
-  mount.style.contain = 'content';
-  // Важно: пусть svg будет естественного размера композиции
+  Object.assign(mount.style, {
+    position: 'absolute', left: '0', top: '0',
+    willChange: 'transform', contain: 'content',
+  });
   refs.lotStage.appendChild(mount);
 
-  // Создаём анимацию
+  let compW = 0, compH = 0;
+  try { compW = +lotJson?.w || 0; compH = +lotJson?.h || 0; } catch {}
+  if (compW>0 && compH>0) {
+    mount.style.width = compW + 'px';
+    mount.style.height = compH + 'px';
+  }
+
   const player = window.lottie?.loadAnimation ? window.lottie.loadAnimation({
     container: mount,
     renderer: 'svg',
@@ -212,14 +161,6 @@ export async function addLottieFromJSON(refs, lotJson, name='') {
     animationData: lotJson
   }) : null;
 
-  // Вычислим размеры композиции из json (w/h), чтобы задать min-size контейнера
-  let compW = 0, compH = 0;
-  try { compW = +lotJson?.w || 0; compH = +lotJson?.h || 0; } catch {}
-  if (compW > 0 && compH > 0) {
-    mount.style.width = compW + 'px';
-    mount.style.height = compH + 'px';
-  }
-
   const inst = {
     id: makeId(),
     el: mount,
@@ -227,14 +168,13 @@ export async function addLottieFromJSON(refs, lotJson, name='') {
     pos: { x: 0, y: 0 },
     loop: true,
     w: compW,
-    h: compH
+    h: compH,
+    json: lotJson,
+    name
   };
-  state.instances.push(inst);
-
-  // Навесим выделение/drag
+  state.items.push(inst);
   attachDrag(inst);
-  // Выделим свежедобавленный
   select(inst);
-
+  applyTransform(inst);
   return inst;
 }
