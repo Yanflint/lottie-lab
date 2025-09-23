@@ -92,6 +92,7 @@ body{
 }
 
 .bg, .lottie-layer{ position:absolute; inset:0; }
+.lottie-layer{ z-index:2; pointer-events:auto; }
 .bg{
   overflow:hidden; display:flex; align-items:center; justify-content:center;
 }
