@@ -45,8 +45,8 @@ function createLotItem(refs, w, h){
 
     if (isStandalone) document.documentElement.classList.add('is-standalone');
     if (isMobile) document.documentElement.classList.add('is-mobile');
-  } catch (_) {}
-})();
+  } catch (e) {}
+})();;
 
 /* ========= HELPERS ========= */
 function parseAssetScale(nameOrUrl) {
@@ -192,7 +192,6 @@ export function restart() {
     const player = (it && it.anim) ? it.anim : anim;
     if (player && player.goToAndPlay) player.goToAndPlay(0, true);
   } catch (e) {}
-} catch (_) {}
 }
 
 /** Переключение loop "на лету" */
@@ -212,7 +211,7 @@ export async function loadLottieFromData(refs, data) {
     if (!lotJson || typeof lotJson !== 'object') return null;
 
     if (anim) {
-      try { anim.destroy?.(); } catch (_) {}
+      try { anim.destroy?.(); }
       anim = null;
     }
 
