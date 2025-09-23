@@ -74,15 +74,10 @@ if (cssW > 0 && cssH > 0 && realW > 0 && realH > 0) {
     if (!isFinite(fitScale) || fitScale <= 0) fitScale = 1;
   }
 
-  let x = (window.__lotOffsetX || 0);
-  let y = (window.__lotOffsetY || 0);
-  // В мультирежиме lotOffset не применяется к сцене
-  try { if (window.__lp_multi_on) { x = 0; y = 0; } } catch {}
+  const x = (window.__lotOffsetX || 0);
+  const y = (window.__lotOffsetY || 0);
   const xpx = x * fitScale;
   const ypx = y * fitScale;
-
-  // Жёстко задаём логические размеры сцены под CSS-логический размер фона
-  try { stage.style.width = (cssW>0? cssW : 0) + 'px'; stage.style.height = (cssH>0? cssH : 0) + 'px'; } catch {}
 
   stage.style.left = '50%';
   stage.style.top  = '50%';

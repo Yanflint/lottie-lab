@@ -29,14 +29,13 @@ import { initDnd }           from './dnd.js';
 import { state }           from './state.js';
 import { getAnim, restart } from './lottie.js';
 import { initControls }      from './controls.js';
-// (lazy) import of shareClient removed; will load on demand
+import { initShare }         from './shareClient.js?v=yc14';
 import { initLoadFromLink }  from './loadFromLink.js';
 import { layoutLottie }      from './lottie.js';
 import { initAutoRefreshIfViewingLast } from './autoRefresh.js'; // ← НОВОЕ
-import { showToastIfFlag } from './updateToast.js'; // safe stub
+import { showToastIfFlag } from './updateToast.js';
 import { bumpLotOffset } from './state.js';
 import { initLottiePan }  from './pan.js';
-import { moveSelectedBy, hasAny as multiHasAny } from './multi.js';
 
 // 3) DOM-refs
 function collectRefs() {
@@ -85,7 +84,7 @@ showToastIfFlag(); // покажет "Обновлено", если страни
   if (!isViewer) initLottiePan({ refs });
 if (!isViewer) initDnd({ refs });
   initControls({ refs });
-  // initShare removed; lazy loader will attach on first click
+  initShare({ refs, isStandalone });
 
   /* DISABLE TAB FOCUS */
   try { document.querySelectorAll('button').forEach(b => b.setAttribute('tabindex','-1')); } catch {}
@@ -100,25 +99,61 @@ if (!isViewer) initDnd({ refs });
 
   // Hotkey: Reset (R) in editor only; allow Ctrl/Cmd+R refresh; ignore inputs; ru/en layout safe
   window.addEventListener('keydown', (e) => {
-  try {
-    if (multiHasAny && typeof multiHasAny === 'function' && multiHasAny()) return; // в мультирежиме не двигаем сцену
-  } catch {}
-  const hasMods = e.ctrlKey || e.metaKey || e.altKey || e.shiftKey;
-  if (hasMods) return;
-  const t = e.target;
-  const isEditable = !!(t && (t.closest?.('input, textarea') || t.isContentEditable || t.getAttribute?.('role') === 'textbox'));
-  if (isEditable) return;
-  const step = 1;
+    try {
+      const isViewer = location.pathname.includes('/s/');
+      if (isViewer) return;
+    } catch {}
+
+    const hasMods = e.ctrlKey || e.metaKey || e.altKey || e.shiftKey;
+    if (hasMods) return;
+
+    const t = e.target;
+    const isEditable = !!(t && (t.closest?.('input, textarea') || t.isContentEditable || t.getAttribute?.('role') === 'textbox'));
+    if (isEditable) return;
+
+    const isRCode = e.code === 'KeyR';
+    const isRKey  = (e.key === 'r' || e.key === 'R' || e.key === 'к' || e.key === 'К');
+    if (isRCode || isRKey) {
+      e.preventDefault();
+      try { setLotOffset(0, 0); } catch {}
+      try { relayout(); } catch {}
+    }
+  }, { passive: false });
+
+  // Тап = перезапуск (если было добавлено ранее)
+  const restartByTap = (e) => {
+    if (isViewer) return;
+    const isTouch = e.pointerType ? (e.pointerType === 'touch') : (e.touches && e.touches.length === 1);
+    if (!isTouch && !isStandalone) return;
+    if (refs.mode && refs.mode.contains(e.target)) return;
+    refs.restartBtn?.click();
+  };
+  refs.preview?.addEventListener('pointerdown', restartByTap, { passive: true });
+  refs.preview?.addEventListener('touchstart',  restartByTap, { passive: true });
+
+  // In viewer mode: click to RESTART animation (always from start)
+  if (isViewer && refs.preview) {
+    refs.preview.addEventListener('click', (e) => {
+      if (refs.mode && refs.mode.contains(e.target)) return;
+      try { restart(); } catch {}
+    });
+  }
+
+
+window.addEventListener('keydown', (e) => {
+  const keys = ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];
+  if (!keys.includes(e.key)) return;
+  const tag = (document.activeElement?.tagName || '').toLowerCase();
+  if (['input','textarea','select'].includes(tag)) return;
+  const step = e.shiftKey ? 10 : 1;
   let dx = 0, dy = 0;
   if (e.key === 'ArrowLeft')  dx = -step;
   if (e.key === 'ArrowRight') dx = +step;
   if (e.key === 'ArrowUp')    dy = -step;
   if (e.key === 'ArrowDown')  dy = +step;
-  if (dx!==0 || dy!==0) {
-    bumpLotOffset(dx, dy);
-    layoutLottie(refs);
-    e.preventDefault();
-  }
+  bumpLotOffset(dx, dy);
+  layoutLottie(refs);
+  e.preventDefault();
 }, { passive: false });
 
 window.addEventListener('resize', () => { try { layoutLottie(refs); } catch {} });
@@ -176,46 +211,3 @@ window.addEventListener('resize', () => { try { layoutLottie(refs); } catch {} }
   } catch {}
 
 });
-
-// Дополнительные хоткеи для мультирежима: стрелки двигают выбранную лотти
-window.addEventListener('keydown', (e) => {
-  try { if (!(multiHasAny && multiHasAny())) return; } catch { return; }
-  const t = e.target;
-  const isEditable = !!(t && (t.closest?.('input, textarea') || t.isContentEditable || t.getAttribute?.('role') === 'textbox'));
-  if (isEditable) return;
-  const step = e.shiftKey ? 10 : 1;
-  if (e.code === 'ArrowLeft')  { moveSelectedBy(-step, 0); e.preventDefault(); }
-  if (e.code === 'ArrowRight') { moveSelectedBy(+step, 0); e.preventDefault(); }
-  if (e.code === 'ArrowUp')    { moveSelectedBy(0, -step); e.preventDefault(); }
-  if (e.code === 'ArrowDown')  { moveSelectedBy(0, +step); e.preventDefault(); }
-}, { passive: false });
-
-// Ленивая загрузка клиента шаринга — чтобы ошибки внутри него не ломали редактор
-
-
-// Ленивая загрузка клиента шаринга — создаём ссылку, не перезагружая редактор
-(function setupLazyShareSafe(){
-  const btn = document.getElementById('shareBtn');
-  if (!btn) return;
-  btn.addEventListener('click', async (e) => {
-    try {
-      e.preventDefault();
-      const mod = await import('./shareClient.js?v=yc14');
-      const url = await mod.createShareLink();
-      if (url) {
-        try { await navigator.clipboard.writeText(url); } catch {}
-        try {
-          const { showSuccessToast } = await import('./updateToast.js');
-          showSuccessToast('Ссылка скопирована в буфер обмена');
-        } catch {}
-        // остаёмся в редакторе
-      }
-    } catch (err) {
-      try {
-        const { showErrorToast } = await import('./updateToast.js');
-        showErrorToast('Не удалось создать ссылку');
-      } catch {}
-      console.error('share failed', err);
-    }
-  });
-})();
