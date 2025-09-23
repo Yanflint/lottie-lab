@@ -30,7 +30,7 @@ import { state }           from './state.js';
 import { getAnim, restart } from './lottie.js';
 import { initControls }      from './controls.js';
 import { initShare }         from './shareClient.js?v=yc14';
-import { initLoadFromLink }  from './loadFromLink.js';
+import { initLoadFromLink }  from './loadFromLink.js?v=dbg1';
 import { layoutLottie }      from './lottie.js';
 import { initAutoRefreshIfViewingLast } from './autoRefresh.js'; // ← НОВОЕ
 import { showToastIfFlag } from './updateToast.js';
@@ -70,7 +70,7 @@ function applyVersion(refs) {
   }
 }
 
-import { initMultiLottie } from './multi.js';
+import { initMultiLottie } from './multi.js?v=dbg1';
 
 // 5) Init
 window.addEventListener('DOMContentLoaded', async () => {
