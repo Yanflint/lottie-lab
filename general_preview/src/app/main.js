@@ -76,93 +76,33 @@ window.addEventListener('DOMContentLoaded', async () => {
   applyVersion(refs);
 showToastIfFlag(); // покажет "Обновлено", если страница была перезагружена авто-рефрешом
 
-  // Safe share: create link and copy to clipboard
-  try{
-    const btn = document.getElementById('shareBtn');
-    if (btn) btn.addEventListener('click', async (e)=>{
-      e.preventDefault();
-      try{
-        const mod = await import('./shareClient.js?v=yc14');
-        const url = await mod.createShareLink();
-        if (url) {
-          try { await navigator.clipboard.writeText(url); } catch {}
-          console.log('Share URL copied:', url);
-        }
-      }catch(err){ console.error('share failed', err); }
-    });
-  }catch{}
+// Safe share: create link and copy to clipboard (no navigation)
+try {
+  const btn = document.getElementById('shareBtn');
+  if (btn) btn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    try {
+      const mod = await import('./shareClient.js?v=yc14');
+      const url = await mod.createShareLink();
+      if (url) {
+        try { await navigator.clipboard.writeText(url); } catch {}
+        console.log('Share URL copied:', url);
+      }
+    } catch (err) { console.error('share failed', err); }
+  });
+} catch {}
 
 
   // Авто-рефреш для /s/last (Viewer)
   if (isViewer) initAutoRefreshIfViewingLast(); // run only on /s/* viewer
 
-  await initLoadFromLink({ refs, isStandalone 
-// В мультирежиме: стрелки двигают выбранную лотти
-window.addEventListener('keydown', (e) => {
-  try { if (!(multiHasAny && multiHasAny())) return; } catch { return; }
-  const tag = (document.activeElement?.tagName || '').toLowerCase();
-  if (['input','textarea','select'].includes(tag)) return;
-  const step = e.shiftKey ? 10 : 1;
-  if (e.code === 'ArrowLeft')  { moveSelectedBy(-step, 0); e.preventDefault(); }
-  if (e.code === 'ArrowRight') { moveSelectedBy(+step, 0); e.preventDefault(); }
-  if (e.code === 'ArrowUp')    { moveSelectedBy(0, -step); e.preventDefault(); }
-  if (e.code === 'ArrowDown')  { moveSelectedBy(0, +step); e.preventDefault(); }
-}, { passive: false });
-});
+  await initLoadFromLink({ refs, isStandalone });
 
   
-  if (!isViewer) initLottiePan({ refs 
-// В мультирежиме: стрелки двигают выбранную лотти
-window.addEventListener('keydown', (e) => {
-  try { if (!(multiHasAny && multiHasAny())) return; } catch { return; }
-  const tag = (document.activeElement?.tagName || '').toLowerCase();
-  if (['input','textarea','select'].includes(tag)) return;
-  const step = e.shiftKey ? 10 : 1;
-  if (e.code === 'ArrowLeft')  { moveSelectedBy(-step, 0); e.preventDefault(); }
-  if (e.code === 'ArrowRight') { moveSelectedBy(+step, 0); e.preventDefault(); }
-  if (e.code === 'ArrowUp')    { moveSelectedBy(0, -step); e.preventDefault(); }
-  if (e.code === 'ArrowDown')  { moveSelectedBy(0, +step); e.preventDefault(); }
-}, { passive: false });
-});
-if (!isViewer) initDnd({ refs 
-// В мультирежиме: стрелки двигают выбранную лотти
-window.addEventListener('keydown', (e) => {
-  try { if (!(multiHasAny && multiHasAny())) return; } catch { return; }
-  const tag = (document.activeElement?.tagName || '').toLowerCase();
-  if (['input','textarea','select'].includes(tag)) return;
-  const step = e.shiftKey ? 10 : 1;
-  if (e.code === 'ArrowLeft')  { moveSelectedBy(-step, 0); e.preventDefault(); }
-  if (e.code === 'ArrowRight') { moveSelectedBy(+step, 0); e.preventDefault(); }
-  if (e.code === 'ArrowUp')    { moveSelectedBy(0, -step); e.preventDefault(); }
-  if (e.code === 'ArrowDown')  { moveSelectedBy(0, +step); e.preventDefault(); }
-}, { passive: false });
-});
-  initControls({ refs 
-// В мультирежиме: стрелки двигают выбранную лотти
-window.addEventListener('keydown', (e) => {
-  try { if (!(multiHasAny && multiHasAny())) return; } catch { return; }
-  const tag = (document.activeElement?.tagName || '').toLowerCase();
-  if (['input','textarea','select'].includes(tag)) return;
-  const step = e.shiftKey ? 10 : 1;
-  if (e.code === 'ArrowLeft')  { moveSelectedBy(-step, 0); e.preventDefault(); }
-  if (e.code === 'ArrowRight') { moveSelectedBy(+step, 0); e.preventDefault(); }
-  if (e.code === 'ArrowUp')    { moveSelectedBy(0, -step); e.preventDefault(); }
-  if (e.code === 'ArrowDown')  { moveSelectedBy(0, +step); e.preventDefault(); }
-}, { passive: false });
-});
-  initShare({ refs, isStandalone 
-// В мультирежиме: стрелки двигают выбранную лотти
-window.addEventListener('keydown', (e) => {
-  try { if (!(multiHasAny && multiHasAny())) return; } catch { return; }
-  const tag = (document.activeElement?.tagName || '').toLowerCase();
-  if (['input','textarea','select'].includes(tag)) return;
-  const step = e.shiftKey ? 10 : 1;
-  if (e.code === 'ArrowLeft')  { moveSelectedBy(-step, 0); e.preventDefault(); }
-  if (e.code === 'ArrowRight') { moveSelectedBy(+step, 0); e.preventDefault(); }
-  if (e.code === 'ArrowUp')    { moveSelectedBy(0, -step); e.preventDefault(); }
-  if (e.code === 'ArrowDown')  { moveSelectedBy(0, +step); e.preventDefault(); }
-}, { passive: false });
-});
+  if (!isViewer) initLottiePan({ refs });
+if (!isViewer) initDnd({ refs });
+  initControls({ refs });
+  initShare({ refs, isStandalone });
 
   /* DISABLE TAB FOCUS */
   try { document.querySelectorAll('button').forEach(b => b.setAttribute('tabindex','-1')); } catch {}
@@ -172,37 +112,55 @@ window.addEventListener('keydown', (e) => {
   // Перелайаут
   const relayout = () => { try { layoutLottie(refs); } catch {} };
   try { layoutLottie(refs); } catch {}
-  window.addEventListener('resize', relayout, { passive: true 
-// В мультирежиме: стрелки двигают выбранную лотти
-window.addEventListener('keydown', (e) => {
-  try { if (!(multiHasAny && multiHasAny())) return; } catch { return; }
-  const tag = (document.activeElement?.tagName || '').toLowerCase();
-  if (['input','textarea','select'].includes(tag)) return;
-  const step = e.shiftKey ? 10 : 1;
-  if (e.code === 'ArrowLeft')  { moveSelectedBy(-step, 0); e.preventDefault(); }
-  if (e.code === 'ArrowRight') { moveSelectedBy(+step, 0); e.preventDefault(); }
-  if (e.code === 'ArrowUp')    { moveSelectedBy(0, -step); e.preventDefault(); }
-  if (e.code === 'ArrowDown')  { moveSelectedBy(0, +step); e.preventDefault(); }
-}, { passive: false });
-});
-  window.addEventListener('orientationchange', relayout, { passive: true 
-// В мультирежиме: стрелки двигают выбранную лотти
-window.addEventListener('keydown', (e) => {
-  try { if (!(multiHasAny && multiHasAny())) return; } catch { return; }
-  const tag = (document.activeElement?.tagName || '').toLowerCase();
-  if (['input','textarea','select'].includes(tag)) return;
-  const step = e.shiftKey ? 10 : 1;
-  if (e.code === 'ArrowLeft')  { moveSelectedBy(-step, 0); e.preventDefault(); }
-  if (e.code === 'ArrowRight') { moveSelectedBy(+step, 0); e.preventDefault(); }
-  if (e.code === 'ArrowUp')    { moveSelectedBy(0, -step); e.preventDefault(); }
-  if (e.code === 'ArrowDown')  { moveSelectedBy(0, +step); e.preventDefault(); }
-}, { passive: false });
-});
+  window.addEventListener('resize', relayout, { passive: true });
+  window.addEventListener('orientationchange', relayout, { passive: true });
 
   // Hotkey: Reset (R) in editor only; allow Ctrl/Cmd+R refresh; ignore inputs; ru/en layout safe
   window.addEventListener('keydown', (e) => {
-  // в мультирежиме стрелки не двигают сцену
-  try { if (multiHasAny && multiHasAny()) return; } catch {}
+    try {
+      const isViewer = location.pathname.includes('/s/');
+      if (isViewer) return;
+    } catch {}
+
+    const hasMods = e.ctrlKey || e.metaKey || e.altKey || e.shiftKey;
+    if (hasMods) return;
+
+    const t = e.target;
+    const isEditable = !!(t && (t.closest?.('input, textarea') || t.isContentEditable || t.getAttribute?.('role') === 'textbox'));
+    if (isEditable) return;
+
+    const isRCode = e.code === 'KeyR';
+    const isRKey  = (e.key === 'r' || e.key === 'R' || e.key === 'к' || e.key === 'К');
+    if (isRCode || isRKey) {
+      e.preventDefault();
+      try { setLotOffset(0, 0); } catch {}
+      try { relayout(); } catch {}
+    }
+  }, { passive: false });
+
+  // Тап = перезапуск (если было добавлено ранее)
+  const restartByTap = (e) => {
+    if (isViewer) return;
+    const isTouch = e.pointerType ? (e.pointerType === 'touch') : (e.touches && e.touches.length === 1);
+    if (!isTouch && !isStandalone) return;
+    if (refs.mode && refs.mode.contains(e.target)) return;
+    refs.restartBtn?.click();
+  };
+  refs.preview?.addEventListener('pointerdown', restartByTap, { passive: true });
+  refs.preview?.addEventListener('touchstart',  restartByTap, { passive: true });
+
+  // In viewer mode: click to RESTART animation (always from start)
+  if (isViewer && refs.preview) {
+    refs.preview.addEventListener('click', (e) => {
+      if (refs.mode && refs.mode.contains(e.target)) return;
+      try { restart(); } catch {}
+    });
+  }
+
+
+window.addEventListener('keydown', (e) => {
+  const keys = ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];
+  if (!keys.includes(e.key)) return;
   const tag = (document.activeElement?.tagName || '').toLowerCase();
   if (['input','textarea','select'].includes(tag)) return;
   const step = e.shiftKey ? 10 : 1;
@@ -211,23 +169,13 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight') dx = +step;
   if (e.key === 'ArrowUp')    dy = -step;
   if (e.key === 'ArrowDown')  dy = +step;
-  if (dx || dy) { bumpLotOffset(dx, dy); layoutLottie(refs); e.preventDefault(); }
-}, { passive: false 
-// В мультирежиме: стрелки двигают выбранную лотти
-window.addEventListener('keydown', (e) => {
-  try { if (!(multiHasAny && multiHasAny())) return; } catch { return; }
-  const tag = (document.activeElement?.tagName || '').toLowerCase();
-  if (['input','textarea','select'].includes(tag)) return;
-  const step = e.shiftKey ? 10 : 1;
-  if (e.code === 'ArrowLeft')  { moveSelectedBy(-step, 0); e.preventDefault(); }
-  if (e.code === 'ArrowRight') { moveSelectedBy(+step, 0); e.preventDefault(); }
-  if (e.code === 'ArrowUp')    { moveSelectedBy(0, -step); e.preventDefault(); }
-  if (e.code === 'ArrowDown')  { moveSelectedBy(0, +step); e.preventDefault(); }
+  try { if (multiHasAny && multiHasAny()) return; } catch {}
+  bumpLotOffset(dx, dy);
+  layoutLottie(refs);
+  e.preventDefault();
 }, { passive: false });
-});
 
-window.addEventListener('resize', () => { try { layoutLottie(refs); } catch {} 
-// В мультирежиме: стрелки двигают выбранную лотти
+// Multi-mode: arrow keys move selected lottie
 window.addEventListener('keydown', (e) => {
   try { if (!(multiHasAny && multiHasAny())) return; } catch { return; }
   const tag = (document.activeElement?.tagName || '').toLowerCase();
@@ -238,7 +186,8 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'ArrowUp')    { moveSelectedBy(0, -step); e.preventDefault(); }
   if (e.code === 'ArrowDown')  { moveSelectedBy(0, +step); e.preventDefault(); }
 }, { passive: false });
-});
+
+window.addEventListener('resize', () => { try { layoutLottie(refs); } catch {} });
 
   // ===== [TEST OVERLAY UI] only in viewer mode =====
   try {
@@ -264,19 +213,7 @@ window.addEventListener('keydown', (e) => {
         e.stopPropagation();
         try { sessionStorage.setItem('lp_show_toast','1'); } catch {}
         location.replace(location.href);
-      
-// В мультирежиме: стрелки двигают выбранную лотти
-window.addEventListener('keydown', (e) => {
-  try { if (!(multiHasAny && multiHasAny())) return; } catch { return; }
-  const tag = (document.activeElement?.tagName || '').toLowerCase();
-  if (['input','textarea','select'].includes(tag)) return;
-  const step = e.shiftKey ? 10 : 1;
-  if (e.code === 'ArrowLeft')  { moveSelectedBy(-step, 0); e.preventDefault(); }
-  if (e.code === 'ArrowRight') { moveSelectedBy(+step, 0); e.preventDefault(); }
-  if (e.code === 'ArrowUp')    { moveSelectedBy(0, -step); e.preventDefault(); }
-  if (e.code === 'ArrowDown')  { moveSelectedBy(0, +step); e.preventDefault(); }
-}, { passive: false });
-});
+      });
       document.body.appendChild(rb); // ensure it's on top layer
 
       // Debug visibility gating (hidden by default; enable via ?debug=1 or localStorage('lp_debug'='1'))
