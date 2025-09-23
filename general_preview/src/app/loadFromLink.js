@@ -71,6 +71,11 @@ async function applyPayload(refs, data) {
       hydrateLots({ refs }, data.lots);
       // When lots are present, skip single lot branch
     } catch (e) { console.error('hydrateLots failed', e); }
+  } else if (data.lot && data.lot.meta && Array.isArray(data.lot.meta._lpLots) && data.lot.meta._lpLots.length) {
+    try {
+      const { hydrateLots } = await import('./multi.js');
+      hydrateLots({ refs }, data.lot.meta._lpLots);
+    } catch (e) { console.error('hydrateLots(_lpLots) failed', e); }
   } else if (data.lot) {
     try {
       const m = data?.lot?.meta?._lpOffset;
