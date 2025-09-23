@@ -211,7 +211,7 @@ export async function loadLottieFromData(refs, data) {
     if (!lotJson || typeof lotJson !== 'object') return null;
 
     if (anim) {
-      try { anim.destroy?.(); }
+      try { anim.destroy?.(); } catch (e) {}
       anim = null;
     }
 
