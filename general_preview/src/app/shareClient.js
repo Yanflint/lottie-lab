@@ -121,6 +121,7 @@ async function postPayload(payload) {
     const url = API_BASE + p;
     try {
       // Отправляем пейлоад как есть: сервер теперь сам нормализует lot/lots.
+      try { console.info('[share] payload', payload); } catch {}
       const bodyStr = JSON.stringify(payload);
       const resp = await fetch(url, {
         method: 'POST',

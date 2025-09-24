@@ -424,3 +424,6 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 /* Limit hit area to stage, so upper layers don't block */
 .lottie-layer{ pointer-events: none; }
 .lottie-layer .lot-stage{ pointer-events: auto; }
+
+/* debug outline all */
+.lp-outline-all .lottie-layer .lot-stage{ outline: 1px dashed rgba(0,0,0,.35) !important; }

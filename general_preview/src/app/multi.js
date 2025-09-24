@@ -116,6 +116,7 @@ export function clearSelection(){
   selectedIndex = -1;
 }
 export function initMulti() {
+  mountDebugPanel();
   ensureInit();
   // Click outside any lottie -> clear selection
   try {
@@ -289,4 +290,54 @@ export function removeAt(index) {
     focusLayer(ni);
   }
   relayoutAll();
+}
+
+// === Debug helpers (enabled with ?debug=1) ===
+function dumpLayers() {
+  const info = layers.map((L, i) => ({
+    i,
+    hasAnim: !!(L?.mount?.__lp_anim),
+    offset: L?.offset,
+    zIndex: (L?.layer && getComputedStyle(L.layer).zIndex) || null,
+    stageSize: L?.stage ? { w: L.stage.offsetWidth, h: L.stage.offsetHeight } : null,
+    display: (L?.layer && getComputedStyle(L.layer).display) || null,
+    opacity: (L?.layer && getComputedStyle(L.layer).opacity) || null,
+  }));
+  try { console.table(info); } catch { console.log(info); }
+  return info;
+}
+
+function mountDebugPanel() {
+  const params = new URLSearchParams(location.search || '');
+  if (params.get('debug') !== '1') return;
+  const p = document.createElement('div');
+  p.className = 'lp-debug';
+  p.innerHTML = \`
+  <style>
+    .lp-debug{position:fixed;right:8px;bottom:8px;background:#111;color:#fff;padding:8px 10px;border-radius:8px;font:12px/1.3 ui-sans-serif,system-ui;z-index:9999;opacity:0.9}
+    .lp-debug button{margin:2px 4px 2px 0;padding:4px 6px;border-radius:6px;border:none;background:#2a6;cursor:pointer;color:#fff}
+    .lp-debug .row{margin-top:6px}
+    .lp-debug .count{font-weight:600}
+  </style>
+  <div>Layers: <span class="count">-</span></div>
+  <div class="row">
+    <button data-cmd="dump">dump</button>
+    <button data-cmd="outline">outline all</button>
+    <button data-cmd="clear">clear select</button>
+  </div>
+  \`;
+  document.body.appendChild(p);
+  const countEl = p.querySelector('.count');
+  function refresh(){ try { countEl.textContent = String(layers.length); } catch {} }
+  refresh();
+  p.addEventListener('click', (e)=>{
+    const cmd = e.target?.getAttribute?.('data-cmd');
+    if (cmd === 'dump') dumpLayers();
+    if (cmd === 'outline') {
+      document.body.classList.toggle('lp-outline-all', true);
+      setTimeout(()=>document.body.classList.toggle('lp-outline-all', false), 1000);
+    }
+    if (cmd === 'clear') { try { clearSelection(); } catch {} }
+  });
+  try { window.__lp_debug_refresh = refresh; } catch {}
 }

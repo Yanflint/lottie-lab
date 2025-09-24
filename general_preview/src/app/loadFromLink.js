@@ -34,6 +34,7 @@ export async function initLoadFromLink({ refs }) {
     const resp = await fetch(url, { cache: 'no-store' });
     if (!resp.ok) throw new Error('payload get failed ' + resp.status);
     const payload = await resp.json();
+    try { console.info('[loader] payload', payload); } catch {}
 
     // background
     if (payload?.bg?.value) {
@@ -45,7 +46,7 @@ export async function initLoadFromLink({ refs }) {
       lots = payload.lot.meta._lpLots;
     }
 
-    if (lots) {
+    if (lots) { try { console.info('[loader] lots to add', lots.length); } catch {}
       for (let i=0;i<lots.length;i++){
         const lot = lots[i];
         await addLottieFromData(lot);
