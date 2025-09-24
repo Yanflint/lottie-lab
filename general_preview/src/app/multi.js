@@ -307,12 +307,13 @@ function dumpLayers() {
   return info;
 }
 
+
 function mountDebugPanel() {
   const params = new URLSearchParams(location.search || '');
   if (params.get('debug') !== '1') return;
   const p = document.createElement('div');
   p.className = 'lp-debug';
-  p.innerHTML = \`
+  p.innerHTML = `
   <style>
     .lp-debug{position:fixed;right:8px;bottom:8px;background:#111;color:#fff;padding:8px 10px;border-radius:8px;font:12px/1.3 ui-sans-serif,system-ui;z-index:9999;opacity:0.9}
     .lp-debug button{margin:2px 4px 2px 0;padding:4px 6px;border-radius:6px;border:none;background:#2a6;cursor:pointer;color:#fff}
@@ -325,7 +326,7 @@ function mountDebugPanel() {
     <button data-cmd="outline">outline all</button>
     <button data-cmd="clear">clear select</button>
   </div>
-  \`;
+  `;
   document.body.appendChild(p);
   const countEl = p.querySelector('.count');
   function refresh(){ try { countEl.textContent = String(layers.length); } catch {} }
@@ -341,3 +342,4 @@ function mountDebugPanel() {
   });
   try { window.__lp_debug_refresh = refresh; } catch {}
 }
+
