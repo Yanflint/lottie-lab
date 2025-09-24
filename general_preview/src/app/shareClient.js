@@ -142,7 +142,6 @@ async function postPayload(payload) {
   }
   throw lastErr || new Error('share: все попытки не удались');
 }
-}
 
 // Public API
 export async function createShareLink() {
