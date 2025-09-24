@@ -114,15 +114,14 @@ async function collectPayloadOrThrow() {
 
 
 
+
 async function postPayload(payload) {
   let lastErr = null;
-  // Normalize payload to API schema: only { lot, bg, opts }
-  const payloadToSend = { lot: payload.lot, bg: payload.bg, opts: payload.opts };
-
   for (const p of PATHS) {
     const url = API_BASE + p;
     try {
-      const bodyStr = JSON.stringify(payloadToSend);
+      // Отправляем пейлоад как есть: сервер теперь сам нормализует lot/lots.
+      const bodyStr = JSON.stringify(payload);
       const resp = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -142,6 +141,7 @@ async function postPayload(payload) {
     }
   }
   throw lastErr || new Error('share: все попытки не удались');
+}
 }
 
 // Public API
