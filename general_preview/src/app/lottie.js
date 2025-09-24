@@ -204,10 +204,16 @@ export async function loadLottieFromData(refs, data) {
     const lotJson = typeof data === 'string' ? JSON.parse(data) : data;
     if (!lotJson || typeof lotJson !== 'object') return null;
 
-    if (anim) {
-      try { anim.destroy?.(); } catch (_) {}
-      anim = null;
-    }
+    // Если для этого mount уже есть инстанс — уничтожаем его (мульти-режим)
+    try {
+      const _mount = refs && refs.lottieMount;
+      if (_mount && _mount.__lp_anim) {
+        try { _mount.__lp_anim.destroy?.(); } catch (_e) {}
+        _mount.__lp_anim = null;
+      } else if (!window.__multiLottie) {
+        if (anim) { try { anim.destroy?.(); } catch (_) {} anim = null; }
+      }
+    } catch {}
 
     const w = Number(lotJson.w || 0) || 512;
     const h = Number(lotJson.h || 0) || 512;

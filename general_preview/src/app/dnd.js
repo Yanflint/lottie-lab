@@ -1,14 +1,49 @@
 import { setBackgroundFromSrc, loadLottieFromData } from './lottie.js';
+import { loadMultipleLotties } from './multi.js';
 import { setPlaceholderVisible, setDropActive } from './utils.js';
 import { setLastLottie } from './state.js';
 
+
 async function processFilesSequential(refs, files) {
-  let imgFile = null, jsonFile = null;
+  // Собираем один PNG и до 10 JSON
+  let imgFile = null;
+  const jsonFiles = [];
   for (const f of files) {
     if (!imgFile && f.type?.startsWith?.('image/')) imgFile = f;
     const isJson = f.type === 'application/json' || f.name?.endsWith?.('.json') || f.type === 'text/plain';
-    if (!jsonFile && isJson) jsonFile = f;
+    if (isJson && jsonFiles.length < 10) jsonFiles.push(f);
   }
+
+  if (imgFile) {
+    const url = URL.createObjectURL(imgFile);
+    await setBackgroundFromSrc(refs, url, { fileName: imgFile?.name });
+    setPlaceholderVisible(refs, false);
+    try { const { afterTwoFrames } = await import('./utils.js'); (await afterTwoFrames()); document?.dispatchEvent?.(new CustomEvent('lp:content-painted')); } catch {}
+  }
+
+  // Если нет JSON — выходим
+  if (!jsonFiles.length) return;
+
+  // Загружаем 1..10 Lottie. Если только один — оставляем старый путь для совместимости.
+  if (jsonFiles.length === 1) {
+    const text = await jsonFiles[0].text();
+    const json = JSON.parse(text);
+    await loadLottieFromData(refs, json);
+  } else {
+    const datas = [];
+    for (const jf of jsonFiles) {
+      try {
+        const t = await jf.text();
+        datas.push(JSON.parse(t));
+      } catch {}
+    }
+    if (datas.length) await loadMultipleLotties(datas);
+  }
+
+  setPlaceholderVisible(refs, false);
+  try { const { afterTwoFrames } = await import('./utils.js'); (await afterTwoFrames()); document?.dispatchEvent?.(new CustomEvent('lp:content-painted')); } catch {}
+}
+
   if (imgFile) {
     const url = URL.createObjectURL(imgFile);
     await setBackgroundFromSrc(refs, url, { fileName: imgFile?.name });

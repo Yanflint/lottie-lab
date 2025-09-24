@@ -1,280 +1,154 @@
 
 // src/app/multi.js
-import { pickEngine } from './engine.js';
-import { createPlayer as createRlottiePlayer } from './rlottieAdapter.js';
-import { state, setLastLottie } from './state.js';
+// Менеджер нескольких Lottie-слоёв (1..10), поверх PNG-фона.
+// Не трогаем текущую логику layout/масштаба — переиспользуем layoutLottie и loadLottieFromData на каждый слой.
 
-function ensureRefs(refs) {
-  refs = refs || {};
-  if (!refs.lotStage) refs.lotStage = document.getElementById('lotStage');
-  if (!refs.lotList) refs.lotList = document.getElementById('lotList');
-  return refs;
+import { layoutLottie, loadLottieFromData } from './lottie.js';
+
+const MAX_LAYERS = 10;
+
+const layers = []; // { stage, mount, refs, offset:{x,y}, anim }
+let commonRefs = null;
+
+function collectCommonRefs() {
+  const wrapper = document.getElementById('wrapper');
+  const preview = document.getElementById('preview');
+  const bgImg   = document.getElementById('bgImg');
+  return { wrapper, preview, bgImg };
 }
 
-function getStageCSSSizePx(refs) {
-  const st = refs?.lotStage;
-  if (!st) return { w: 0, h: 0 };
-  const w = parseFloat(st.style.width) || 0;
-  const h = parseFloat(st.style.height) || 0;
-  return { w, h };
-}
-function getStageScale(refs) {
-  const st = refs?.lotStage;
-  if (!st) return 1;
-  const css = getStageCSSSizePx(refs);
-  const br = st.getBoundingClientRect?.() || { width: css.w, height: css.h };
-  if (css.w > 0 && br.width > 0) return br.width / css.w;
-  return 1;
-}
+function makeLayerDOM() {
+  const layer = document.createElement('div');
+  layer.className = 'lottie-layer';
 
-let __id = 1;
-function nextId(){ return `lot_${__id++}`; }
+  const stage = document.createElement('div');
+  stage.className = 'lot-stage';
 
-function createAnimForItem(refs, item) {
-  try { console.log('[createAnim]', {id:item.id, name:item.name, x:item.x, y:item.y, w:item.w, h:item.h, loop:item.loop}); } catch {}
-  const engine = pickEngine();
   const mount = document.createElement('div');
   mount.className = 'lottie-mount';
-  const wrap = document.createElement('div');
-  wrap.className = 'lot-item';
-  wrap.tabIndex = 0; // focusable for keyboard
-  wrap.dataset.id = item.id;
-  wrap.style.width  = `${item.w}px`;
-  wrap.style.height = `${item.h}px`;
-  wrap.style.position = 'absolute';
-  wrap.style.left = `${item.x|0}px`;
-  wrap.style.top  = `${item.y|0}px`;
 
-  // selection overlay
-  const sel = document.createElement('div');
-  sel.className = 'sel-overlay';
-  wrap.appendChild(mount);
-  wrap.appendChild(sel);
+  stage.appendChild(mount);
+  layer.appendChild(stage);
+  return { layer, stage, mount };
+}
 
-  refs.lotStage?.appendChild(wrap);
-
-  let anim = null;
-  const autoplay = !!item.loop;
-  const loop = !!item.loop;
-
-  if (engine === 'rlottie') {
-    anim = createRlottiePlayer({ container: mount, loop, autoplay, animationData: item.data });
-  } else {
-    anim = window.lottie?.loadAnimation?.({
-      container: mount, renderer: 'svg', loop, autoplay, animationData: item.data
-    });
-  }
-
-  // Pause at 0 if loop is off
-  if (!loop && anim && anim.stop) {
-    try { anim.stop(); anim.goToAndStop?.(0, true); } catch {}
-  }
-
-  // pointer interactions for selection + dragging
-  const onPointerDown = (e) => {
-    selectById({ refs }, item.id);
-    try { wrap.setPointerCapture?.(e.pointerId); } catch {}
-    const scale = getStageScale(refs);
-    const startX = item.x;
-    const startY = item.y;
-    const sx = e.clientX;
-    const sy = e.clientY;
-    const onMove = (ev) => {
-      const dx = (ev.clientX - sx) / (scale || 1);
-      const dy = (ev.clientY - sy) / (scale || 1);
-      item.x = Math.round(startX + dx);
-      item.y = Math.round(startY + dy);
-      wrap.style.left = `${item.x}px`;
-      wrap.style.top  = `${item.y}px`;
-    };
-    const onUp = (ev) => {
-      document.removeEventListener('pointermove', onMove);
-      document.removeEventListener('pointerup', onUp, true);
-      try { wrap.releasePointerCapture?.(e.pointerId); } catch {}
-    };
-    document.addEventListener('pointermove', onMove);
-    document.addEventListener('pointerup', onUp, true);
+function buildRefsForLayer(layerObj) {
+  // refs-объект в формате, который ожидают существующие функции
+  return {
+    wrapper: commonRefs.wrapper,
+    preview: commonRefs.preview,
+    bgImg:   commonRefs.bgImg,
+    lotStage: layerObj.stage,
+    lottieMount: layerObj.mount
   };
-  wrap.addEventListener('pointerdown', onPointerDown);
-
-  item.__wrap = wrap;
-  item.__mount = mount;
-  item.__anim  = anim;
 }
 
-function destroyItem(item) {
-  try { item.__anim?.destroy?.(); } catch {}
-  if (item.__wrap?.parentNode) item.__wrap.parentNode.removeChild(item.__wrap);
-  delete item.__wrap; delete item.__mount; delete item.__anim;
-}
-
-function rerenderList(refs) {
-  refs = ensureRefs(refs);
-  const list = refs.lotList;
-  if (!list) return;
-  const items = state.lottieList || [];
-  if (!items.length) {
-    list.innerHTML = `<div class="empty" role="note">Lottie: ничего не загружено</div>`;
-    return;
+function ensureInit() {
+  if (!commonRefs) {
+    commonRefs = collectCommonRefs();
   }
-  list.innerHTML = items.map((it) => {
-    const active = (it.id === state.selectedId) ? 'active' : '';
-    const label = it?.name || it.id;
-    return `<button type="button" class="item ${active}" data-id="${it.id}" title="${label}"><span class="name">${label}</span></button>`;
-  }).join('');
-  list.querySelectorAll('.item').forEach(btn => {
-    btn.addEventListener('click', () => selectById({ refs }, btn.dataset.id));
-  });
-}
-
-export function addLottieItems({ refs }, arr) {
-  refs = ensureRefs(refs);
-  const items = (state.lottieList || []);
-  for (const it of arr) {
-    const w = Number(it?.data?.w || 0) || 256;
-    const h = Number(it?.data?.h || 0) || 256;
-    const item = {
-      id: nextId(),
-      name: it?.name || 'animation.json',
-      data: it.data,
-      w, h,
-      x: 0, y: 0,
-      loop: true
-    };
-    items.push(item);
-    createAnimForItem(refs, item);
-  }
-  state.lottieList = items;
-  try { console.log('[hydrateLots] created items:', items.length, items); } catch {}
-  if (!state.selectedId && items.length) state.selectedId = items[0].id;
-  updateSelectionStyles();
-  syncSelectedToState();
-  rerenderList(refs);
-}
-
-export function selectByIndex({ refs }, idx) {
-  const items = state.lottieList || [];
-  if (!(idx >= 0 && idx < items.length)) return;
-  selectById({ refs }, items[idx].id);
-}
-
-export function selectById({ refs }, id) {
-  state.selectedId = id;
-  updateSelectionStyles();
-  syncSelectedToState();
-  rerenderList(refs);
-  // sync UI checkbox if present
-  try {
-    const el = document.getElementById('loopChk');
-    if (el) {
-      const cur = (state.lottieList || []).find(i => i.id === id);
-      el.checked = !!cur?.loop;
+  if (!layers.length) {
+    // Слой 0 — существующие элементы из HTML (id=lotStage, id=lottie)
+    const stage0 = document.getElementById('lotStage');
+    const mount0 = document.getElementById('lottie');
+    if (stage0 && mount0) {
+      layers.push({
+        stage: stage0,
+        mount: mount0,
+        refs: null,
+        offset: { x: 0, y: 0 },
+        anim: null
+      });
     }
-  } catch {}
-}
-
-export function deleteSelected({ refs }) {
-  const id = state.selectedId;
-  if (!id) return;
-  const items = state.lottieList || [];
-  const idx = items.findIndex(i => i.id === id);
-  if (idx === -1) return;
-  const [item] = items.splice(idx, 1);
-  destroyItem(item);
-  state.lottieList = items;
-  try { console.log('[hydrateLots] created items:', items.length, items); } catch {}
-  state.selectedId = items[idx]?.id || items[idx-1]?.id || (items[0]?.id || null);
-  updateSelectionStyles();
-  syncSelectedToState();
-  rerenderList(refs);
-}
-
-export function applyLoopToSelected({ refs }, on) {
-  const id = state.selectedId;
-  const items = state.lottieList || [];
-  const item = items.find(i => i.id === id);
-  if (!item) return;
-  item.loop = !!on;
-  const engine = pickEngine();
-  if (engine === 'rlottie') {
-    // recreate to apply loop flag
-    const p = { ...item };
-    destroyItem(item);
-    createAnimForItem(ensureRefs(refs), p);
-    Object.assign(item, p);
-  } else {
-    try { if (item.__anim) item.__anim.loop = !!on; } catch {}
-    if (!on) { try { item.__anim?.stop?.(); item.__anim?.goToAndStop?.(0, true); } catch {} }
-    if (on)  { try { item.__anim?.play?.(); } catch {} }
   }
-  updateSelectionStyles();
 }
 
-function syncSelectedToState(){
-  try {
-    const cur = (state.lottieList || []).find(i => i.id === state.selectedId) || null;
-    setLastLottie(cur ? cur.data : null);
-  } catch {}
+export function initMulti() {
+  ensureInit();
+
+  // Свой обработчик resize: просто перекладываем текущую логику на все слои
+  const relayout = () => relayoutAll();
+  window.addEventListener('resize', relayout, { passive: true });
+  window.addEventListener('orientationchange', relayout, { passive: true });
+
+  // Экспорт в window для простых отладочных сценариев
+  try { window.__multiLottie = { layers }; } catch {}
 }
 
-function updateSelectionStyles() {
-  const id = state.selectedId;
-  (state.lottieList || []).forEach(it => {
+export async function addLottieFromData(data, indexHint = null) {
+  ensureInit();
+
+  let idx = (typeof indexHint === 'number') ? indexHint : layers.length - 1; // по умолчанию следующий
+  if (idx < 0) idx = 0;
+
+  // Если нет свободного слоя — создаём новый (до MAX_LAYERS)
+  if (!layers[idx] || layers[idx].anim) {
+    if (layers.length >= MAX_LAYERS) return null;
+    const { layer, stage, mount } = makeLayerDOM();
+    // Вставляем после .bg, чтобы ВСЕГДА быть поверх PNG
+    const preview = commonRefs.preview;
+    const bg = preview?.querySelector?.('.bg');
+    if (bg && bg.parentNode) {
+      bg.parentNode.insertBefore(layer, bg.nextSibling);
+    } else {
+      preview?.appendChild?.(layer);
+    }
+    const obj = { stage, mount, refs: null, offset: { x: layers.length*20, y: layers.length*20 }, anim: null };
+    layers.push(obj);
+    idx = layers.length - 1;
+  }
+
+  const layerObj = layers[idx];
+  layerObj.refs = buildRefsForLayer(layerObj);
+
+  // Загружаем анимацию штатной функцией
+  const anim = await loadLottieFromData(layerObj.refs, data);
+  layerObj.anim = anim;
+
+  // Перелайаутим все слои (учитывая их собственные offsets)
+  relayoutAll();
+  return anim;
+}
+
+export async function loadMultipleLotties(datas) {
+  ensureInit();
+  const arr = Array.isArray(datas) ? datas.slice(0, MAX_LAYERS) : [];
+  let firstLoaded = null;
+  for (let i = 0; i < arr.length && i < MAX_LAYERS; i++) {
+    const data = arr[i];
+    const anim = await addLottieFromData(data, i); // каждый в свой индекс
+    if (!firstLoaded) firstLoaded = anim;
+  }
+  return firstLoaded;
+}
+
+export function setOffset(index, x, y) {
+  ensureInit();
+  const layer = layers[index];
+  if (!layer) return;
+  layer.offset = { x: +x || 0, y: +y || 0 };
+  relayoutAll();
+}
+export function getOffset(index) {
+  ensureInit();
+  return layers[index]?.offset || { x: 0, y: 0 };
+}
+
+export function relayoutAll() {
+  ensureInit();
+  for (let i = 0; i < layers.length; i++) {
+    const layerObj = layers[i];
+    if (!layerObj || !layerObj.stage) continue;
+    // Временный прокси для текущей логики: выставляем оффсет в window, вызываем layoutLottie
     try {
-      it.__wrap?.classList?.toggle?.('selected', it.id === id);
+      const off = layerObj.offset || { x: 0, y: 0 };
+      window.__lotOffsetX = off.x;
+      window.__lotOffsetY = off.y;
     } catch {}
-  });
-}
-
-export function initMultiLottie({ refs }) {
-  refs = ensureRefs(refs);
-  // hydrate existing items if any (no-op first run)
-  (state.lottieList || []).forEach(it => createAnimForItem(refs, it));
-
-  // keyboard: delete selected
-  document.addEventListener('keydown', (e) => {
-    const tag = (document.activeElement?.tagName || '').toLowerCase();
-    if (['input','textarea','select'].includes(tag)) return;
-    if (e.key === 'Backspace' || e.key === 'Delete') {
-      e.preventDefault();
-      deleteSelected({ refs });
+    try {
+      layoutLottie(layerObj.refs || buildRefsForLayer(layerObj));
+    } catch (e) {
+      // no-op
     }
-  });
-}
-
-
-export function clearAll({ refs }) {
-  (state.lottieList || []).forEach(it => { try { it.__anim?.destroy?.(); } catch {}; try { it.__wrap?.remove?.(); } catch {} });
-  state.lottieList = [];
-  state.selectedId = null;
-}
-
-export function hydrateLots({ refs }, lots = []) {
-  try {
-    console.groupCollapsed('[hydrateLots] incoming');
-    console.log('count:', Array.isArray(lots)?lots.length:0, lots);
-    console.groupEnd();
-  } catch {}
-  clearAll({ refs });
-  const items = [];
-  for (const src of (lots || [])) {
-    const w = Number(src?.data?.w || src?.w || 0) || 256;
-    const h = Number(src?.data?.h || src?.h || 0) || 256;
-    const item = {
-      id: `lot_${Math.random().toString(36).slice(2,8)}`,
-      name: src?.name || 'animation.json',
-      data: src?.data,
-      w, h,
-      x: +src?.x || 0,
-      y: +src?.y || 0,
-      loop: !!src?.loop
-    };
-    items.push(item);
-    createAnimForItem(refs, item);
   }
-  state.lottieList = items;
-  try { console.log('[hydrateLots] created items:', items.length, items); } catch {}
-  state.selectedId = items[0]?.id || null;
-  updateSelectionStyles();
-  try { const el = document.getElementById('loopChk'); if (el) el.checked = !!items[0]?.loop; } catch {}
 }

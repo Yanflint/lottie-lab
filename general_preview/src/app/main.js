@@ -36,6 +36,7 @@ import { initAutoRefreshIfViewingLast } from './autoRefresh.js'; // ← НОВО
 import { showToastIfFlag } from './updateToast.js';
 import { bumpLotOffset } from './state.js';
 import { initLottiePan }  from './pan.js';
+import { initMulti } from './multi.js';
 
 // 3) DOM-refs
 function collectRefs() {
