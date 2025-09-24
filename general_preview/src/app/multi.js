@@ -1,14 +1,12 @@
 
 // src/app/multi.js
-// Менеджер нескольких Lottie-слоёв (1..10), поверх PNG-фона.
-// Не трогаем текущую логику layout/масштаба — переиспользуем layoutLottie и loadLottieFromData на каждый слой.
-
 import { layoutLottie, loadLottieFromData } from './lottie.js';
+import { setLotOffset, getLotOffset } from './state.js';
 
 const MAX_LAYERS = 10;
-
-const layers = []; // { stage, mount, refs, offset:{x,y}, anim }
+const layers = []; // { layer, stage, mount, refs, offset:{x,y}, anim }
 let commonRefs = null;
+let selectedIndex = -1;
 
 function collectCommonRefs() {
   const wrapper = document.getElementById('wrapper');
@@ -33,7 +31,6 @@ function makeLayerDOM() {
 }
 
 function buildRefsForLayer(layerObj) {
-  // refs-объект в формате, который ожидают существующие функции
   return {
     wrapper: commonRefs.wrapper,
     preview: commonRefs.preview,
@@ -44,68 +41,115 @@ function buildRefsForLayer(layerObj) {
 }
 
 function ensureInit() {
-  if (!commonRefs) {
-    commonRefs = collectCommonRefs();
-  }
+  if (!commonRefs) commonRefs = collectCommonRefs();
   if (!layers.length) {
-    // Слой 0 — существующие элементы из HTML (id=lotStage, id=lottie)
     const stage0 = document.getElementById('lotStage');
     const mount0 = document.getElementById('lottie');
-    if (stage0 && mount0) {
-      layers.push({
-        stage: stage0,
-        mount: mount0,
-        refs: null,
-        offset: { x: 0, y: 0 },
-        anim: null
-      });
+    const layer0 = document.querySelector('.lottie-layer');
+    if (stage0 && mount0 && layer0) {
+      layers.push({ layer: layer0, stage: stage0, mount: mount0, refs: null, offset: { x: 0, y: 0 }, anim: null });
+      selectedIndex = 0;
+      try { setLotOffset(0,0); } catch {}
     }
   }
+}
+
+function applySelectionVisual(i) {
+  layers.forEach((L, idx) => {
+    if (!L || !L.layer) return;
+    L.layer.classList.toggle('selected', idx === i);
+  });
+}
+
+function focusLayer(i) {
+  selectedIndex = i;
+  const off = layers[i]?.offset || { x: 0, y: 0 };
+  try { setLotOffset(off.x, off.y); } catch {}
+  applySelectionVisual(i);
+  // Raise selected above others without changing document order:
+  layers.forEach((L, idx) => { if (L?.layer) L.layer.style.zIndex = (idx === i) ? '2' : '1'; });
+}
+
+function attachInteractions(idx) {
+  const L = layers[idx]; if (!L) return;
+  // Click to select
+  L.layer.addEventListener('pointerdown', (e) => {
+    focusLayer(idx);
+  });
+
+  // Drag to move (on mount)
+  let dragging = false, sx=0, sy=0, base={x:0,y:0};
+  const target = L.mount;
+  function onDown(e){
+    if (selectedIndex !== idx) focusLayer(idx);
+    dragging = true;
+    sx = e.clientX; sy = e.clientY;
+    base = { ...(layers[idx]?.offset || {x:0,y:0}) };
+    try { target.setPointerCapture(e.pointerId); } catch {}
+    try { target.style.cursor = 'grabbing'; } catch {}
+    e.preventDefault();
+  }
+  function onMove(e){
+    if (!dragging) return;
+    const dx = e.clientX - sx; const dy = e.clientY - sy;
+    const nx = base.x + dx, ny = base.y + dy;
+    layers[idx].offset = { x: nx, y: ny };
+    try { setLotOffset(nx, ny); } catch {}
+    try { layoutLottie(layers[idx].refs || buildRefsForLayer(layers[idx])); } catch {}
+  }
+  function onUp(e){
+    dragging = false;
+    try { target.releasePointerCapture(e.pointerId); } catch {}
+    try { target.style.cursor = 'grab'; } catch {}
+  }
+  target.style.touchAction = 'none';
+  target.style.cursor = 'grab';
+  target.addEventListener('pointerdown', onDown);
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
 }
 
 export function initMulti() {
   ensureInit();
 
-  // Свой обработчик resize: просто перекладываем текущую логику на все слои
-  const relayout = () => relayoutAll();
-  window.addEventListener('resize', relayout, { passive: true });
-  window.addEventListener('orientationchange', relayout, { passive: true });
+  // Global keyboard: Backspace deletes selected
+  window.addEventListener('keydown', (e) => {
+    const isBackspace = (e.key === 'Backspace') || (e.code === 'Backspace');
+    if (!isBackspace) return;
+    if (selectedIndex < 0) return;
+    // Avoid interfering with typing in inputs
+    const t = e.target;
+    const isEditable = !!(t && (t.closest?.('input, textarea') || t.isContentEditable));
+    if (isEditable) return;
 
-  // Экспорт в window для простых отладочных сценариев
-  try { window.__multiLottie = { layers }; } catch {}
+    e.preventDefault();
+    removeAt(selectedIndex);
+  });
+
+  try { window.__multiLottie = { layers, get selectedIndex(){return selectedIndex;}, focusLayer }; } catch {}
 }
 
-export async function addLottieFromData(data, indexHint = null) {
+export async function addLottieFromData(data) {
   ensureInit();
+  if (layers.length >= MAX_LAYERS) return null;
 
-  let idx = (typeof indexHint === 'number') ? indexHint : layers.length - 1; // по умолчанию следующий
-  if (idx < 0) idx = 0;
+  const { layer, stage, mount } = makeLayerDOM();
+  // Insert after .bg to guarantee above background
+  const preview = commonRefs.preview;
+  const bg = preview?.querySelector?.('.bg');
+  if (bg && bg.parentNode) bg.parentNode.insertBefore(layer, bg.nextSibling);
+  else preview?.appendChild?.(layer);
 
-  // Если нет свободного слоя — создаём новый (до MAX_LAYERS)
-  if (!layers[idx] || layers[idx].anim) {
-    if (layers.length >= MAX_LAYERS) return null;
-    const { layer, stage, mount } = makeLayerDOM();
-    // Вставляем после .bg, чтобы ВСЕГДА быть поверх PNG
-    const preview = commonRefs.preview;
-    const bg = preview?.querySelector?.('.bg');
-    if (bg && bg.parentNode) {
-      bg.parentNode.insertBefore(layer, bg.nextSibling);
-    } else {
-      preview?.appendChild?.(layer);
-    }
-    const obj = { stage, mount, refs: null, offset: { x: layers.length*20, y: layers.length*20 }, anim: null };
-    layers.push(obj);
-    idx = layers.length - 1;
-  }
+  const obj = { layer, stage, mount, refs: null, offset: { x: layers.length*20, y: layers.length*20 }, anim: null };
+  obj.refs = buildRefsForLayer(obj);
+  layers.push(obj);
 
-  const layerObj = layers[idx];
-  layerObj.refs = buildRefsForLayer(layerObj);
+  const anim = await loadLottieFromData(obj.refs, data);
+  obj.anim = anim;
 
-  // Загружаем анимацию штатной функцией
-  const anim = await loadLottieFromData(layerObj.refs, data);
-  layerObj.anim = anim;
-
-  // Перелайаутим все слои (учитывая их собственные offsets)
+  attachInteractions(layers.length-1);
+  focusLayer(layers.length-1);
   relayoutAll();
   return anim;
 }
@@ -115,8 +159,7 @@ export async function loadMultipleLotties(datas) {
   const arr = Array.isArray(datas) ? datas.slice(0, MAX_LAYERS) : [];
   let firstLoaded = null;
   for (let i = 0; i < arr.length && i < MAX_LAYERS; i++) {
-    const data = arr[i];
-    const anim = await addLottieFromData(data, i); // каждый в свой индекс
+    const anim = await addLottieFromData(arr[i]);
     if (!firstLoaded) firstLoaded = anim;
   }
   return firstLoaded;
@@ -124,9 +167,9 @@ export async function loadMultipleLotties(datas) {
 
 export function setOffset(index, x, y) {
   ensureInit();
-  const layer = layers[index];
-  if (!layer) return;
-  layer.offset = { x: +x || 0, y: +y || 0 };
+  const L = layers[index]; if (!L) return;
+  L.offset = { x:+x||0, y:+y||0 };
+  if (selectedIndex === index) { try { setLotOffset(L.offset.x, L.offset.y); } catch {} }
   relayoutAll();
 }
 export function getOffset(index) {
@@ -137,18 +180,28 @@ export function getOffset(index) {
 export function relayoutAll() {
   ensureInit();
   for (let i = 0; i < layers.length; i++) {
-    const layerObj = layers[i];
-    if (!layerObj || !layerObj.stage) continue;
-    // Временный прокси для текущей логики: выставляем оффсет в window, вызываем layoutLottie
+    const L = layers[i]; if (!L) continue;
     try {
-      const off = layerObj.offset || { x: 0, y: 0 };
-      window.__lotOffsetX = off.x;
-      window.__lotOffsetY = off.y;
+      const off = L.offset || { x:0, y:0 };
+      window.__lotOffsetX = off.x; window.__lotOffsetY = off.y;
+      layoutLottie(L.refs || buildRefsForLayer(L));
     } catch {}
-    try {
-      layoutLottie(layerObj.refs || buildRefsForLayer(layerObj));
-    } catch (e) {
-      // no-op
-    }
   }
+}
+
+export function removeAt(index) {
+  ensureInit();
+  const L = layers[index]; if (!L) return;
+  try { if (L.mount && L.mount.__lp_anim) { L.mount.__lp_anim.destroy?.(); L.mount.__lp_anim = null; } } catch {}
+  try { L.layer?.remove?.(); } catch {}
+  layers.splice(index, 1);
+  // Re-focus
+  if (!layers.length) {
+    selectedIndex = -1;
+    try { setLotOffset(0,0); } catch {}
+  } else {
+    const ni = Math.max(0, Math.min(index, layers.length - 1));
+    focusLayer(ni);
+  }
+  relayoutAll();
 }

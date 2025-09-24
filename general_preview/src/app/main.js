@@ -2,8 +2,9 @@
 // src/app/main.js
 import { initMulti } from './multi.js';
 import { initDnD } from './dnd.js';
-import { layoutLottie, setBackgroundFromSrc } from './lottie.js';
-import { initLottiePan } from './pan.js';
+import { layoutLottie } from './lottie.js';
+import { initControls } from './controls.js';
+import { initShare } from './shareClient.js';
 
 function collectRefs() {
   return {
@@ -14,6 +15,9 @@ function collectRefs() {
     bgImg:        document.getElementById('bgImg'),
     lotStage:     document.getElementById('lotStage'),
     lottieMount:  document.getElementById('lottie'),
+    restartBtn:   document.getElementById('restartBtn'),
+    loopChk:      document.getElementById('loopChk'),
+    shareBtn:     document.getElementById('shareBtn'),
   };
 }
 
@@ -22,24 +26,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   try { initMulti(); } catch {}
   try { await initDnD(refs); } catch {}
+  try { initControls({ refs }); } catch {}
 
-  // Перелайаут при ресайзе
+  // Share: с готовыми тостами ошибок, если ничего не загружено
+  try { initShare({}); } catch {}
+
   const relayout = () => {
     try {
-      // Лайаут для базового слоя; остальные делает multi.relayoutAll()
       layoutLottie(refs);
-      if (window.__multiLottie && window.__multiLottie.layers) {
-        // Проксируем их relayout
-        import('./multi.js').then(m => m.relayoutAll && m.relayoutAll());
-      }
+      // Также перелайаутить все слои в multi:
+      import('./multi.js').then(m => m.relayoutAll && m.relayoutAll());
     } catch {}
   };
   window.addEventListener('resize', relayout, { passive: true });
   window.addEventListener('orientationchange', relayout, { passive: true });
-
-  // Пан по базовому слою
-  try { initLottiePan({ refs }); } catch {}
-
-  // Если нужно — автозагрузка примера (опционально)
-  // const demoBg = 'icons/icon-512.png'; try { await setBackgroundFromSrc(refs, demoBg, {fileName:'icon-512.png'}); } catch {}
 });

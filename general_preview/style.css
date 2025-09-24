@@ -413,3 +413,10 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 .bg { z-index: 0; }
 .lottie-layer { z-index: 1; }
 #loopChk { margin-left: 0; margin-right: 0; }
+
+/* === Selection visuals for active Lottie layer === */
+.lottie-layer.selected .lot-stage{
+  outline: 2px solid rgba(59,130,246,1); /* blue 2px */
+  box-shadow: inset 0 0 0 9999px rgba(59,130,246,0.10); /* 10% blue fill */
+  border-radius: 8px;
+}

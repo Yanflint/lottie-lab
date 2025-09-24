@@ -69,6 +69,7 @@ export function layoutLottie(refs) {
 /** Загрузка одного JSON в указанный mount */
 export async function loadLottieFromData(refs, data) {
   const lotJson = typeof data === 'string' ? JSON.parse(data) : data;
+  try { state.lastLottieJSON = lotJson; } catch {}
   if (!lotJson || typeof lotJson !== 'object') return null;
 
   // Уничтожаем старый инстанс для данного mount (мульти-режим)

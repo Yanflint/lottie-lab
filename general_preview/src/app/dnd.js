@@ -1,7 +1,7 @@
 
 // src/app/dnd.js
 import { setBackgroundFromSrc, loadLottieFromData } from './lottie.js';
-import { loadMultipleLotties } from './multi.js';
+import { loadMultipleLotties, addLottieFromData } from './multi.js';
 import { setPlaceholderVisible, setDropActive } from './utils.js';
 
 async function readAllAsText(files) {
@@ -38,7 +38,7 @@ export async function initDnD(refs) {
       try {
         const text = await jsonFiles[0].text();
         const json = JSON.parse(text);
-        await loadLottieFromData(refs, json);
+        await addLottieFromData(json);
       } catch (e) { console.error(e); }
     } else {
       const texts = await readAllAsText(jsonFiles);
@@ -75,7 +75,7 @@ export async function initDnD(refs) {
     }
     if (files.length) await processFilesSequential(files);
     if (textCandidate) {
-      try { const json = JSON.parse(textCandidate); await loadLottieFromData(refs, json); setPlaceholderVisible(refs, false); } catch {}
+      try { const json = JSON.parse(textCandidate); await addLottieFromData(json); setPlaceholderVisible(refs, false); } catch {}
     }
   });
 }
