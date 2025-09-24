@@ -7,6 +7,19 @@ import { state, getLotOffset } from './state.js';
 // API endpoint (Yandex Cloud Function). No trailing slash.
 export const API_BASE = 'https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p'.replace(/\/+$/, '');
 // Use only the base path (no /share) to avoid CORS noise.
+
+function __lp_makeDataLink(payload){
+  try{
+    const json = JSON.stringify(payload);
+    // URL-safe base64
+    const b64 = btoa(unescape(encodeURIComponent(json))).replace(/=+$/,'').replace(/\+/g,'-').replace(/\//g,'_');
+    const base = (window.__PUBLIC_ORIGIN__) || location.origin;
+    const url = new URL(base.replace(/\/$/, '') + '/s/__data__');
+    url.searchParams.set('d', b64);
+    return url.toString();
+  }catch(e){ return null; }
+}
+
 const PATHS = [''];
 
 function bgMeta() {
@@ -67,8 +80,26 @@ async function collectPayloadOrThrow() {
     }
   } catch {}
 
+  
+  // Build multi-lottie payload
+  let lots = [];
+  try {
+    const arr = Array.isArray(state.lottieList) ? state.lottieList : [];
+    lots = arr.map(it => ({
+      name: it?.name || '',
+      data: it?.data || null,
+      x: +it?.x || 0,
+      y: +it?.y || 0,
+      w: +it?.w || 0,
+      h: +it?.h || 0,
+      loop: !!it?.loop
+    })).filter(it => !!it.data);
+  } catch {}
+
   const opts = { loop: !!state.loopOn };
-  return { lot, bg, opts };
+
+  // Backward compatibility: keep single lot as selected/current
+  return { lot, lots, bg, opts };
 }
 
 async function postPayload(payload) {
@@ -85,7 +116,7 @@ async function postPayload(payload) {
       const txt = await resp.text();
       let data = null; try { data = txt ? JSON.parse(txt) : null; } catch {}
       if (!resp.ok) throw new Error(`share failed: ${resp.status}`);
-      if (data && typeof data.url === 'string') return data.url;
+      if (data && typeof data.url === 'string'){ const dl = __lp_makeDataLink(payload); return dl || data.url; }
       if (data && data.id) {
         const origin = (window.__PUBLIC_ORIGIN__) || location.origin;
         return origin.replace(/\/$/, '') + '/s/' + encodeURIComponent(data.id);
@@ -101,6 +132,10 @@ async function postPayload(payload) {
 // Public API
 export async function createShareLink() {
   const payload = await collectPayloadOrThrow();
+  // Prefer data-url link so viewer restores everything even if server trims fields
+  const dl = __lp_makeDataLink(payload);
+  if (dl) return dl;
+  // Fallback to server
   return postPayload(payload);
 }
 
@@ -111,7 +146,7 @@ export function initShare({ onSuccess, onError } = {}) {
     try {
       e?.preventDefault?.();
       // Pre-check: specific toasts depending on what's missing
-      const hasLot = !!state.lastLottieJSON;
+      const hasLot = !!(state.lastLottieJSON || (state.lottieList && state.lottieList.length));
       const hasBg  = !!readCurrentBg();
       if (!hasLot && !hasBg) {
         showErrorToast('Загрузите графику', btn);

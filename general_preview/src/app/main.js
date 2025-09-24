@@ -30,7 +30,7 @@ import { state }           from './state.js';
 import { getAnim, restart } from './lottie.js';
 import { initControls }      from './controls.js';
 import { initShare }         from './shareClient.js?v=yc14';
-import { initLoadFromLink }  from './loadFromLink.js';
+import { initLoadFromLink }  from './loadFromLink.js?v=dbg1';
 import { layoutLottie }      from './lottie.js';
 import { initAutoRefreshIfViewingLast } from './autoRefresh.js'; // ← НОВОЕ
 import { showToastIfFlag } from './updateToast.js';
@@ -47,7 +47,7 @@ function collectRefs() {
     bgImg:        document.getElementById('bgImg'),
     lotStage:     document.getElementById('lotStage'),
     lottieMount:  document.getElementById('lottie'),
-    lotItems:     document.getElementById('lotItems'),
+    lotList:      document.getElementById('lotList'),
     sizeBtn:      document.getElementById('sizeBtn'),
     heightBtn:    document.getElementById('heightBtn'),
     restartBtn:   document.getElementById('restartBtn'),
@@ -70,10 +70,13 @@ function applyVersion(refs) {
   }
 }
 
+import { initMultiLottie } from './multi.js?v=dbg1';
+
 // 5) Init
 window.addEventListener('DOMContentLoaded', async () => {
   const refs = collectRefs();
-  applyVersion(refs);
+  initMultiLottie({ refs });
+applyVersion(refs);
 showToastIfFlag(); // покажет "Обновлено", если страница была перезагружена авто-рефрешом
 
   // Авто-рефреш для /s/last (Viewer)

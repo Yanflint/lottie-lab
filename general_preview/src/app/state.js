@@ -4,10 +4,9 @@ export const state = {
   autoplayOn: true,
   lastLottieJSON: null,
 
-  // Multi-Lottie
-  items: [],            // [{id, el, anim, w,h, offset:{x,y}, loopOn}]
-  selectedId: null,
-
+  // список загруженных Lottie
+  lottieList: [],
+  selectedLottie: -1,
 
   // смещение лотти (px)
   lotOffset: { x: 0, y: 0 },
@@ -18,13 +17,7 @@ export const state = {
   lastBgMeta: { fileName: '', assetScale: 1 }, // метаданные фона
 };
 
-export function setLoop(on) {
-  const it = state.items.find(x => x.id === state.selectedId);
-  if (it && it.anim) {
-    try { it.anim.loop = !!on; it.loopOn = !!on; if (on) { it.anim.play?.(); } } catch {}
-  }
-  state.loopOn = !!on;
-}
+export function setLoop(on)       { state.loopOn = !!on; }
 export function setAutoplay(on)   { state.autoplayOn = !!on; }
 export function setLastLottie(j)  { state.lastLottieJSON = j || null; }
 export function setA2HS(on)       { state.A2HS = !!on; }
@@ -42,49 +35,17 @@ export function setLastBgMeta(meta){
 
 // === позиционирование лотти ===
 export function setLotOffset(x, y) {
-  const it = state.items.find(x => x.id === state.selectedId);
-  if (it) {
+  try {
     const nx = +x || 0, ny = +y || 0;
-    it.offset = { x: nx, y: ny };
-  } else {
-    state.lotOffset = { x: +x||0, y: +y||0 };
-  }
+    state.lotOffset = { x: nx, y: ny };
+    // пробрасываем в глобал, если layout читает оттуда
+    try { window.__lotOffsetX = nx; window.__lotOffsetY = ny; } catch {}
+  } catch {}
 }
 export function bumpLotOffset(dx, dy) {
-  const it = state.items.find(x => x.id === state.selectedId);
-  if (it) {
-    const cx = (it.offset?.x || 0), cy = (it.offset?.y || 0);
-    setLotOffset(cx + (+dx || 0), cy + (+dy || 0));
-  } else {
-    const cx = (state.lotOffset?.x || 0), cy = (state.lotOffset?.y || 0);
-    setLotOffset(cx + (+dx || 0), cy + (+dy || 0));
-  }
+  const cx = (state.lotOffset?.x || 0), cy = (state.lotOffset?.y || 0);
+  setLotOffset(cx + (+dx || 0), cy + (+dy || 0));
 }
 export function getLotOffset() {
-  const it = state.items.find(x => x.id === state.selectedId);
-  if (it) return it.offset || { x:0,y:0 };
   return state.lotOffset || { x: 0, y: 0 };
-}
-
-export function addItem(it) {
-  if (!it || !it.id) return;
-  if (!it.offset) it.offset = { x: 0, y: 0 };
-  if (typeof it.loopOn !== 'boolean') it.loopOn = !!state.loopOn;
-  state.items.push(it);
-  try {
-    document.querySelectorAll('.lot-item.selected').forEach(el => el.classList.remove('selected'));
-    it.el?.classList?.add('selected');
-  } catch {}
-  state.selectedId = it.id;
-  try { window.dispatchEvent(new CustomEvent('lp:selected-changed', { detail: { id: it.id } })); } catch {}
-}
-export function selectItem(id) {
-  state.selectedId = id;
-  try {
-    document.querySelectorAll('.lot-item').forEach(el => el.classList.toggle('selected', el.dataset.id === String(id)));
-  } catch {}
-  try { window.dispatchEvent(new CustomEvent('lp:selected-changed', { detail: { id } })); } catch {}
-}
-export function getSelectedItem() {
-  return state.items.find(x => x.id === state.selectedId) || null;
 }
