@@ -408,3 +408,8 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 #preview, #lotStage { pointer-events: auto; touch-action: none; }
 
 #lottie{pointer-events:auto;}
+
+/* --- Multi-lottie layering & loop checkbox tweak --- */
+.bg { z-index: 0; }
+.lottie-layer { z-index: 1; }
+#loopChk { margin-left: 0; margin-right: 0; }

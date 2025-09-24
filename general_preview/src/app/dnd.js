@@ -1,102 +1,81 @@
+
+// src/app/dnd.js
 import { setBackgroundFromSrc, loadLottieFromData } from './lottie.js';
 import { loadMultipleLotties } from './multi.js';
 import { setPlaceholderVisible, setDropActive } from './utils.js';
-import { setLastLottie } from './state.js';
 
-
-async function processFilesSequential(refs, files) {
-  // Собираем один PNG и до 10 JSON
-  let imgFile = null;
-  const jsonFiles = [];
+async function readAllAsText(files) {
+  const out = [];
   for (const f of files) {
-    if (!imgFile && f.type?.startsWith?.('image/')) imgFile = f;
-    const isJson = f.type === 'application/json' || f.name?.endsWith?.('.json') || f.type === 'text/plain';
-    if (isJson && jsonFiles.length < 10) jsonFiles.push(f);
+    try { out.push(await f.text()); } catch {}
   }
-
-  if (imgFile) {
-    const url = URL.createObjectURL(imgFile);
-    await setBackgroundFromSrc(refs, url, { fileName: imgFile?.name });
-    setPlaceholderVisible(refs, false);
-    try { const { afterTwoFrames } = await import('./utils.js'); (await afterTwoFrames()); document?.dispatchEvent?.(new CustomEvent('lp:content-painted')); } catch {}
-  }
-
-  // Если нет JSON — выходим
-  if (!jsonFiles.length) return;
-
-  // Загружаем 1..10 Lottie. Если только один — оставляем старый путь для совместимости.
-  if (jsonFiles.length === 1) {
-    const text = await jsonFiles[0].text();
-    const json = JSON.parse(text);
-    await loadLottieFromData(refs, json);
-  } else {
-    const datas = [];
-    for (const jf of jsonFiles) {
-      try {
-        const t = await jf.text();
-        datas.push(JSON.parse(t));
-      } catch {}
-    }
-    if (datas.length) await loadMultipleLotties(datas);
-  }
-
-  setPlaceholderVisible(refs, false);
-  try { const { afterTwoFrames } = await import('./utils.js'); (await afterTwoFrames()); document?.dispatchEvent?.(new CustomEvent('lp:content-painted')); } catch {}
+  return out;
 }
 
-  if (imgFile) {
-    const url = URL.createObjectURL(imgFile);
-    await setBackgroundFromSrc(refs, url, { fileName: imgFile?.name });
-    setPlaceholderVisible(refs, false);
-    try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); document.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
-  }
-  if (jsonFile) {
-    const text = await jsonFile.text();
-    try {
-      const json = JSON.parse(text);
-      setLastLottie(json);
-      await loadLottieFromData(refs, json);
-      setPlaceholderVisible(refs, false);
-    try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); document.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
-    } catch (e) { console.error('Invalid JSON', e); }
-  }
+export async function initDnD(refs) {
+  const dropZone = refs?.wrapper || document.body;
 
-
-export function initDnd({ refs }) {
-  let depth = 0;
-  const onDragEnter = (e) => { e.preventDefault(); if (depth++ === 0) setDropActive(true); };
-  const onDragOver  = (e) => { e.preventDefault(); };
-  const onDragLeave = (e) => { e.preventDefault(); if (--depth <= 0) { depth = 0; setDropActive(false); } };
-  const onDrop = async (e) => {
-    e.preventDefault(); depth = 0; setDropActive(false);
-    const dt = e.dataTransfer; if (!dt) return;
-    if (dt.files && dt.files.length) return processFilesSequential(refs, Array.from(dt.files));
-    if (dt.items && dt.items.length) {
-      const files = [];
-      for (const it of dt.items) if (it.kind === 'file') { const f = it.getAsFile(); if (f) files.push(f); }
-      if (files.length) return processFilesSequential(refs, files);
+  async function processFilesSequential(files) {
+    // Собираем один PNG и до 10 JSON
+    let imgFile = null;
+    const jsonFiles = [];
+    for (const f of files) {
+      if (!imgFile && f.type?.startsWith?.('image/')) imgFile = f;
+      const isJson = f.type === 'application/json' || f.name?.endsWith?.('.json') || f.type === 'text/plain';
+      if (isJson && jsonFiles.length < 10) jsonFiles.push(f);
     }
-  };
-  window.addEventListener('dragenter', onDragEnter);
-  window.addEventListener('dragover', onDragOver);
-  window.addEventListener('dragleave', onDragLeave);
-  window.addEventListener('drop', onDrop);
-  document.addEventListener('dragenter', onDragEnter);
-  document.addEventListener('dragover', onDragOver);
-  document.addEventListener('dragleave', onDragLeave);
-  document.addEventListener('drop', onDrop);
 
+    if (imgFile) {
+      const url = URL.createObjectURL(imgFile);
+      await setBackgroundFromSrc(refs, url, { fileName: imgFile?.name });
+      setPlaceholderVisible(refs, false);
+      await new Promise(r => requestAnimationFrame(r));
+    }
+
+    if (!jsonFiles.length) return;
+
+    if (jsonFiles.length === 1) {
+      try {
+        const text = await jsonFiles[0].text();
+        const json = JSON.parse(text);
+        await loadLottieFromData(refs, json);
+      } catch (e) { console.error(e); }
+    } else {
+      const texts = await readAllAsText(jsonFiles);
+      const datas = [];
+      for (const t of texts) { try { datas.push(JSON.parse(t)); } catch {} }
+      if (datas.length) await loadMultipleLotties(datas);
+    }
+
+    setPlaceholderVisible(refs, false);
+  }
+
+  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); setDropActive(refs, true); });
+  dropZone.addEventListener('dragleave', () => setDropActive(refs, false));
+  dropZone.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    setDropActive(refs, false);
+    const files = Array.from(e.dataTransfer?.files || []);
+    if (files.length) await processFilesSequential(files);
+  });
+
+  // paste
   document.addEventListener('paste', async (e) => {
     const items = e.clipboardData?.items || [];
     const files = []; let textCandidate = null;
     for (const it of items) {
       if (it.type?.startsWith?.('image/')) { const f = it.getAsFile(); if (f) files.push(f); }
       else if (it.type === 'application/json' || it.type === 'text/plain') {
-        textCandidate = await (it.getAsString ? new Promise(r => it.getAsString(r)) : Promise.resolve(e.clipboardData.getData('text')));
+        try {
+          textCandidate = await (it.getAsString
+            ? new Promise(r => it.getAsString(r))
+            : Promise.resolve(e.clipboardData.getData('text')));
+        } catch {}
       }
     }
-    if (files.length) await processFilesSequential(refs, files);
-    if (textCandidate) { try { const json = JSON.parse(textCandidate); setLastLottie(json); await loadLottieFromData(refs, json); setPlaceholderVisible(refs, false);
-    try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); document.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {} } catch {} }
+    if (files.length) await processFilesSequential(files);
+    if (textCandidate) {
+      try { const json = JSON.parse(textCandidate); await loadLottieFromData(refs, json); setPlaceholderVisible(refs, false); } catch {}
+    }
   });
 }
