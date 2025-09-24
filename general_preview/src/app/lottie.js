@@ -45,9 +45,6 @@ export function layoutLottie(refs) {
   const cssW = +((state.lastBgSize && state.lastBgSize.w) || 0);
   const cssH = +((state.lastBgSize && state.lastBgSize.h) || 0);
 
-  /* MULTI: stage size = bg css size */
-  try { if (cssW>0 && cssH>0) { stage.style.width = cssW + 'px'; stage.style.height = cssH + 'px'; } } catch {}
-
   
   // Берём реальные рендерные размеры фоновой картинки (если есть),
   // чтобы масштаб лотти соответствовал именно фону, а не контейнеру превью.

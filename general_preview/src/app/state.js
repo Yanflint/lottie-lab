@@ -4,10 +4,6 @@ export const state = {
   autoplayOn: true,
   lastLottieJSON: null,
 
-  // список загруженных Lottie
-  lottieList: [],
-  selectedLottie: -1,
-
   // смещение лотти (px)
   lotOffset: { x: 0, y: 0 },
 
