@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   try { await initDnD(refs); } catch {}
   try { initControls({ refs }); } catch {}
 
-  if (isViewer) { try { await initLoadFromLink({ refs }); } catch {} }
+  try { await initLoadFromLink({ refs }); } catch {}
 
   // Share: с готовыми тостами ошибок, если ничего не загружено
   try { initShare({}); } catch {}
