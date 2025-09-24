@@ -26,6 +26,7 @@ try {
 
 // 2) Импорты модулей
 import { initDnd }           from './dnd.js';
+import { initLayers, bumpSelected } from './layers.js';
 import { state }           from './state.js';
 import { getAnim, restart } from './lottie.js';
 import { initControls }      from './controls.js';
@@ -79,6 +80,7 @@ showToastIfFlag(); // покажет "Обновлено", если страни
   if (isViewer) initAutoRefreshIfViewingLast(); // run only on /s/* viewer
 
   await initLoadFromLink({ refs, isStandalone });
+  initLayers({ refs });
 
   
   if (!isViewer) initLottiePan({ refs });
@@ -151,8 +153,8 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight') dx = +step;
   if (e.key === 'ArrowUp')    dy = -step;
   if (e.key === 'ArrowDown')  dy = +step;
-  bumpLotOffset(dx, dy);
-  layoutLottie(refs);
+  try { bumpSelected(dx, dy); } catch {}
+  try { layoutLottie(refs); } catch {}
   e.preventDefault();
 }, { passive: false });
 
@@ -211,3 +213,23 @@ window.addEventListener('resize', () => { try { layoutLottie(refs); } catch {} }
   } catch {}
 
 });
+
+// === Rotate/Scale shortcuts for selected layer ===
+window.addEventListener('keydown', async (e) => {
+  const tag = (document.activeElement?.tagName || '').toLowerCase();
+  if (['input','textarea','select'].includes(tag)) return;
+  const { default: _ } = { default: null };
+  if (e.key === '[' || e.key === ']'
+      || e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_') {
+    e.preventDefault();
+    const mod = await import('./layers.js');
+    const selUpdate = mod && mod.__updateSelectedTransform;
+    if (selUpdate) {
+      const stepDeg = 5, stepScale = 0.05;
+      if (e.key === '[') selUpdate({ dRotate: -stepDeg });
+      if (e.key === ']') selUpdate({ dRotate: +stepDeg });
+      if (e.key === '+' || e.key === '=') selUpdate({ dScale: +stepScale });
+      if (e.key === '-' || e.key === '_') selUpdate({ dScale: -stepScale });
+    }
+  }
+}, { passive: false });

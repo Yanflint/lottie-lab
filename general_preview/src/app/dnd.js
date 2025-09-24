@@ -1,15 +1,30 @@
-import { setBackgroundFromSrc, loadLottieFromData } from './lottie.js';
+import { setBackgroundFromSrc } from './lottie.js';
+import { addLayerFromJSON } from './layers.js';
 import { setPlaceholderVisible, setDropActive } from './utils.js';
 import { setLastLottie } from './state.js';
 
 async function processFilesSequential(refs, files) {
-  let imgFile = null, jsonFile = null;
+  let imgFile = null; const jsonFiles = [];
   for (const f of files) {
     if (!imgFile && f.type?.startsWith?.('image/')) imgFile = f;
     const isJson = f.type === 'application/json' || f.name?.endsWith?.('.json') || f.type === 'text/plain';
-    if (!jsonFile && isJson) jsonFile = f;
+    if (isJson) jsonFiles.push(f);
   }
   if (imgFile) {
+    const url = URL.createObjectURL(imgFile);
+    await setBackgroundFromSrc(refs, url, { fileName: imgFile?.name });
+    setPlaceholderVisible(refs, false);
+    try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); document?.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
+  }
+  for (const jf of jsonFiles) {
+    try {
+      const text = await jf.text();
+      const json = JSON.parse(text);
+      addLayerFromJSON(json, jf.name?.replace?.(/\.json$/i,''));
+      setPlaceholderVisible(refs, false);
+    } catch (e) { console.error('bad json', e); }
+  }
+  return; {
     const url = URL.createObjectURL(imgFile);
     await setBackgroundFromSrc(refs, url, { fileName: imgFile?.name });
     setPlaceholderVisible(refs, false);
@@ -20,7 +35,7 @@ async function processFilesSequential(refs, files) {
     try {
       const json = JSON.parse(text);
       setLastLottie(json);
-      await loadLottieFromData(refs, json);
+      await addLayerFromJSON(json);
       setPlaceholderVisible(refs, false);
     try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); document.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
     } catch (e) { console.error('Invalid JSON', e); }
@@ -61,7 +76,7 @@ export function initDnd({ refs }) {
       }
     }
     if (files.length) await processFilesSequential(refs, files);
-    if (textCandidate) { try { const json = JSON.parse(textCandidate); setLastLottie(json); await loadLottieFromData(refs, json); setPlaceholderVisible(refs, false);
+    if (textCandidate) { try { const json = JSON.parse(textCandidate); setLastLottie(json); await addLayerFromJSON(json); setPlaceholderVisible(refs, false);
     try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); document.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {} } catch {} }
   });
 }

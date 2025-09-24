@@ -408,3 +408,15 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 #preview, #lotStage { pointer-events: auto; touch-action: none; }
 
 #lottie{pointer-events:auto;}
+
+
+/* === Multi-Lottie layers === */
+.layers-enabled { position: relative; }
+.layer-wrap{
+  position:absolute; transform-origin: 0 0;
+  outline: none; user-select: none; touch-action: none;
+}
+.layer-wrap.sel{
+  box-shadow: 0 0 0 1px #6ee7ff, 0 0 0 4px rgba(33,58,78,0.4);
+  border-radius: 8px;
+}
