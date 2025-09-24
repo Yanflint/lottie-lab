@@ -110,8 +110,23 @@ function attachInteractions(idx) {
   window.addEventListener('pointercancel', onUp);
 }
 
+export function clearSelection(){
+  layers.forEach(L => { try { L.layer?.classList.remove('selected'); } catch {} });
+  try { window.__multiLottie && (window.__multiLottie.selectedIndex = -1); } catch {}
+  selectedIndex = -1;
+}
 export function initMulti() {
   ensureInit();
+  // Click outside any lottie -> clear selection
+  try {
+    const wrap = commonRefs.wrapper || document.getElementById('wrapper');
+    if (wrap) {
+      wrap.addEventListener('pointerdown', (e) => {
+        const inside = e.target.closest && e.target.closest('.lottie-layer .lot-stage');
+        if (!inside) { clearSelection(); }
+      });
+    }
+  } catch {}
 
   // Global keyboard: Backspace deletes selected
   window.addEventListener('keydown', (e) => {
@@ -133,6 +148,16 @@ export function initMulti() {
 
 export async function addLottieFromData(data) {
   ensureInit();
+  // Click outside any lottie -> clear selection
+  try {
+    const wrap = commonRefs.wrapper || document.getElementById('wrapper');
+    if (wrap) {
+      wrap.addEventListener('pointerdown', (e) => {
+        const inside = e.target.closest && e.target.closest('.lottie-layer .lot-stage');
+        if (!inside) { clearSelection(); }
+      });
+    }
+  } catch {}
   // Reuse last layer if it has no anim yet
   let useIndex = -1;
   if (layers.length){
@@ -166,6 +191,16 @@ export async function addLottieFromData(data) {
 
 export async function loadMultipleLotties(datas) {
   ensureInit();
+  // Click outside any lottie -> clear selection
+  try {
+    const wrap = commonRefs.wrapper || document.getElementById('wrapper');
+    if (wrap) {
+      wrap.addEventListener('pointerdown', (e) => {
+        const inside = e.target.closest && e.target.closest('.lottie-layer .lot-stage');
+        if (!inside) { clearSelection(); }
+      });
+    }
+  } catch {}
   const arr = Array.isArray(datas) ? datas.slice(0, MAX_LAYERS) : [];
   let firstLoaded = null;
   for (let i = 0; i < arr.length && i < MAX_LAYERS; i++) {
@@ -177,6 +212,16 @@ export async function loadMultipleLotties(datas) {
 
 export function setOffset(index, x, y) {
   ensureInit();
+  // Click outside any lottie -> clear selection
+  try {
+    const wrap = commonRefs.wrapper || document.getElementById('wrapper');
+    if (wrap) {
+      wrap.addEventListener('pointerdown', (e) => {
+        const inside = e.target.closest && e.target.closest('.lottie-layer .lot-stage');
+        if (!inside) { clearSelection(); }
+      });
+    }
+  } catch {}
   const L = layers[index]; if (!L) return;
   L.offset = { x:+x||0, y:+y||0 };
   if (selectedIndex === index) { try { setLotOffset(L.offset.x, L.offset.y); } catch {} }
@@ -184,11 +229,31 @@ export function setOffset(index, x, y) {
 }
 export function getOffset(index) {
   ensureInit();
+  // Click outside any lottie -> clear selection
+  try {
+    const wrap = commonRefs.wrapper || document.getElementById('wrapper');
+    if (wrap) {
+      wrap.addEventListener('pointerdown', (e) => {
+        const inside = e.target.closest && e.target.closest('.lottie-layer .lot-stage');
+        if (!inside) { clearSelection(); }
+      });
+    }
+  } catch {}
   return layers[index]?.offset || { x: 0, y: 0 };
 }
 
 export function relayoutAll() {
   ensureInit();
+  // Click outside any lottie -> clear selection
+  try {
+    const wrap = commonRefs.wrapper || document.getElementById('wrapper');
+    if (wrap) {
+      wrap.addEventListener('pointerdown', (e) => {
+        const inside = e.target.closest && e.target.closest('.lottie-layer .lot-stage');
+        if (!inside) { clearSelection(); }
+      });
+    }
+  } catch {}
   for (let i = 0; i < layers.length; i++) {
     const L = layers[i]; if (!L) continue;
     try {
@@ -201,6 +266,16 @@ export function relayoutAll() {
 
 export function removeAt(index) {
   ensureInit();
+  // Click outside any lottie -> clear selection
+  try {
+    const wrap = commonRefs.wrapper || document.getElementById('wrapper');
+    if (wrap) {
+      wrap.addEventListener('pointerdown', (e) => {
+        const inside = e.target.closest && e.target.closest('.lottie-layer .lot-stage');
+        if (!inside) { clearSelection(); }
+      });
+    }
+  } catch {}
   const L = layers[index]; if (!L) return;
   try { if (L.mount && L.mount.__lp_anim) { L.mount.__lp_anim.destroy?.(); L.mount.__lp_anim = null; } } catch {}
   try { L.layer?.remove?.(); } catch {}

@@ -28,17 +28,20 @@ export async function initLoadFromLink({ refs }) {
       await setBackgroundFromSrc(refs, payload.bg.value, { fileName: payload?.bg?.name || '' });
     }
 
-    // lots multi
-    if (Array.isArray(payload?.lots) && payload.lots.length) {
-      for (let i=0;i<payload.lots.length;i++){
-        const lot = payload.lots[i];
+    let lots = Array.isArray(payload?.lots) && payload.lots.length ? payload.lots : null;
+    if (!lots && payload?.lot?.meta?._lpLots && Array.isArray(payload.lot.meta._lpLots) && payload.lot.meta._lpLots.length) {
+      lots = payload.lot.meta._lpLots;
+    }
+
+    if (lots) {
+      for (let i=0;i<lots.length;i++){
+        const lot = lots[i];
         await addLottieFromData(lot);
         const off = (lot?.meta?._lpOffset || lot?.meta?._lpPos || {x:0,y:0});
         try { setOffset(i, off.x||0, off.y||0); } catch {}
       }
       try { relayoutAll(); } catch {}
     } else if (payload?.lot) {
-      // single fallback
       await addLottieFromData(payload.lot);
       const off = (payload?.lot?.meta?._lpOffset || payload?.lot?.meta?._lpPos || {x:0,y:0});
       try { setOffset(0, off.x||0, off.y||0); } catch {}

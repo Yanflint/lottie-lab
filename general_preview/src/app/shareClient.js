@@ -87,7 +87,15 @@ async function collectPayloadOrThrow() {
 
   // For backward compatibility keep 'lot' as first item if lots present.
   if (lots.length) {
-    return { lots, lot: lots[0], bg, opts };
+    (function(){
+    // Duplicate lots into lot.meta._lpLots for backward-compat storage
+    let primary = lots[0];
+    try {
+      primary = JSON.parse(JSON.stringify(primary));
+      primary.meta = Object.assign({}, primary.meta || {}, { _lpLots: lots });
+    } catch {}
+    return { lots, lot: primary, bg, opts };
+  })();
   } else {
     // single
     try {
