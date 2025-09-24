@@ -130,29 +130,37 @@ export function initMulti() {
   try { window.__multiLottie = { layers, get selectedIndex(){return selectedIndex;}, focusLayer }; } catch {}
 }
 
+
 export async function addLottieFromData(data) {
   ensureInit();
-  if (layers.length >= MAX_LAYERS) return null;
-
-  const { layer, stage, mount } = makeLayerDOM();
-  // Insert after .bg to guarantee above background
-  const preview = commonRefs.preview;
-  const bg = preview?.querySelector?.('.bg');
-  if (bg && bg.parentNode) bg.parentNode.insertBefore(layer, bg.nextSibling);
-  else preview?.appendChild?.(layer);
-
-  const obj = { layer, stage, mount, refs: null, offset: { x: layers.length*20, y: layers.length*20 }, anim: null };
-  obj.refs = buildRefsForLayer(obj);
-  layers.push(obj);
-
+  // Reuse last layer if it has no anim yet
+  let useIndex = -1;
+  if (layers.length){
+    const last = layers[layers.length-1];
+    if (!(last && last.mount && last.mount.__lp_anim)) useIndex = layers.length-1;
+  }
+  if (useIndex === -1){
+    if (layers.length >= MAX_LAYERS) return null;
+    const dom = makeLayerDOM();
+    const preview = commonRefs.preview;
+    const bg = preview?.querySelector?.('.bg');
+    if (bg && bg.parentNode) bg.parentNode.insertBefore(dom.layer, bg.nextSibling);
+    else preview?.appendChild?.(dom.layer);
+    const obj = { layer: dom.layer, stage: dom.stage, mount: dom.mount, refs: null, offset: { x: layers.length*20, y: layers.length*20 }, anim: null };
+    obj.refs = buildRefsForLayer(obj);
+    layers.push(obj);
+    useIndex = layers.length-1;
+  }
+  const obj = layers[useIndex];
+  if (!obj.refs) obj.refs = buildRefsForLayer(obj);
   const anim = await loadLottieFromData(obj.refs, data);
   obj.anim = anim;
-
-  attachInteractions(layers.length-1);
-  focusLayer(layers.length-1);
+  attachInteractions(useIndex);
+  focusLayer(useIndex);
   relayoutAll();
   return anim;
 }
+
 
 export async function loadMultipleLotties(datas) {
   ensureInit();

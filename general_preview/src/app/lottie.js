@@ -125,5 +125,48 @@ export async function loadLottieFromData(refs, data) {
   return anim;
 }
 
+
+/** Helpers for multi-layer integration */
+function __getSelectedAnim(){
+  try {
+    const m = window.__multiLottie;
+    if (m && m.layers && m.layers.length){
+      const idx = (typeof m.selectedIndex === 'number' && m.selectedIndex >= 0) ? m.selectedIndex : 0;
+      const L = m.layers[idx];
+      return (L && L.mount && L.mount.__lp_anim) ? L.mount.__lp_anim : _globalAnim;
+    }
+  } catch {}
+  return _globalAnim;
+}
+
+/** Restart current (selected) animation */
+export function restart(){
+  const anim = __getSelectedAnim();
+  if (!anim) return;
+  try {
+    if (anim.stop) anim.stop();
+    if (anim.goToAndPlay) anim.goToAndPlay(0, true);
+    else if (anim.play) anim.play();
+  } catch {}
+}
+
+/** Toggle loop on all current animations + remember in state */
+export function setLoop(on){
+  try { state.loopOn = !!on; } catch {}
+  try {
+    const m = window.__multiLottie;
+    if (m && m.layers && m.layers.length){
+      for (const L of m.layers){
+        const a = L?.mount?.__lp_anim;
+        if (a) { try { a.loop = !!on; } catch {} }
+      }
+      return;
+    }
+  } catch {}
+  // fallback to single anim
+  try { if (_globalAnim) _globalAnim.loop = !!on; } catch {}
+}
+
+
 /** Экспорт текущей анимации (если одна) */
 export function getAnim(){ return _globalAnim; }
