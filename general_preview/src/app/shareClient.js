@@ -112,12 +112,16 @@ async function collectPayloadOrThrow() {
 }
 
 
+
 async function postPayload(payload) {
   let lastErr = null;
+  // Normalize payload to API schema: only { lot, bg, opts }
+  const payloadToSend = { lot: payload.lot, bg: payload.bg, opts: payload.opts };
+
   for (const p of PATHS) {
     const url = API_BASE + p;
     try {
-      const bodyStr = JSON.stringify(payload);
+      const bodyStr = JSON.stringify(payloadToSend);
       const resp = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
