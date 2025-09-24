@@ -7,9 +7,21 @@ import { API_BASE } from './shareClient.js';
 
 function getShareIdFromLocation() {
   try {
-    const m = location.pathname.match(/\/s\/(.+)$/);
-    return m ? decodeURIComponent(m[1]) : null;
-  } catch { return null; }
+    const p = location.pathname || '';
+    const q = location.search || '';
+    const h = location.hash || '';
+    // /s/{id}
+    let m = p.match(/\/s\/([^\/\?#]+)/);
+    if (m && m[1]) return decodeURIComponent(m[1]);
+    // ?id={id}
+    const sp = new URLSearchParams(q);
+    const idQ = sp.get('id');
+    if (idQ) return decodeURIComponent(idQ);
+    // #/s/{id}
+    m = h.match(/\/s\/([^\/\?#]+)/);
+    if (m && m[1]) return decodeURIComponent(m[1]);
+  } catch {}
+  return null;
 }
 
 export async function initLoadFromLink({ refs }) {

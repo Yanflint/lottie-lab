@@ -23,7 +23,6 @@ function collectRefs() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const isViewer = /^\/s\//.test(location.pathname);
 
   const refs = collectRefs();
 

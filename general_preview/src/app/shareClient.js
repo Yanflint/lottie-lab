@@ -47,7 +47,8 @@ async function collectPayloadOrThrow() {
     const m = window.__multiLottie;
     if (m && Array.isArray(m.layers) && m.layers.length) {
       for (const L of m.layers) {
-        const data = (L && (L.data || (L.mount && L.mount.__lp_anim && L.mount.__lp_anim.animationData))) || null;
+        let data = (L && (L.data || (L.mount && L.mount.__lp_anim && L.mount.__lp_anim.animationData))) || null;
+        try { data = JSON.parse(JSON.stringify(data)); } catch {}
         if (!data) continue;
         const off = (L.offset || { x: 0, y: 0 });
         const meta = { _lpOffset: { x: +off.x || 0, y: +off.y || 0 }, _lpPos: { x: +off.x || 0, y: +off.y || 0 } };
