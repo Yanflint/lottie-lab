@@ -146,7 +146,7 @@ export async function addLottieFromData(data) {
     const bg = preview?.querySelector?.('.bg');
     if (bg && bg.parentNode) bg.parentNode.insertBefore(dom.layer, bg.nextSibling);
     else preview?.appendChild?.(dom.layer);
-    const obj = { layer: dom.layer, stage: dom.stage, mount: dom.mount, refs: null, offset: { x: layers.length*20, y: layers.length*20 }, anim: null };
+    const obj = { layer: dom.layer, stage: dom.stage, mount: dom.mount, refs: null, offset: { x: layers.length*20, y: layers.length*20 }, anim: null, data: null };
     obj.refs = buildRefsForLayer(obj);
     layers.push(obj);
     useIndex = layers.length-1;
@@ -155,6 +155,8 @@ export async function addLottieFromData(data) {
   if (!obj.refs) obj.refs = buildRefsForLayer(obj);
   const anim = await loadLottieFromData(obj.refs, data);
   obj.anim = anim;
+  try { obj.data = (typeof data === 'string') ? JSON.parse(data) : data; } catch { obj.data = data; }
+  try { obj.data = (typeof data === 'string') ? JSON.parse(data) : data; } catch { obj.data = data; }
   attachInteractions(useIndex);
   focusLayer(useIndex);
   relayoutAll();

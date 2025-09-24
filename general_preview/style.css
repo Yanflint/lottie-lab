@@ -420,3 +420,7 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
   box-shadow: inset 0 0 0 9999px rgba(59,130,246,0.10); /* 10% blue fill */
   border-radius: 8px;
 }
+
+/* Limit hit area to stage, so upper layers don't block */
+.lottie-layer{ pointer-events: none; }
+.lottie-layer .lot-stage{ pointer-events: auto; }

@@ -5,6 +5,7 @@ import { initDnD } from './dnd.js';
 import { layoutLottie } from './lottie.js';
 import { initControls } from './controls.js';
 import { initShare } from './shareClient.js';
+import { initLoadFromLink } from './loadFromLink.js';
 
 function collectRefs() {
   return {
@@ -22,11 +23,15 @@ function collectRefs() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  const isViewer = /^\/s\//.test(location.pathname);
+
   const refs = collectRefs();
 
   try { initMulti(); } catch {}
   try { await initDnD(refs); } catch {}
   try { initControls({ refs }); } catch {}
+
+  if (isViewer) { try { await initLoadFromLink({ refs }); } catch {} }
 
   // Share: с готовыми тостами ошибок, если ничего не загружено
   try { initShare({}); } catch {}

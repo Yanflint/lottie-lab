@@ -37,39 +37,72 @@ function readCurrentBg() {
   return { value: src, ...meta };
 }
 
+
 async function collectPayloadOrThrow() {
-  const lot = state.lastLottieJSON || null;
   const bg  = readCurrentBg();
 
-  if (!lot && !bg) {
+  // Multi-lottie collection
+  let lots = [];
+  try {
+    const m = window.__multiLottie;
+    if (m && Array.isArray(m.layers) && m.layers.length) {
+      for (const L of m.layers) {
+        const data = (L && (L.data || (L.mount && L.mount.__lp_anim && L.mount.__lp_anim.animationData))) || null;
+        if (!data) continue;
+        const off = (L.offset || { x: 0, y: 0 });
+        const meta = { _lpOffset: { x: +off.x || 0, y: +off.y || 0 }, _lpPos: { x: +off.x || 0, y: +off.y || 0 } };
+        if (state.lastBgMeta && (state.lastBgMeta.fileName || state.lastBgMeta.assetScale)) {
+          meta._lpBgMeta = { fileName: state.lastBgMeta.fileName || '', assetScale: +state.lastBgMeta.assetScale || 1 };
+        }
+        // attach/merge meta
+        try { data.meta = Object.assign({}, data.meta || {}, meta); } catch {}
+        lots.push(data);
+      }
+    }
+  } catch {}
+
+  // Single fallback
+  let lot = null;
+  if (!lots.length) {
+    lot = state.lastLottieJSON || null;
+  }
+
+  if (!bg && !lot && !lots.length) {
     const err = new Error('Загрузите графику');
     err.code = 'NO_ASSETS';
     throw err;
   }
-  if (lot && !bg) {
+  if (!bg) {
     const err = new Error('Загрузите фон');
     err.code = 'NO_BG';
     throw err;
   }
-  if (bg && !lot) {
+  if (!lot && !lots.length) {
     const err = new Error('Загрузите анимацию');
     err.code = 'NO_LOTTIE';
     throw err;
   }
 
-  try {
-    lot.meta = lot.meta || {};
-    const off = getLotOffset();
-    lot.meta._lpOffset = { x: +off.x || 0, y: +off.y || 0 };
-    lot.meta._lpPos    = { x: +off.x || 0, y: +off.y || 0 };
-    if (state.lastBgMeta && (state.lastBgMeta.fileName || state.lastBgMeta.assetScale)) {
-      lot.meta._lpBgMeta = { fileName: state.lastBgMeta.fileName || '', assetScale: +state.lastBgMeta.assetScale || 1 };
-    }
-  } catch {}
-
   const opts = { loop: !!state.loopOn };
-  return { lot, bg, opts };
+
+  // For backward compatibility keep 'lot' as first item if lots present.
+  if (lots.length) {
+    return { lots, lot: lots[0], bg, opts };
+  } else {
+    // single
+    try {
+      lot.meta = lot.meta || {};
+      const off = getLotOffset();
+      lot.meta._lpOffset = { x: +off.x || 0, y: +off.y || 0 };
+      lot.meta._lpPos    = { x: +off.x || 0, y: +off.y || 0 };
+      if (state.lastBgMeta && (state.lastBgMeta.fileName || state.lastBgMeta.assetScale)) {
+        lot.meta._lpBgMeta = { fileName: state.lastBgMeta.fileName || '', assetScale: +state.lastBgMeta.assetScale || 1 };
+      }
+    } catch {}
+    return { lot, bg, opts };
+  }
 }
+
 
 async function postPayload(payload) {
   let lastErr = null;
