@@ -1,12 +1,16 @@
 {
-  "name": "wip-lottie-preview",
+  "name": "general_preview",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "echo \"static\"",
-    "dev": "echo \"Use any static server (no build)\""
+    "lint": "eslint \"src/**/*.js\" --max-warnings=0",
+    "types": "tsc --noEmit",
+    "build:test": "esbuild \"src/app/main.js\" --bundle --format=esm --platform=browser --outdir=.check-dist --sourcemap=inline",
+    "check": "npm run lint && npm run types && npm run build:test"
   },
-  "dependencies": {
-    "@netlify/blobs": "^8.0.0"
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "typescript": "^5.5.4",
+    "esbuild": "^0.21.5"
   }
 }
