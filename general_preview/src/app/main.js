@@ -1,4 +1,3 @@
-
 // src/app/main.js
 import { initMulti } from './multi.js';
 import { initDnD } from './dnd.js';
@@ -23,22 +22,16 @@ function collectRefs() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-
   const refs = collectRefs();
-
   try { initMulti(); } catch {}
   try { await initDnD(refs); } catch {}
   try { initControls({ refs }); } catch {}
-
+  try { initShare(); } catch {}
   try { await initLoadFromLink({ refs }); } catch {}
-
-  // Share: с готовыми тостами ошибок, если ничего не загружено
-  try { initShare({}); } catch {}
 
   const relayout = () => {
     try {
       layoutLottie(refs);
-      // Также перелайаутить все слои в multi:
       import('./multi.js').then(m => m.relayoutAll && m.relayoutAll());
     } catch {}
   };

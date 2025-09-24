@@ -67,7 +67,7 @@ function focusLayer(i) {
   try { setLotOffset(off.x, off.y); } catch {}
   applySelectionVisual(i);
   // Raise selected above others without changing document order:
-  layers.forEach((L, idx) => { if (L?.layer) L.layer.style.zIndex = (idx === i) ? '2' : '1'; });
+  layers.forEach((L, idx) => { if (L?.layer) L.layer.style.zIndex = (idx === i) ? '999' : String(1 + idx); });
 }
 
 function attachInteractions(idx) {
@@ -292,7 +292,7 @@ export function removeAt(index) {
   relayoutAll();
 }
 
-// === Debug helpers (enabled with ?debug=1) ===
+
 function dumpLayers() {
   const info = layers.map((L, i) => ({
     i,
