@@ -60,7 +60,7 @@ async function processFilesSequential(refs, files) {
     try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); document.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
     } catch (e) { console.error('Invalid JSON', e); }
   }
-}
+
 
 export function initDnd({ refs }) {
   let depth = 0;
