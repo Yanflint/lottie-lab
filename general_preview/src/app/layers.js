@@ -120,9 +120,40 @@ function createLayerDOM(refs){
 }
 
 
+
 function wireSelectionAndDrag(refs, layer){
-  // Select on pointerdown
+  // Select on pointerdown (on the box area only)
   const onPD = (e)=>{ selectLayer(layer.id); };
+  layer.box.addEventListener('pointerdown', onPD);
+
+  // Drag selected layer (pointer events on box)
+  let dragging=false, sx=0, sy=0, start={x:0,y:0};
+  const onDown = (e)=>{
+    selectLayer(layer.id);
+    try{ layer.box.setPointerCapture(e.pointerId); }catch{}
+    dragging = true; sx = e.clientX; sy = e.clientY; start = { ...layer.offset };
+    if (!isViewer()) document.body.classList.add('lp-grabbing');
+  };
+  const onMove = (e)=>{
+    if (!dragging) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    const scale = window.__lpFitScale || 1;
+    const nx = start.x + dx / scale;
+    const ny = start.y + dy / scale;
+    setLayerOffset(layer.id, nx, ny);
+  };
+  const onUp = (e)=>{
+    dragging=false;
+    try{ layer.box.releasePointerCapture(e.pointerId); }catch{}
+    document.body.classList.remove('lp-grabbing');
+  };
+  layer.box.addEventListener('pointerdown', onDown);
+  layer.box.addEventListener('pointermove', onMove);
+  layer.box.addEventListener('pointerup', onUp);
+  layer.box.addEventListener('pointercancel', onUp);
+  layer._dragHandlers = { onPD, onDown, onMove, onUp };
+}
+;
   layer.container.addEventListener('pointerdown', onPD);
 
   // Drag selected layer (pointer events on container)
