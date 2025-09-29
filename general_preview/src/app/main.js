@@ -12,7 +12,7 @@ try{ document.documentElement.classList.remove('booting'); }catch(e){}
 
 
 // Viewer mode on /s/*
-const isViewer = /^\/s\//.test(location.pathname);
+const isViewer = (/^\/s\//.test(location.pathname)) || (new URL(location.href).searchParams.has('s'));
 if (isViewer) document.documentElement.classList.add('viewer');
 
 // [PATCH] Boot hard refresh once per session, to avoid stale payload

@@ -2,6 +2,18 @@
 // Флаг цикла (opts.loop) применяем до создания анимации.
 import { setPlaceholderVisible, afterTwoFrames } from './utils.js';
 
+function __lp_getShareId(){
+  try{
+    const u = new URL(location.href);
+    const q = (u.searchParams.get('s')||'').trim();
+    if (q) return q;
+    const m = location.pathname.match(/\/s\/(.+)$/);
+    if (m) return decodeURIComponent(m[1]);
+  }catch{}
+  return '';
+}
+
+
 async function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 async function fetchStableLastPayload(maxMs=2000){
   const deadline = Date.now() + maxMs;
