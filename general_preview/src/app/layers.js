@@ -97,30 +97,28 @@ export function selectLayer(id){
 
 function nextId(){ return 'layer_' + (idSeq++); }
 
+
 function createLayerDOM(refs){
   const cont = el('div', 'lot-layer'); // positioned absolute by CSS
   cont.setAttribute('role', 'img');
   cont.setAttribute('aria-label', 'Lottie слой');
 
-  const box = el('div', 'lot-box'); // full base size, centered; offset applied here
-  const mount = el('div', 'lot-mount'); // lottie container
+  const box = el('div', 'lot-box'); // size will be set to animation w/h
+  const mount = el('div', 'lot-mount'); // fills the box
 
   box.appendChild(mount);
   cont.appendChild(box);
   const st = stage(refs);
   st?.appendChild(cont);
 
-  // size box to base dimensions
-  const baseW = +state.lastBgSize?.w || 512;
-  const baseH = +state.lastBgSize?.h || 512;
-  box.style.width = baseW + 'px';
-  box.style.height = baseH + 'px';
+  // Center; width/height assigned later
   box.style.left = '50%';
   box.style.top  = '50%';
   box.style.transform = 'translate(-50%, -50%)';
 
   return { container: cont, box, mount };
 }
+
 
 function wireSelectionAndDrag(refs, layer){
   // Select on pointerdown
@@ -210,12 +208,19 @@ export function restartAll(){
   }
 }
 
+
 export async function addLayerFromData(refs, json){
   if (!json) return null;
   ensureStageSizedToBg(refs);
 
   const { container, box, mount } = createLayerDOM(refs);
   const lotJson = (typeof json === 'string') ? JSON.parse(json) : json;
+
+  // Use animation's intrinsic size for 1:1 pixel mapping
+  const w = Math.max(1, Number(lotJson.w || 0) || 512);
+  const h = Math.max(1, Number(lotJson.h || 0) || 512);
+  box.style.width = w + 'px';
+  box.style.height = h + 'px';
 
   const engine = pickEngine();
   let anim = null;
@@ -243,6 +248,7 @@ export async function addLayerFromData(refs, json){
   }
   return layer;
 }
+
 
 // Global click/tap to restart (both editor and viewer)
 export function bindGlobalRestart({ refs }){

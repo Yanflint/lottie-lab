@@ -425,3 +425,8 @@ html:not(.viewer) .lot-layer.selected .lot-box::after{
 
 /* loop checkbox margins preference */
 #loopChk { margin-left:0; margin-right:0; }
+
+
+/* === Multi-layer box sizing override (1:1 to animation) === */
+.lot-layer .lot-box { width: auto !important; height: auto !important; }
+.lot-layer .lot-mount { inset: 0; }
