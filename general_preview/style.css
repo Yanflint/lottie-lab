@@ -409,21 +409,19 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 
 #lottie{pointer-events:auto;}
 
-/* --- Multi-lottie layering & loop checkbox tweak --- */
-.bg { z-index: 0; }
-.lottie-layer { z-index: 1; }
-#loopChk { margin-left: 0; margin-right: 0; }
 
-/* === Selection visuals for active Lottie layer === */
-.lottie-layer.selected .lot-stage{
-  outline: 2px solid rgba(59,130,246,1); /* blue 2px */
-  box-shadow: inset 0 0 0 9999px rgba(59,130,246,0.10); /* 10% blue fill */
-  border-radius: 8px;
+/* === Multi-layer support === */
+.lot-layer { position:absolute; inset:0; pointer-events:auto; }
+.lot-layer .lot-box { position:absolute; left:50%; top:50%; width:100%; height:100%; transform: translate(-50%,-50%); }
+.lot-layer .lot-mount { position:absolute; inset:0; pointer-events:auto; }
+html:not(.viewer) .lot-layer.selected .lot-box::after{
+  content:""; position:absolute; inset:0;
+  outline:2px solid #2EA8FF; background: rgba(46,168,255,0.12);
+  pointer-events:none;
 }
 
-/* Limit hit area to stage, so upper layers don't block */
-.lottie-layer{ pointer-events: none; }
-.lottie-layer .lot-stage{ pointer-events: auto; }
+/* keep stage interactive for dragging */
+#lotStage, .lot-stage, .lot-layer { pointer-events:auto; }
 
-/* debug outline all */
-.lp-outline-all .lottie-layer .lot-stage{ outline: 1px dashed rgba(0,0,0,.35) !important; }
+/* loop checkbox margins preference */
+#loopChk { margin-left:0; margin-right:0; }

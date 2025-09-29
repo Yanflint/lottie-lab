@@ -1,12 +1,10 @@
-
-// src/app/utils.js
 import { showSuccessToast, showErrorToast } from './updateToast.js';
-
 export async function withLoading(btn, fn) {
   if (!btn) return fn();
   const prevHTML = btn.innerHTML;
   btn.classList.add('loading');
   btn.setAttribute('aria-busy', 'true');
+  btn.style.filter = ''; /* не затемняем */
   btn.innerHTML = `<span class="loading-content">Создание</span><span class="spinner" aria-hidden="true"></span>`;
   try {
     return await fn();
@@ -17,15 +15,26 @@ export async function withLoading(btn, fn) {
   }
 }
 
+export function showToastNear(rootEl, anchorEl, text) {
+  const msg = String(text || '');
+  const isErr = /загрузи|ошиб|fail|error/i.test(msg);
+  if (isErr) showErrorToast(msg, anchorEl);
+  else       showSuccessToast(msg, anchorEl);
+}
+
+export function setDropActive(on) {
+  document.body.classList.toggle('dragging', !!on);
+}
+
 export function setPlaceholderVisible(refs, on) {
-  const el = refs?.placeholder || document.getElementById('ph');
+  const el = refs?.phEl;
   if (!el) return;
   el.classList.toggle('hidden', !on);
 }
-export function setDropActive(refs, on) {
-  const el = refs?.dropOverlay || document.getElementById('dropOverlay');
-  if (!el) return;
-  el.classList.toggle('active', !!on);
+
+// === добавлено для layout.js ===
+export function isMobile() {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
 export function afterTwoFrames() {

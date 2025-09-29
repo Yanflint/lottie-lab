@@ -1,5 +1,5 @@
-
 // src/app/pan.js
+// Перетаскивание ТОЛЬКО за саму Lottie: target = #lottie (fallback #lotStage)
 import { setLotOffset, getLotOffset } from './state.js';
 import { layoutLottie } from './lottie.js';
 
@@ -14,38 +14,52 @@ export function initLottiePan({ refs }) {
   let dragging = false;
   let startX = 0, startY = 0;
   let orig = { x: 0, y: 0 };
+  let raf = 0;
 
-  function onPointerDown(e) {
+  const onPointerDown = (e) => {
+    // primary mouse or any touch; разрешаем только по Lottie
+    if (e.pointerType !== 'touch' && e.button !== 0) return;
     dragging = true;
-    try { target.setPointerCapture?.(e.pointerId); } catch {}
     startX = e.clientX; startY = e.clientY;
     orig = getLotOffset();
+    try { target.setPointerCapture(e.pointerId); } catch {}
     try { target.style.cursor = 'grabbing'; } catch {}
-  }
-  function onPointerMove(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const onPointerMove = (e) => {
     if (!dragging) return;
-    const dx = (e.clientX - startX);
-    const dy = (e.clientY - startY);
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
     setLotOffset(orig.x + dx, orig.y + dy);
-    layoutLottie({ ...(refs||{}), lottieMount: target, lotStage: (refs?.lotStage || document.getElementById('lotStage')) });
-  }
-  function onPointerUp(e) {
+    if (!raf) {
+      raf = requestAnimationFrame(() => { raf = 0; layoutLottie(refs); });
+    }
+    e.preventDefault();
+  };
+
+  const onPointerUp = (e) => {
+    if (!dragging) return;
     dragging = false;
-    try { target.releasePointerCapture?.(e.pointerId); } catch {}
+    try { target.releasePointerCapture(e.pointerId); } catch {}
     try { target.style.cursor = 'grab'; } catch {}
-  }
+    e.preventDefault();
+  };
 
   target.addEventListener('pointerdown', onPointerDown);
-  window.addEventListener('pointermove', onPointerMove);
-  window.addEventListener('pointerup', onPointerUp);
-  window.addEventListener('pointercancel', onPointerUp);
+  target.addEventListener('pointermove', onPointerMove);
+  target.addEventListener('pointerup', onPointerUp);
+  target.addEventListener('pointercancel', onPointerUp);
+  target.addEventListener('lostpointercapture', onPointerUp);
 
   return {
     destroy() {
       target.removeEventListener('pointerdown', onPointerDown);
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
-      window.removeEventListener('pointercancel', onPointerUp);
+      target.removeEventListener('pointermove', onPointerMove);
+      target.removeEventListener('pointerup', onPointerUp);
+      target.removeEventListener('pointercancel', onPointerUp);
+      target.removeEventListener('lostpointercapture', onPointerUp);
     }
   };
 }
