@@ -39,18 +39,18 @@ function parseAssetScale(nameOrUrl) {
 /** Центрируем и масштабируем лотти-стейдж синхронно с фоном */
 export function layoutLottie(refs) {
   const stage = refs?.lotStage;
-  const wrap  = refs?.wrapper || refs?.previewBox || refs?.preview;
+  const wrap  = refs?.wrapper || refs?.preview;
   if (!stage || !wrap) return;
 
-  // take rendered background size (prefer real img rect)
+  // Measure rendered background; fallback to wrapper
   let realW = 0, realH = 0;
   const bgEl = refs?.bgImg;
   if (bgEl && bgEl.getBoundingClientRect) {
-    const bgr = bgEl.getBoundingClientRect();
-    realW = bgr.width || 0;
-    realH = bgr.height || 0;
+    const r = bgEl.getBoundingClientRect();
+    realW = r.width || 0;
+    realH = r.height || 0;
   }
-  if (!realW || !realH) {
+  if (!(realW > 0 && realH > 0)) {
     const r = wrap.getBoundingClientRect();
     realW = r.width || 0;
     realH = r.height || 0;
@@ -58,11 +58,9 @@ export function layoutLottie(refs) {
 
   const baseW = +(state.lastBgSize?.w || 0);
   const baseH = +(state.lastBgSize?.h || 0);
-  if (!baseW || !baseH || !realW || !realH) return;
+  if (!(baseW > 0 && baseH > 0 && realW > 0 && realH > 0)) return;
 
-  const scaleX = realW / baseW;
-  const scaleY = realH / baseH;
-  const fitScale = Math.min(scaleX, scaleY);
+  const fitScale = Math.min(realW / baseW, realH / baseH);
 
   stage.style.left = '50%';
   stage.style.top  = '50%';
@@ -72,74 +70,12 @@ export function layoutLottie(refs) {
   try {
     window.__lpFitScale = fitScale;
     window.__lpBaseW = baseW; window.__lpBaseH = baseH;
-    // update overlay metrics if present
-    if (window.__updateOverlay) {
-      window.__updateOverlay({ offsetX: 0, offsetY: 0, offsetXpx: 0, offsetYpx: 0, baseW, baseH, dispW: realW, dispH: realH, fitScale });
-    }
-  } catch {}
-
-  // Фолбэк: если по какой-то причине фон недоступен — используем контейнер
-  if (!(realW > 0 && realH > 0)) {
-    const br = wrap.getBoundingClientRect();
-    realW = br.width || 0;
-    realH = br.height || 0;
-  }
-
-
-  let fitScale = 1;
-  
-  if (cssW > 0 && cssH > 0 && realW > 0 && realH > 0) {
-    // Масштаб подгоняем так, чтобы 1 CSS-пиксель лотти = 1 CSS-пиксель фона
-    fitScale = Math.min(realW / cssW, realH / cssH);
-  }
-if (cssW > 0 && cssH > 0 && realW > 0 && realH > 0) {
-    fitScale = Math.min(realW / cssW, realH / cssH);
-    if (!isFinite(fitScale) || fitScale <= 0) fitScale = 1;
-  }
-
-  const x = (window.__lotOffsetX || 0);
-  const y = (window.__lotOffsetY || 0);
-  const xpx = x * fitScale;
-  const ypx = y * fitScale;
-
-  stage.style.left = '50%';
-  stage.style.top  = '50%';
-  stage.style.transformOrigin = '50% 50%';
-  stage.style.transform = `translate(calc(-50% + ${xpx}px), calc(-50% + ${ypx}px)) scale(${fitScale})`;
-  // [TEST OVERLAY] capture metrics for debug overlay
-  try {
-    const stageRect = stage.getBoundingClientRect ? stage.getBoundingClientRect() : { width: 0, height: 0 };
-    const baseW = parseFloat(stage.style.width || '0') || stageRect.width / (fitScale || 1) || 0;
-    const baseH = parseFloat(stage.style.height || '0') || stageRect.height / (fitScale || 1) || 0;
-    window.__lpMetrics = {
-      fitScale: fitScale,
-      baseW: Math.round(baseW),
-      baseH: Math.round(baseH),
-      dispW: Math.round(stageRect.width),
-      dispH: Math.round(stageRect.height),
-      offsetX: x,
-      offsetY: y,
-      offsetXpx: Math.round(xpx),
-      offsetYpx: Math.round(ypx)
-    };
     if (typeof window.__updateOverlay === 'function') {
-      window.__updateOverlay(window.__lpMetrics);
+      window.__updateOverlay({ offsetX:0, offsetY:0, offsetXpx:0, offsetYpx:0, baseW, baseH, dispW: realW, dispH: realH, fitScale });
     }
   } catch {}
-
 }
-/**
- * Установка фоновой картинки из data:/blob:/http(s)
- * — считываем naturalWidth/naturalHeight
- * — учитываем @2x/@3x/@1.5x из имени
- * — прокидываем в .wrapper CSS-переменные:
- *     --preview-ar : (w/scale) / (h/scale)
- *     --preview-h  : (h/scale)px
- *
- * @param {object} refs
- * @param {string} src
- * @param {object} [meta] - опционально { fileName?: string }
- */
+
 export async function setBackgroundFromSrc(refs, src, meta = {}) {
   // [PATCH] make function awaitable until image is loaded
   let __bgResolve = null; const __bgDone = new Promise((r)=>{ __bgResolve = r; });

@@ -18,7 +18,6 @@ function bgMeta() {
   };
 }
 ;
-}
 
 function readCurrentBg() {
   const img = document.getElementById('bgImg');
