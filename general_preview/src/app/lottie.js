@@ -37,8 +37,7 @@ function parseAssetScale(nameOrUrl) {
 
 /** Центрируем лотти-стейдж без масштаба (1:1) */
 /** Центрируем и масштабируем лотти-стейдж синхронно с фоном */
-export 
-function layoutLottie(refs) {
+export function layoutLottie(refs) {
   const stage = refs?.lotStage;
   const wrap  = refs?.wrapper || refs?.previewBox || refs?.preview;
   if (!stage || !wrap) return;
@@ -78,7 +77,6 @@ function layoutLottie(refs) {
       window.__updateOverlay({ offsetX: 0, offsetY: 0, offsetXpx: 0, offsetYpx: 0, baseW, baseH, dispW: realW, dispH: realH, fitScale });
     }
   } catch {}
-}
 
   // Фолбэк: если по какой-то причине фон недоступен — используем контейнер
   if (!(realW > 0 && realH > 0)) {
