@@ -46,43 +46,14 @@ function applyLoopFromPayload(refs, data) {
 }
 
 async function applyPayload(refs, data) {
-  let _hid=false; try {
-
-  if (!data || typeof data !== 'object') return false;
-
-  // ВАЖНО: сначала применяем флаг цикла
-  applyLoopFromPayload(refs, data);
-
-  // временно спрячем слой лотти до пересчёта, чтобы не было "вспышки" старого расположения
-  try { if (refs?.lotStage) refs.lotStage.style.visibility = 'hidden'; _hid=true; } catch {}
-
-  // скрываем лотти до полного применения размеров и конвертации
-  try { if (refs?.lotStage) refs.lotStage.style.visibility = 'hidden'; } catch {}
-  if (data.bg) {
-    const src = typeof data.bg === 'string' ? data.bg : data.bg.value;
-    const meta = (typeof data.bg === 'object') ? { fileName: data.bg.name, assetScale: data.bg.assetScale } : {};
-    if (!meta.fileName && data.lot && data.lot.meta && data.lot.meta._lpBgMeta) { meta.fileName = data.lot.meta._lpBgMeta.fileName; meta.assetScale = data.lot.meta._lpBgMeta.assetScale; }
-    if (src) await setBackgroundFromSrc(refs, src, meta);
+  try{
+    const { importPayload } = await import('./layers.js');
+    const ok = await importPayload(refs, data);
+    return !!ok;
+  } catch (e) {
+    console.error('applyPayload (multi) error', e);
+    return false;
   }
-  if (data.lot) {
-    try {
-      const m = data?.lot?.meta?._lpOffset;
-      if (m && typeof m.x === 'number' && typeof m.y === 'number') setLotOffset(m.x || 0, m.y || 0);
-    
-    
-    try { layoutLottie(refs); } catch {}try { layoutLottie(); } catch {}
-} catch {}
-    setLastLottie(data.lot);
-    await loadLottieFromData(refs, data.lot); // учтёт state.loopOn
-  }
-
-  setPlaceholderVisible(refs, false);
-  layoutLottie(refs);
-  try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); document.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
-  
-  } finally { try { if (_hid && refs?.lotStage) refs.lotStage.style.visibility = ''; } catch {} }
-  return true;
-return true;
 }
 
 export async function initLoadFromLink({ refs, isStandalone }) {
@@ -124,15 +95,3 @@ export async function initLoadFromLink({ refs, isStandalone }) {
 }
 
 
-// ==== Multi-layer override (appended) ====
-import { importPayload } from './layers.js';
-
-async function applyPayload(refs, data){
-  try{
-    const ok = await importPayload(refs, data);
-    return !!ok;
-  }catch(e){
-    console.error('applyPayload (multi) error', e);
-    return false;
-  }
-}
