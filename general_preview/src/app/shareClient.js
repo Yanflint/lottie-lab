@@ -3,7 +3,6 @@
 import { showSuccessToast, showErrorToast } from './updateToast.js';
 import { withLoading } from './utils.js';
 import { state, getLotOffset } from './state.js';
-import { getExtrasPayload, extrasCount } from './multi.js';
 
 // API endpoint (Yandex Cloud Function). No trailing slash.
 export const API_BASE = 'https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p'.replace(/\/+$/, '');
@@ -69,9 +68,7 @@ async function collectPayloadOrThrow() {
   } catch {}
 
   const opts = { loop: !!state.loopOn };
-  const payload = { lot, bg, opts };
-  try { const ex = (typeof getExtrasPayload==='function' ? getExtrasPayload() : []); if (ex && ex.length) payload.lots = ex; } catch {}
-  return payload;
+  return { lot, bg, opts };
 }
 
 async function postPayload(payload) {
@@ -114,7 +111,7 @@ export function initShare({ onSuccess, onError } = {}) {
     try {
       e?.preventDefault?.();
       // Pre-check: specific toasts depending on what's missing
-      const hasLot = !!state.lastLottieJSON || (typeof extrasCount==='function' && extrasCount()>0);
+      const hasLot = !!state.lastLottieJSON;
       const hasBg  = !!readCurrentBg();
       if (!hasLot && !hasBg) {
         showErrorToast('Загрузите графику', btn);

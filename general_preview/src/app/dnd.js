@@ -1,115 +1,146 @@
+// src/app/dnd.js
 import { setBackgroundFromSrc, loadLottieFromData } from './lottie.js';
-import { addExtraFromData, initMulti } from './multi.js';
-import { setPlaceholderVisible, setDropActive } from './utils.js';
+import { setPlaceholderVisible, setDropActive, afterTwoFrames } from './utils.js';
 import { setLastLottie } from './state.js';
 
-
+/**
+ * Process an array-like of File objects:
+ *  - First image/* becomes background
+ *  - First JSON (or .json / text/plain that parses as JSON) becomes Lottie
+ */
 async function processFilesSequential(refs, files) {
-  // Split incoming files: one image + N json
   let imgFile = null;
-  const jsonFiles = [];
+  let jsonFile = null;
+
   for (const f of files) {
-    if (!imgFile && f.type?.startsWith?.('image/')) imgFile = f;
-    const isJson = f.type === 'application/json' || f.name?.endsWith?.('.json') || f.type === 'text/plain';
-    if (isJson) jsonFiles.push(f);
+    if (!imgFile && f?.type && f.type.startsWith('image/')) {
+      imgFile = f;
+      continue;
+    }
+    const looksJson = (f?.type === 'application/json') || (f?.name && f.name.toLowerCase().endsWith('.json')) || (f?.type === 'text/plain');
+    if (!jsonFile && looksJson) {
+      jsonFile = f;
+    }
   }
 
-  // Background first
+  // Set background first (if provided)
   if (imgFile) {
-    const url = URL.createObjectURL(imgFile);
-    await setBackgroundFromSrc(refs, url, { fileName: imgFile?.name });
-    setPlaceholderVisible(refs, false);
-    try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); } catch {}
-    try { window.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
+    try {
+      const url = URL.createObjectURL(imgFile);
+      await setBackgroundFromSrc(refs, url, { fileName: imgFile?.name });
+      setPlaceholderVisible(refs, false);
+      await afterTwoFrames();
+      document.dispatchEvent(new CustomEvent('lp:content-painted'));
+    } catch (e) {
+      console.error('Failed to set background from dropped file:', e);
+    }
   }
 
-  if (jsonFiles.length) {
-    // Ensure multi subsystem ready
-    try { initMulti(); } catch {}
-
-    // First JSON -> primary
-    const first = jsonFiles[0];
-    const txt = await first.text();
+  // Then load lottie
+  if (jsonFile) {
     try {
+      const txt = await jsonFile.text();
       const json = JSON.parse(txt);
       setLastLottie(json);
       await loadLottieFromData(refs, json);
       setPlaceholderVisible(refs, false);
-      try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); } catch {}
-      try { window.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
-    } catch (e) { console.error('JSON parse failed', e); }
-
-    // Rest -> extras
-    for (let i=1; i<jsonFiles.length; i++) {
-      try {
-        const t = await jsonFiles[i].text();
-        const j = JSON.parse(t);
-        addExtraFromData(j);
-      } catch (e) { console.error('extra JSON parse failed', e); }
+      await afterTwoFrames();
+      document.dispatchEvent(new CustomEvent('lp:content-painted'));
+    } catch (e) {
+      console.error('Failed to parse or load Lottie JSON from dropped file:', e);
     }
   }
 }
-  if (imgFile) {
-    const url = URL.createObjectURL(imgFile);
-    await setBackgroundFromSrc(refs, url, { fileName: imgFile?.name });
-    setPlaceholderVisible(refs, false);
-    try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); document.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
-  }
-  if (jsonFile) {
-    const text = await jsonFile.text();
-    try {
-      const json = JSON.parse(text);
-      setLastLottie(json);
-      await loadLottieFromData(refs, json);
-      setPlaceholderVisible(refs, false);
-    try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); document.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
-    } catch (e) { console.error('Invalid JSON', e); }
-  }
-}
 
-export function initDnd({ refs }) {
-  let depth = 0;
-  const onDragEnter = (e) => { e.preventDefault(); if (depth++ === 0) setDropActive(true); };
-  const onDragOver  = (e) => { e.preventDefault(); };
-  const onDragLeave = (e) => { e.preventDefault(); if (--depth <= 0) { depth = 0; setDropActive(false); } };
-  const onDrop = async (e) => {
-    e.preventDefault(); depth = 0; setDropActive(false);
-    const dt = e.dataTransfer; if (!dt) return;
-    if (dt.files && dt.files.length) return processFilesSequential(refs, Array.from(dt.files));
-    if (dt.items && dt.items.length) {
-      const files = [];
-      for (const it of dt.items) if (it.kind === 'file') { const f = it.getAsFile(); if (f) files.push(f); }
-      if (files.length) return processFilesSequential(refs, files);
+/**
+ * Initialize drag-n-drop and paste handlers
+ */
+export function initDnd(refs) {
+  if (!refs) refs = {};
+
+  // --- Drag & Drop
+  const onDragOver = (e) => {
+    e.preventDefault();
+    setDropActive(true);
+    try { if (refs.dropOverlay) refs.dropOverlay.classList.add('visible'); } catch {}
+  };
+
+  const onDragLeave = (e) => {
+    // If leaving document/window
+    if (e.relatedTarget === null) {
+      setDropActive(false);
+      try { if (refs.dropOverlay) refs.dropOverlay.classList.remove('visible'); } catch {}
     }
   };
-  window.addEventListener('dragenter', onDragEnter);
-  window.addEventListener('dragover', onDragOver);
-  window.addEventListener('dragleave', onDragLeave);
-  window.addEventListener('drop', onDrop);
-  document.addEventListener('dragenter', onDragEnter);
+
+  const onDrop = async (e) => {
+    e.preventDefault();
+    setDropActive(false);
+    try { if (refs.dropOverlay) refs.dropOverlay.classList.remove('visible'); } catch {}
+
+    const dt = e.dataTransfer;
+    const files = [];
+
+    if (dt?.items && dt.items.length) {
+      for (const it of dt.items) {
+        if (it.kind === 'file') {
+          const f = it.getAsFile();
+          if (f) files.push(f);
+        }
+      }
+    } else if (dt?.files && dt.files.length) {
+      for (const f of dt.files) files.push(f);
+    }
+
+    if (files.length) {
+      await processFilesSequential(refs, files);
+    }
+  };
+
   document.addEventListener('dragover', onDragOver);
+  document.addEventListener('dragenter', onDragOver);
   document.addEventListener('dragleave', onDragLeave);
   document.addEventListener('drop', onDrop);
 
-
+  // --- Paste (supports image/* and JSON from clipboard)
   document.addEventListener('paste', async (e) => {
-    const items = e.clipboardData?.items || [];
-    const files = [];
-    for (const it of items) {
-      if (it.type?.startsWith?.('image/')) {
-        const f = it.getAsFile();
-        if (f) files.push(f);
-      } else if (it.type === 'application/json' || it.type === 'text/plain') {
-        try {
-          const asStr = await (it.getAsString ? new Promise(r => it.getAsString(r)) : Promise.resolve(e.clipboardData.getData('text')));
-          if (asStr && asStr.trim().startsWith('{')) {
-            const blob = new Blob([asStr], { type: 'application/json' });
-            files.push(new File([blob], 'pasted.json', { type: 'application/json' }));
-          }
-        } catch {}
-      }
-    }
-    if (files.length) await processFilesSequential(refs, files);
-  });
+    try {
+      const items = Array.from(e.clipboardData?.items || []);
+      const files = [];
+      let textCandidate = null;
 
+      for (const it of items) {
+        if (it.type && it.type.startsWith('image/')) {
+          const f = it.getAsFile();
+          if (f) files.push(f);
+        } else if (it.type === 'application/json' || it.type === 'text/plain') {
+          // getAsString is async
+          if (typeof it.getAsString === 'function') {
+            textCandidate = await new Promise((resolve) => it.getAsString(resolve));
+          } else {
+            textCandidate = e.clipboardData.getData('text') || null;
+          }
+        }
+      }
+
+      if (files.length) {
+        await processFilesSequential(refs, files);
+      }
+
+      if (textCandidate) {
+        try {
+          const json = JSON.parse(textCandidate);
+          setLastLottie(json);
+          await loadLottieFromData(refs, json);
+          setPlaceholderVisible(refs, false);
+          await afterTwoFrames();
+          document.dispatchEvent(new CustomEvent('lp:content-painted'));
+        } catch (err) {
+          // Non-JSON text in clipboard; ignore
+        }
+      }
+    } catch (err) {
+      console.error('paste handler failed:', err);
+    }
+  });
 }

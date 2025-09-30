@@ -3,7 +3,6 @@ import { state, setLastBgSize, setLastBgMeta } from './state.js';
 import { pickEngine } from './engine.js';
 import { createPlayer as createRlottiePlayer } from './rlottieAdapter.js';
 import { setPlaceholderVisible } from './utils.js';
-import { eachExtra } from './multi.js';
 
 let anim = null;
 
@@ -182,19 +181,17 @@ export async function setBackgroundFromSrc(refs, src, meta = {}) {
 
 /** Жёсткий перезапуск проигрывания */
 export function restart() {
+  if (!anim) return;
   try {
-    if (anim) { anim.stop?.(); try { anim.goToAndPlay?.(0, true); } catch {} try { anim.goToAndStop?.(0,true); anim.play?.(); } catch {} }
-  } catch {}
-  try {
-    eachExtra(ex => { try { ex.player?.stop?.(); } catch {} try { ex.player?.goToAndStop?.(0,true); } catch {} try { ex.player?.play?.(); } catch {} });
-  } catch {}
+    anim.stop();
+    anim.goToAndPlay(0, true);
+  } catch (_) {}
 }
 
 /** Переключение loop "на лету" */
 export function setLoop(on) {
   state.loopOn = !!on;
   if (anim) anim.loop = !!on;
-  try { eachExtra(ex => { if (ex?.player) ex.player.loop = !!on; }); } catch {}
 }
 
 /**

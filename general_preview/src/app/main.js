@@ -211,6 +211,3 @@ window.addEventListener('resize', () => { try { layoutLottie(refs); } catch {} }
   } catch {}
 
 });
-// [assistant patch] multi-lottie init
-import { initMulti } from './multi.js';
-document.addEventListener('DOMContentLoaded', ()=>{ try{ initMulti(); }catch(e){} });

@@ -1,7 +1,6 @@
 // Загружаем по /s/:id. Если id нет и это standalone, пробуем "последний" снимок.
 // Флаг цикла (opts.loop) применяем до создания анимации.
 import { setPlaceholderVisible, afterTwoFrames } from './utils.js';
-import { addExtraFromData, initMulti } from './multi.js';
 
 async function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 async function fetchStableLastPayload(maxMs=2000){
@@ -47,7 +46,6 @@ function applyLoopFromPayload(refs, data) {
 }
 
 async function applyPayload(refs, data) {
-  try { initMulti(); } catch {}
   let _hid=false; try {
 
   if (!data || typeof data !== 'object') return false;
@@ -76,8 +74,6 @@ async function applyPayload(refs, data) {
 } catch {}
     setLastLottie(data.lot);
     await loadLottieFromData(refs, data.lot); // учтёт state.loopOn
-    try { if (Array.isArray(data.lots)) { data.lots.forEach((j) => { try { addExtraFromData(j); } catch(e){} }); } } catch {}
-
   }
 
   setPlaceholderVisible(refs, false);
