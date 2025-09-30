@@ -74,6 +74,7 @@ async function collectPayloadOrThrow() {
   return { lot, bg, opts };
 }
 
+async 
 async function postPayload(payload) {
   let lastErr = null;
   for (const p of PATHS) {
@@ -88,17 +89,25 @@ async function postPayload(payload) {
       const txt = await resp.text();
       let data = null; try { data = txt ? JSON.parse(txt) : null; } catch {}
       if (!resp.ok) throw new Error(`share failed: ${resp.status}`);
-      if (data && typeof data.url === 'string') return data.url;
-      if (data && data.id) {
+
+      // prefer id -> build /?s= link; if only url is provided, try to extract id
+      let id = data && data.id;
+      if (!id && data && typeof data.url === 'string') {
+        const m = data.url.match(/\/s\/([^/?#]+)/) || data.url.match(/[?&]id=([^&]+)/);
+        if (m) id = decodeURIComponent(m[1]);
+      }
+      if (id) {
         const origin = (window.__PUBLIC_ORIGIN__) || location.origin;
-        return origin.replace(/\/$/, '') + '/?s=' + encodeURIComponent(data.id);
+        return origin.replace(/\/$/, '') + '/?s=' + encodeURIComponent(id);
       }
       throw new Error('share: пустой ответ API');
     } catch (e) {
       lastErr = e;
     }
   }
-  throw lastErr || new Error('share: все попытки не удались');
+  throw (lastErr || new Error('share failed'));
+}
+throw lastErr || new Error('share: все попытки не удались');
 }
 
 // Public API
