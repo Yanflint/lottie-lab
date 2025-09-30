@@ -4,6 +4,7 @@ import { setBackgroundFromSrc, addLottieFromData, layoutLottie } from './lottie.
 import { setSelectedId, setItemOffset } from './state.js';
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 async function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 async function fetchStableLastPayload(maxMs=2000){
   const deadline = Date.now() + maxMs;
@@ -36,12 +37,16 @@ function getShareIdFromLocation() {
 =======
 export function getShareIdFromLocation(){
 >>>>>>> Stashed changes
+=======
+export function getShareIdFromLocation(){
+>>>>>>> Stashed changes
   const m = location.pathname.match(/\/s\/([^/?#]+)/);
   if (m && m[1]) return m[1];
   const u = new URL(location.href);
   return u.searchParams.get('id');
 }
 
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 function applyLoopFromPayload(refs, data) {
   if (data && data.opts && typeof data.opts.loop === 'boolean') {
@@ -91,6 +96,9 @@ return true;
 }
 
 export async function initLoadFromLink({ refs, isStandalone }) {
+=======
+export async function initLoadFromLink({ refs, isStandalone }){
+>>>>>>> Stashed changes
 =======
 export async function initLoadFromLink({ refs, isStandalone }){
 >>>>>>> Stashed changes

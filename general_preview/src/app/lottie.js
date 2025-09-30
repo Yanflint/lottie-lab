@@ -6,6 +6,7 @@ import { createPlayer as createRlottiePlayer } from './rlottieAdapter.js';
 import { setPlaceholderVisible } from './utils.js';
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 let anim = null;
 
 /* ========= ENV DETECT (PWA + mobile) ========= */
@@ -85,6 +86,11 @@ const anims = new Map(); // id -> player
 let lastCreatedId = null;
 >>>>>>> Stashed changes
 
+=======
+const anims = new Map(); // id -> player
+let lastCreatedId = null;
+
+>>>>>>> Stashed changes
 function ensureStage(refs){
   const stage = refs?.lotStage || document.getElementById('lotStage');
   if (!stage) throw new Error('lotStage not found');
@@ -92,6 +98,7 @@ function ensureStage(refs){
   stage.style.left = '50%';
   stage.style.top  = '50%';
   stage.style.transformOrigin = '50% 50%';
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
   stage.style.transform = `translate(calc(-50% + ${xpx}px), calc(-50% + ${ypx}px)) scale(${fitScale})`;
   // [TEST OVERLAY] capture metrics for debug overlay
@@ -145,6 +152,20 @@ function parseAssetScale(name){
 }
 >>>>>>> Stashed changes
 
+=======
+  stage.classList.add('lot-stage');
+  return stage;
+}
+
+function parseAssetScale(name){
+  try{
+    const m = String(name||'').match(/@([0-9]+(?:\.[0-9]+)?)x(?!\w)/i);
+    const s = m ? parseFloat(m[1]) : 1;
+    return (s > 0 ? s : 1);
+  }catch{ return 1; }
+}
+
+>>>>>>> Stashed changes
 export async function setBackgroundFromSrc(refs, src, meta = {}){
   if (!refs?.bgImg) return;
   const img = refs.bgImg;
