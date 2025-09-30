@@ -1,7 +1,9 @@
-// Загружаем по /s/:id. Если id нет и это standalone, пробуем "последний" снимок.
-// Флаг цикла (opts.loop) применяем до создания анимации.
-import { setPlaceholderVisible, afterTwoFrames } from './utils.js';
 
+import { setPlaceholderVisible, afterTwoFrames } from './utils.js';
+import { setBackgroundFromSrc, addLottieFromData, layoutLottie } from './lottie.js';
+import { setSelectedId, setItemOffset } from './state.js';
+
+<<<<<<< Updated upstream
 async function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 async function fetchStableLastPayload(maxMs=2000){
   const deadline = Date.now() + maxMs;
@@ -31,13 +33,16 @@ import { setBackgroundFromSrc, loadLottieFromData, layoutLottie } from './lottie
 import { loadPinned } from './pinned.js';
 
 function getShareIdFromLocation() {
+=======
+export function getShareIdFromLocation(){
+>>>>>>> Stashed changes
   const m = location.pathname.match(/\/s\/([^/?#]+)/);
   if (m && m[1]) return m[1];
   const u = new URL(location.href);
-  const q = u.searchParams.get('id');
-  return q || null;
+  return u.searchParams.get('id');
 }
 
+<<<<<<< Updated upstream
 function applyLoopFromPayload(refs, data) {
   if (data && data.opts && typeof data.opts.loop === 'boolean') {
     state.loopOn = !!data.opts.loop;
@@ -86,39 +91,37 @@ return true;
 }
 
 export async function initLoadFromLink({ refs, isStandalone }) {
+=======
+export async function initLoadFromLink({ refs, isStandalone }){
+>>>>>>> Stashed changes
   setPlaceholderVisible(refs, true);
-
-  // 1) Пробуем id из URL
   const id = getShareIdFromLocation();
-  if (id) {
-    try {
-      let data=null;
-    if (id === 'last' || id === '__last__') {
-      try { const st = await fetchStableLastPayload(2000); data = st?.data || null; } catch {}
-    } else {
-      const r = await fetch(`https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p?id=${encodeURIComponent(id)}`, { cache: 'no-store' });
-      if (r.ok) data = await r.json().catch(() => null);
-    }
-    if (data && await applyPayload(refs, data)) return;
-    } catch (e) { console.error('share GET error', e); }
-  }
+  if (!id){ setPlaceholderVisible(refs, false); return; }
 
-  // 2) Если ярлык — тянем "последний" снимок с сервера
-  if (isStandalone) {
-    try {
-      const r = await fetch('https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p?id=last', { cache: 'no-store' });
-      if (r.ok) {
-        const data = await r.json().catch(() => null);
-        if (await applyPayload(refs, data)) return;
+  try{
+    const url = 'https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p?id=' + encodeURIComponent(id);
+    const r = await fetch(url, { cache: 'no-store' });
+    if (!r.ok) throw new Error('payload get failed '+r.status);
+    const data = await r.json();
+
+    // background
+    if (data?.bg?.src) await setBackgroundFromSrc(refs, data.bg.src, data?.bg?.meta || {});
+
+    // multi
+    if (Array.isArray(data?.lots) && data.lots.length){
+      for (const it of data.lots){
+        const id = await addLottieFromData(refs, it.lot, it.name || '');
+        if (it?.offset) setItemOffset(id, +it.offset.x || 0, +it.offset.y || 0);
       }
-    } catch (e) { console.error('last GET error', e); }
-  }
-
-  // 3) Резерв: локальный pinned
-  if (isStandalone) {
-    const pinned = loadPinned();
-    if (pinned && await applyPayload(refs, pinned)) return;
-  }
-
-  // 4) Ничего не нашли — остаётся плейсхолдер
+      layoutLottie(refs);
+    } else if (data?.lot){
+      const id = await addLottieFromData(refs, data.lot);
+      // old payload also might have meta._lpOffset
+      const off = data?.lot?.meta?._lpOffset || data?.lot?.meta?._lpPos;
+      if (off) setItemOffset(id, +off.x || 0, +off.y || 0);
+      layoutLottie(refs);
+    }
+  }catch(e){ console.error('Load payload error', e); }
+  setPlaceholderVisible(refs, false);
+  try{ await afterTwoFrames(); document.dispatchEvent(new CustomEvent('lp:content-painted')); }catch{}
 }
