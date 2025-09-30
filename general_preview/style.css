@@ -408,8 +408,6 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 #preview, #lotStage { pointer-events: auto; touch-action: none; }
 
 #lottie{pointer-events:auto;}
-<<<<<<< Updated upstream
-=======
 
 
 /* === Multi-Lottie === */
@@ -420,7 +418,3 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
   pointer-events:none;
 }
 .lottie-mount{ pointer-events:auto; }
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes

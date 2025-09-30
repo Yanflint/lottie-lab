@@ -1,14 +1,7 @@
 
 import { showSuccessToast, showErrorToast } from './updateToast.js';
 import { withLoading } from './utils.js';
-<<<<<<< Updated upstream
-import { state, getLotOffset } from './state.js';
-=======
 import { state } from './state.js';
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 
 export const API_BASE = 'https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p'.replace(/\/+$/, '');
 const PATHS = [''];
@@ -55,32 +48,11 @@ async function postPayload(payload) {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(payload)
       });
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-      const txt = await resp.text();
-      let data = null; try { data = txt ? JSON.parse(txt) : null; } catch {}
-      if (!resp.ok) throw new Error(`share failed: ${resp.status}`);
-      if (data && typeof data.url === 'string') return data.url;
-      if (data && data.id) {
-        const origin = (window.__PUBLIC_ORIGIN__) || location.origin;
-        return origin.replace(/\/$/, '') + '/s/' + encodeURIComponent(data.id);
-      }
-      throw new Error('share: пустой ответ API');
-    } catch (e) {
-      lastErr = e;
-    }
-=======
-=======
->>>>>>> Stashed changes
       if (!resp.ok) throw new Error('Share API error '+resp.status);
       const { id } = await resp.json().catch(() => ({}));
       if (id) return id;
       throw new Error('Share API bad response');
     } catch (e) { lastErr = e; }
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
   }
   throw lastErr || new Error('Share failed');
 }
