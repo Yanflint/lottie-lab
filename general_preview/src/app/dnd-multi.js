@@ -1,8 +1,5 @@
 // src/app/dnd-multi.js
-// Capture drag-and-drop (and paste) and allow dropping multiple Lottie files.
-// Images still set background via existing lottie.js API.
-// This runs in capture phase and stops propagation to avoid the old single-file handler.
-
+// Multi-Lottie DnD handler (capture phase): drop/paste many JSONs -> add as layers.
 import { setBackgroundFromSrc } from './lottie.js';
 import { addLottieFromJSON, initMultiLottie } from './multilottie.js';
 import { setPlaceholderVisible, setDropActive } from './utils.js';
@@ -28,7 +25,7 @@ function fileToJSON(file) {
 async function handleFiles(files) {
   initMultiLottie();
 
-  // 1) Backgrounds (only the first image becomes bg — same as before)
+  // First image -> background
   const imgs = Array.from(files).filter(f => f.type?.startsWith?.('image/'));
   if (imgs.length) {
     const url = URL.createObjectURL(imgs[0]);
@@ -36,7 +33,7 @@ async function handleFiles(files) {
     setPlaceholderVisible({}, false);
   }
 
-  // 2) All JSONs become additional layers
+  // All JSONs -> layers
   const jsons = Array.from(files).filter(isJsonFile);
   for (const f of jsons) {
     try {
@@ -52,25 +49,11 @@ async function handleFiles(files) {
 function bindDnD(root) {
   const target = root || document;
 
-  target.addEventListener('dragenter', (e) => {
-    setDropActive(true);
-  }, true);
-
-  target.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDropActive(true);
-  }, true);
-
-  target.addEventListener('dragleave', (e) => {
-    setDropActive(false);
-  }, true);
-
+  target.addEventListener('dragenter', () => setDropActive(true), true);
+  target.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); setDropActive(true); }, true);
+  target.addEventListener('dragleave', () => setDropActive(false), true);
   target.addEventListener('drop', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDropActive(false);
-
+    e.preventDefault(); e.stopPropagation(); setDropActive(false);
     const dt = e.dataTransfer;
     const list = dt?.files?.length ? Array.from(dt.files) : [];
     if (list.length === 0 && dt?.items?.length) {
@@ -82,7 +65,6 @@ function bindDnD(root) {
     if (list.length) await handleFiles(list);
   }, true);
 
-  // Paste support: cmd+V JSON (text/plain) or image
   document.addEventListener('paste', async (e) => {
     const items = e.clipboardData?.items || [];
     const files = [];
@@ -93,9 +75,8 @@ function bindDnD(root) {
         const f = it.getAsFile?.();
         if (f) files.push(f);
       } else if (it.type === 'application/json' || it.type === 'text/plain') {
-        // Some browsers expose JSON as text/plain
         textCandidate = await (it.getAsString
-          ? new Promise(r => it.getAsString(r))
+          ? new Promise((resolve) => it.getAsString(resolve))
           : Promise.resolve(e.clipboardData.getData('text')));
       }
     }

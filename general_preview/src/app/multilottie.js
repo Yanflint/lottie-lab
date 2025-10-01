@@ -1,20 +1,15 @@
 // src/app/multilottie.js
-// Minimal "layers" manager to host multiple Lottie animations concurrently.
-// Each layer is an absolutely-positioned container inside #lotLayers.
-// Depends only on rlottieAdapter.js (no changes to existing lottie.js required).
-
 import { createPlayer as createRlottiePlayer } from './rlottieAdapter.js';
 
 const layersState = {
   initDone: false,
-  host: null,       // stage element to mount into
-  container: null,  // #lotLayers
-  layers: [],       // [{id, name, el, player, fps, durationMS, x, y, w, h}]
+  host: null,
+  container: null,
+  layers: [],
   idSeq: 1
 };
 
 function findStageHost() {
-  // Try several known containers from the existing app — fallback to body
   return (
     document.getElementById('lotStage') ||
     document.getElementById('preview') ||
@@ -33,13 +28,12 @@ export function initMultiLottie() {
   Object.assign(container.style, {
     position: 'absolute',
     inset: '0',
-    pointerEvents: 'none', // layers themselves shouldn't block panning unless needed later
+    pointerEvents: 'none',
     zIndex: '10'
   });
 
-  // Ensure host is positioned
-  const hostStyle = getComputedStyle(host);
-  if (hostStyle.position === 'static') host.style.position = 'relative';
+  const cs = getComputedStyle(host);
+  if (cs.position === 'static') host.style.position = 'relative';
   host.appendChild(container);
 
   layersState.host = host;
@@ -56,7 +50,7 @@ function createLayerEl(id) {
     position: 'absolute',
     left: '0px',
     top: '0px',
-    pointerEvents: 'auto', // allow later interactions (drag/select)
+    pointerEvents: 'auto',
     userSelect: 'none',
     touchAction: 'none'
   });
@@ -78,23 +72,15 @@ export function addLottieFromJSON(json, opts = {}) {
     animationData: json
   });
 
-  // Estimation of duration from Lottie JSON
   const ip = Number(json?.ip ?? 0);
   const op = Number(json?.op ?? 0);
-  const fr = Number(json?.fr ?? opts.fps ?? 60); // default 60 fps
+  const fr = Number(json?.fr ?? opts.fps ?? 60);
   const durationMS = Math.max(0, (op - ip) / (fr || 60)) * 1000;
 
-  const layer = {
-    id, name,
-    el: wrap,
-    player,
-    fps: fr || 60,
-    durationMS,
-    x: 0, y: 0
-  };
+  const layer = { id, name, el: wrap, player, fps: fr || 60, durationMS, x: 0, y: 0 };
   layersState.layers.push(layer);
 
-  // Basic pointer-drag to reposition layer (optional, minimal)
+  // Basic drag to move
   let sx=0, sy=0, ox=0, oy=0, dragging=false;
   const onDown = (e) => {
     dragging = true;
@@ -113,10 +99,7 @@ export function addLottieFromJSON(json, opts = {}) {
     setLayerPosition(id, ox + dx, oy + dy);
     e.preventDefault();
   };
-  const onUp = () => {
-    dragging = false;
-    wrap.classList.remove('lp-grabbing');
-  };
+  const onUp = () => { dragging = false; wrap.classList.remove('lp-grabbing'); };
   wrap.addEventListener('pointerdown', onDown);
   window.addEventListener('pointermove', onMove);
   window.addEventListener('pointerup', onUp);
@@ -140,13 +123,6 @@ export function removeLayer(id) {
   layersState.layers.splice(idx, 1);
 }
 
-export function getLayers() {
-  return layersState.layers.slice();
-}
-
-export function stopAll() {
-  for (const l of layersState.layers) { try { l.player?.stop?.(); } catch{} }
-}
-export function playAll() {
-  for (const l of layersState.layers) { try { l.player?.play?.(); } catch{} }
-}
+export function getLayers() { return layersState.layers.slice(); }
+export function stopAll() { for (const l of layersState.layers) { try { l.player?.stop?.(); } catch{} } }
+export function playAll() { for (const l of layersState.layers) { try { l.player?.play?.(); } catch{} } }
