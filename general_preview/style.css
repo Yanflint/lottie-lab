@@ -409,14 +409,15 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 
 #lottie{pointer-events:auto;}
 
+/* DnD: highlight only preview */
+#preview.dnd-hover, .lot-stage.dnd-hover { outline: 2px dashed rgba(255,255,255,0.5); outline-offset: -2px; }
 
-/* === CLIP INSIDE PREVIEW (added) === */
+
+/* === CLIP LOTTIE TO PREVIEW (minimal, added) === */
 #preview, #lotStage, .lot-stage {
   position: relative;
-  overflow: hidden;                /* clip anything outside preview area */
+  overflow: hidden;                 /* clip anything outside preview rectangle */
   border-radius: var(--wrap-r, 18px);
 }
-#lotLayers.lot-layers {            /* if layers container exists in this build */
-  border-radius: inherit;
-}
+.lottie-layer { border-radius: inherit; } /* ensure corners are respected */
 
