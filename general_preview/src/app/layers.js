@@ -121,6 +121,7 @@ export async function addLottieLayer(refs, animationData, name='Lottie', tagId=n
     container: player, renderer: 'svg', loop: true, autoplay: true, animationData
   });
   layer.__anim = anim;
+  try { (document.getElementById('ph')||{}).classList.add('hidden'); } catch {}
 
   makeDraggable(layer);
   select(layer);
