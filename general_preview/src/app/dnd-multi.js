@@ -1,5 +1,7 @@
 // src/app/dnd-multi.js
-// Multi-Lottie DnD handler (capture phase) with depth counter to avoid flicker.
+// Multi-Lottie DnD with capture listeners and dragDepth to avoid flicker.
+// Requires refs from main.js so background sets correctly.
+
 import { setBackgroundFromSrc } from './lottie.js';
 import { addLottieFromJSON, initMultiLottie } from './multilottie.js';
 import { setPlaceholderVisible, setDropActive } from './utils.js';
@@ -19,15 +21,15 @@ function fileToJSON(file) {
   });
 }
 
-async function handleFiles(files) {
+async function handleFiles(refs, files) {
   initMultiLottie();
   const list = Array.from(files || []);
 
   const imgs = list.filter(f => f?.type?.startsWith?.('image/'));
   if (imgs.length) {
     const url = URL.createObjectURL(imgs[0]);
-    try { await setBackgroundFromSrc({}, url, { fileName: imgs[0]?.name }); } catch {}
-    setPlaceholderVisible({}, false);
+    try { await setBackgroundFromSrc(refs, url, { fileName: imgs[0]?.name }); } catch {}
+    setPlaceholderVisible(refs, false);
   }
 
   const jsons = list.filter(isJsonFile);
@@ -35,15 +37,15 @@ async function handleFiles(files) {
     try {
       const json = await fileToJSON(f);
       addLottieFromJSON(json, { name: f?.name, autoplay: true, loop: true, fps: 60 });
-      setPlaceholderVisible({}, false);
+      setPlaceholderVisible(refs, false);
     } catch (e) {
       console.warn('Bad Lottie file', f?.name, e);
     }
   }
 }
 
-function bindDnD(root) {
-  const target = root || document;
+export function initMultiDnD({ refs } = {}) {
+  const target = document;
   let dragDepth = 0;
 
   target.addEventListener('dragenter', (e) => {
@@ -54,7 +56,7 @@ function bindDnD(root) {
   target.addEventListener('dragover', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (dragDepth <= 0) { dragDepth = 1; }
+    if (dragDepth <= 0) dragDepth = 1;
     setDropActive(true);
   }, true);
 
@@ -65,7 +67,7 @@ function bindDnD(root) {
 
   target.addEventListener('drop', async (e) => {
     e.preventDefault();
-    e.stopPropagation();
+    e.stopPropagation(); // prevent legacy dnd.js from also handling (replace-behavior)
     dragDepth = 0;
     setDropActive(false);
 
@@ -77,34 +79,6 @@ function bindDnD(root) {
         if (f) list.push(f);
       }
     }
-    if (list.length) await handleFiles(list);
-  }, true);
-
-  document.addEventListener('paste', async (e) => {
-    const items = e.clipboardData?.items || [];
-    const files = [];
-    let textCandidate = null;
-
-    for (const it of items) {
-      if (it.type?.startsWith?.('image/')) {
-        const f = it.getAsFile?.();
-        if (f) files.push(f);
-      } else if (it.type === 'application/json' || it.type === 'text/plain') {
-        textCandidate = await (it.getAsString
-          ? new Promise((resolve) => it.getAsString(resolve))
-          : Promise.resolve(e.clipboardData.getData('text')));
-      }
-    }
-
-    if (files.length) await handleFiles(files);
-    if (textCandidate) {
-      try {
-        const json = JSON.parse(textCandidate);
-        addLottieFromJSON(json, { autoplay: true, loop: true, fps: 60 });
-        setPlaceholderVisible({}, false);
-      } catch {}
-    }
+    if (list.length) await handleFiles(refs, list);
   }, true);
 }
-
-bindDnD(document);

@@ -1,3 +1,4 @@
+import { initMultiDnD } from './dnd-multi.js';
 // src/app/main.js
 
 // 1) Отметка standalone (A2HS)
