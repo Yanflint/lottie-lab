@@ -1,4 +1,3 @@
-import { initMultiDnD } from './dnd-multi.js';
 // src/app/main.js
 
 // 1) Отметка standalone (A2HS)
@@ -83,7 +82,7 @@ showToastIfFlag(); // покажет "Обновлено", если страни
 
   
   if (!isViewer) initLottiePan({ refs });
-initMultiDnD({ refs });
+if (!isViewer) initDnd({ refs });
   initControls({ refs });
   initShare({ refs, isStandalone });
 

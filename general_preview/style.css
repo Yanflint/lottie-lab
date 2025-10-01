@@ -91,10 +91,7 @@ body{
   z-index:0; /* ниже ::after, но внутри wrapper */
 }
 
-.bg, .lottie-layer{ position:absolute; inset:0;   overflow: hidden;
-  clip-path: inset(0 round var(--wrap-r, 18px));
-  border-radius: var(--wrap-r, 18px);
-}
+.bg, .lottie-layer{ position:absolute; inset:0; }
 .bg{
   overflow:hidden; display:flex; align-items:center; justify-content:center;
 }
@@ -411,6 +408,3 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 #preview, #lotStage { pointer-events: auto; touch-action: none; }
 
 #lottie{pointer-events:auto;}
-
-/* DnD: highlight only preview */
-#preview.dnd-hover, .lot-stage.dnd-hover { outline: 2px dashed rgba(255,255,255,0.5); outline-offset: -2px; }
