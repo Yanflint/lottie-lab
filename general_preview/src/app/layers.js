@@ -22,8 +22,7 @@ async function ensureLottie(){
 
 function ensureStage(){
   if (stageEl && document.body.contains(stageEl)) return stageEl;
-  // Prefer #preview because it always has correct size; #lottie can be 0×0 until a single-player is mounted
-  const parent = document.getElementById('preview') || document.querySelector('.preview') || document.getElementById('lottie') || document.body;
+  const parent = document.getElementById('lottie') || document.getElementById('preview') || document.body;
   stageEl = document.getElementById('multiStage');
   if (!stageEl){
     stageEl = document.createElement('div');
@@ -75,9 +74,8 @@ function ensureStyles(){
   const css = document.createElement('style');
   css.id = 'multiStyles';
   css.textContent = `
-  /* Ensure preview clips children reliably */
-  #preview, .preview { position: relative; overflow: hidden; }
-  .multi-stage{ position:absolute; inset:0; pointer-events:none; z-index: 4; overflow:hidden; }
+  #lottie, #preview, .preview { position: relative; overflow: hidden; }
+  .multi-stage{ position:absolute; inset:0; pointer-events:none; z-index: 2; overflow:hidden; }
   .multi-stage .lot-layer{ position:absolute; left:0; top:0; pointer-events:auto; outline: 0; }
   .multi-stage .lot-layer.selected{ outline: 1px dashed var(--accent, #6ee7b7); outline-offset: 2px; }
 `;
