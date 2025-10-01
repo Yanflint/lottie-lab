@@ -1,121 +1,33 @@
-/* ===== Reset / базовые ===== */
-*,
-*::before,
-*::after { box-sizing: border-box; }
 
-html, body { height: 100%; }
+/* ===== Lottie multi-layer — safe patch (не ломает остальной UI) ===== */
+#preview, .preview { position: relative; overflow: hidden; }
 
-html, body {
-  margin: 0;
-  padding: 0;
-  background: #0f121a;  /* тёмный фон */
-  color: #e5e7eb;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
-  line-height: 1.4;
-}
-
-/* Утилиты */
-.hidden { display: none !important; }
-.visually-hidden {
-  position: absolute !important; width: 1px !important; height: 1px !important;
-  padding: 0 !important; margin: -1px !important; overflow: hidden !important;
-  clip: rect(0,0,0,0) !important; white-space: nowrap !important; border: 0 !important;
-}
-
-/* Цвета/переменные */
-:root{
-  --bg: #0f121a;
-  --panel: #0b0f1a;
-  --muted: #9aa3b2;
-  --line: #263043;
-  --accent: #6ee7b7;
-  --accent-weak: #2e3a55;
-  --btn: #141a27;
-  --btn-border: #2a3448;
-  --btn-hover: #1a2233;
-}
-
-/* ===== Структура приложения ===== */
-
-#wrapper {
-  min-height: 100vh;
-  position: relative;            /* якорь для абсолютных детей */
-  display: grid;
-  grid-template-rows: 1fr;       /* на случай, если нет верхних панелей */
-}
-
-/* Основная область предпросмотра */
-#preview, .preview {
-  position: relative !important; /* сцена живёт относительно этого контейнера */
-  overflow: hidden !important;   /* всё режется по границам превью */
-  width: 100%;
-  height: 100%;
-  background: #0f121a;
-}
-
-/* Фоновое изображение */
-#background, #bgImg {
-  position: absolute !important;
-  inset: 0 !important;
-  z-index: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: contain !important; /* чтобы влезало целиком */
-  pointer-events: none !important;
-}
-
-/* Плейсхолдер (подсказки до загрузки) */
-#ph {
-  position: absolute !important;
-  inset: 0 !important;
-  z-index: 1 !important;         /* над фоном, под слоями */
-  display: grid;
-  place-items: center;
-  color: var(--muted);
-  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00));
+/* Сцена слоёв строго внутри превью */
+#preview > .multi-stage {
+  position: absolute; inset: 0;
+  z-index: var(--lottie-z, 4);
   pointer-events: none;
+  overflow: hidden;
 }
 
-/* Одиночный плеер (если используется в проекте) */
-#lottie {
-  position: absolute !important;
-  inset: 0 !important;
-  z-index: 2 !important;         /* под слоями */
-  pointer-events: none;          /* слои перетаскиваются поверх */
-}
-
-/* ===== Мульти-слои (новая сцена) ===== */
-
-.multi-stage {
-  position: absolute !important;
-  inset: 0 !important;
-  z-index: 4 !important;         /* выше фона, плейсхолдера и одиночного плеера */
-  pointer-events: none !important;
-  overflow: hidden !important;   /* клип внутри превью */
-}
-
-.multi-stage .lot-layer {
-  position: absolute !important;
-  left: 0; top: 0;
-  pointer-events: auto !important; /* чтобы можно было таскать слой */
+/* Слой и плеер — только функциональные правила */
+#preview > .multi-stage .lot-layer {
+  position: absolute; left: 0; top: 0;
+  pointer-events: auto;
   outline: 0;
-  will-change: transform;
+}
+#preview > .multi-stage .lot-layer .lot-player {
+  position: relative; display: inline-block;
 }
 
-.multi-stage .lot-layer .lot-player {
-  position: relative !important;
-  display: inline-block !important;
-}
-
-/* Видимое выделение активного слоя */
-.multi-stage .lot-layer.selected {
-  outline: 1px dashed var(--accent);
+/* Видимое выделение выбранного слоя */
+#preview > .multi-stage .lot-layer.selected {
+  outline: 1px dashed var(--accent, #6ee7b7);
   outline-offset: 2px;
 }
 
-/* Гарантируем видимость содержимого Lottie (SVG или Canvas) */
-.multi-stage svg,
-#lottie svg {
+/* Гарантия видимости содержимого Lottie (на случай глобальных стилей) */
+#preview > .multi-stage svg {
   display: block !important;
   opacity: 1 !important;
   visibility: visible !important;
@@ -125,104 +37,30 @@ html, body {
   transform: translateZ(0);
 }
 
-/* Если по какой-то причине контейнер нулевого размера — дай тело по умолчанию */
-.multi-stage .lot-layer .lot-player:empty::after {
+/* Фон/плейсхолдер остаются ниже слоёв */
+#background, #bgImg {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: contain;
+  z-index: 0;
+  pointer-events: none;
+}
+#ph { z-index: 1; }
+
+/* Если контейнер плеера внезапно нулевой — дай «тело» по умолчанию */
+#preview > .multi-stage .lot-layer .lot-player:empty::after {
   content: "";
   display: block;
   width: 256px;
   height: 256px;
 }
 
-/* ===== DnD-состояние (подсветка) ===== */
-
-/* Предполагаем, что setDropActive(true) добавляет класс .drop-active на body или wrapper.
-   Если в коде иначе — можно поменять селектор ниже. */
-.drop-active #preview::after,
+/* Подсветка DnD — если вы используете класс drop-active на body */
 body.drop-active #preview::after {
   content: "Отпустите файлы для загрузки";
-  position: absolute;
-  inset: 0;
-  z-index: 10;
-  display: grid;
-  place-items: center;
-  color: #e5e7eb;
-  background: rgba(46, 58, 85, 0.35);
-  border: 2px dashed var(--accent);
-  pointer-events: none;
-  font-weight: 600;
-  letter-spacing: .2px;
+  position: absolute; inset: 0; z-index: 9999;
+  display: grid; place-items: center;
+  color: #fff; background: rgba(46,58,85,0.35);
+  border: 2px dashed var(--accent, #6ee7b7);
+  font-weight: 600; letter-spacing: .2px; pointer-events: none;
 }
-
-/* ===== Панель истории ===== */
-
-#historyPanel {
-  position: fixed;
-  top: 12px;
-  right: 12px;
-  width: 360px;
-  max-height: calc(100vh - 24px);
-  overflow: hidden;
-  z-index: 50;                    /* поверх сцены */
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  box-shadow: 0 12px 40px rgba(0,0,0,.45);
-}
-
-#historyPanel.hidden { display: none !important; }
-
-#historyPanel .history-header {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--line);
-  font-weight: 700;
-}
-
-#historyPanel .history-list {
-  padding: 8px 8px 12px 8px;
-  overflow: auto;
-  max-height: calc(100vh - 24px - 46px);
-}
-
-.history-item {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 8px;
-  align-items: center;
-  padding: 8px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-}
-
-.history-item + .history-item { margin-top: 8px; }
-
-.history-item:hover {
-  border-color: var(--accent-weak);
-  background: rgba(255,255,255,0.02);
-}
-
-.history-item .meta .name {
-  font-weight: 600;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-
-.history-item .meta .date {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.history-item .actions { display: flex; gap: 6px; }
-
-/* Кнопки */
-.btn {
-  appearance: none; cursor: pointer;
-  font: inherit;
-  padding: 6px 10px;
-  background: var(--btn);
-  color: #e5e7eb;
-  border: 1px solid var(--btn-border);
-  border-radius: 8px;
-}
-.btn:hover { background: var(--btn-hover); }
-.btn:active { transform: translateY(0.5px); }
-
-/* Для кнопок Показать/Скрыть можно добавить визуальный "глаз" через data-атрибут, если захочешь */
