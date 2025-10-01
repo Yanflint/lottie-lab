@@ -1,14 +1,50 @@
 import { setBackgroundFromSrc, loadLottieFromData } from './lottie.js';
+import { addToHistory } from './history.js';
 import { setPlaceholderVisible, setDropActive } from './utils.js';
 import { setLastLottie } from './state.js';
 
+
 async function processFilesSequential(refs, files) {
-  let imgFile = null, jsonFile = null;
+  // Collect the first image and all JSONs
+  let imgFile = null;
+  const jsonFiles = [];
   for (const f of files) {
     if (!imgFile && f.type?.startsWith?.('image/')) imgFile = f;
     const isJson = f.type === 'application/json' || f.name?.endsWith?.('.json') || f.type === 'text/plain';
-    if (!jsonFile && isJson) jsonFile = f;
+    if (isJson) jsonFiles.push(f);
   }
+
+  // Background first (optional)
+  if (imgFile) {
+    const url = URL.createObjectURL(imgFile);
+    await setBackgroundFromSrc(refs, url, { fileName: imgFile?.name });
+    setPlaceholderVisible(refs, false);
+    try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); } catch {}
+    try { document.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
+  }
+
+  // Load Lottie files: add all to history; display the last one
+  let lastJson = null, lastName = '';
+  for (const f of jsonFiles) {
+    try {
+      const text = await f.text();
+      const json = JSON.parse(text);
+      addToHistory({ data: json, name: f.name });
+      lastJson = json; lastName = f.name || '';
+    } catch (e) {
+      console.error('Ошибка парсинга Lottie JSON', e);
+    }
+  }
+
+  if (lastJson) {
+    await loadLottieFromData(refs, lastJson);
+    try { setLastLottie(lastJson); } catch {}
+    setPlaceholderVisible(refs, false);
+    try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); } catch {}
+    try { document.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
+  }
+}
+
   if (imgFile) {
     const url = URL.createObjectURL(imgFile);
     await setBackgroundFromSrc(refs, url, { fileName: imgFile?.name });
