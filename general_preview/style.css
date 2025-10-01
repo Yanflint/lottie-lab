@@ -411,13 +411,3 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 
 /* DnD: highlight only preview */
 #preview.dnd-hover, .lot-stage.dnd-hover { outline: 2px dashed rgba(255,255,255,0.5); outline-offset: -2px; }
-
-/* CLIP PREVIEW */
-#preview, #lotStage, .lot-stage {
-  position: relative;
-  overflow: hidden;                  /* clip layers inside preview */
-  border-radius: var(--wrap-r, 18px);/* keep consistent rounded corners */
-}
-#lotLayers.lot-layers {
-  border-radius: inherit;            /* ensure layers follow the preview rounding */
-}
