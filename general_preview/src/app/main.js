@@ -83,7 +83,7 @@ showToastIfFlag(); // покажет "Обновлено", если страни
 
   
   if (!isViewer) initLottiePan({ refs });
-if (!isViewer) initDnd({ refs });
+initMultiDnD({ refs });
   initControls({ refs });
   initShare({ refs, isStandalone });
 

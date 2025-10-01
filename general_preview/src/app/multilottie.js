@@ -4,13 +4,11 @@ import { createPlayer as createRlottiePlayer } from './rlottieAdapter.js';
 const layersState = { initDone:false, host:null, container:null, layers:[], idSeq:1 };
 
 function findStageHost() {
-  return (
-    document.getElementById('lotStage') ||
-    document.getElementById('preview') ||
-    document.querySelector('.lot-stage') ||
-    document.querySelector('.wrapper') ||
-    document.body
-  );
+  return document.getElementById('preview')
+      || document.getElementById('lotStage')
+      || document.querySelector('.lot-stage')
+      || document.querySelector('.wrapper')
+      || document.body;
 }
 
 export function initMultiLottie() {
