@@ -1,6 +1,7 @@
 
 // src/app/historyUi.js
 import { getHistory, removeItem, clearHistory, getItem } from './history.js';
+import { ensureLayerFor, setLayerVisibleByTag, isLayerVisibleByTag, getLayerByTag } from './layers.js';
 import { loadLottieFromData } from './lottie.js';
 
 function buildRefs(){
@@ -22,7 +23,10 @@ function renderList(root){
     list.innerHTML = '<div class="history-empty">История пуста</div>';
     return;
   }
-  arr.forEach((it, idx) => {
+  arr.forEach((it) => {
+    const has = !!getLayerByTag(it.id);
+    const vis = has ? isLayerVisibleByTag(it.id) : false;
+    const btnText = has ? (vis ? 'Скрыть' : 'Показать') : 'Показать';
     const row = document.createElement('div');
     row.className = 'history-item';
     row.innerHTML = `
@@ -31,7 +35,7 @@ function renderList(root){
         <div class="date">${new Date(it.createdAt||Date.now()).toLocaleString()}</div>
       </div>
       <div class="actions">
-        <button class="btn hist-load" data-id="${it.id}">Показать</button>
+        <button class="btn hist-toggle" data-id="${it.id}">${btnText}</button>
         <button class="btn hist-del" data-id="${it.id}">Удалить</button>
       </div>
     `;
@@ -112,14 +116,22 @@ export function initHistoryUI(){
   panel.querySelector('#historyClear').addEventListener('click', () => { clearHistory(); renderList(panel); });
 
   panel.addEventListener('click', async (e) => {
-    const loadBtn = e.target.closest('.hist-load');
+    const loadBtn = e.target.closest('.hist-toggle');
     const delBtn = e.target.closest('.hist-del');
     if (loadBtn){
       const id = loadBtn.getAttribute('data-id');
       const it = getItem(id);
-      if (it){
-        try { await loadLottieFromData(refs, it.data); } catch (e) { console.error('load from history failed', e); }
+      if (!it) return;
+      const has = !!getLayerByTag(id);
+      if (!has){
+        // create once, then will be toggled
+        await ensureLayerFor(id, it.data, it.name);
+        setLayerVisibleByTag(id, true);
+      } else {
+        const vis = isLayerVisibleByTag(id);
+        setLayerVisibleByTag(id, !vis);
       }
+      renderList(panel);
     } else if (delBtn){
       const id = delBtn.getAttribute('data-id');
       removeItem(id);

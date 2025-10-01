@@ -27,8 +27,8 @@ async function processFilesSequential(refs, files) {
     try {
       const text = await f.text();
       const json = JSON.parse(text);
-      addToHistory({ data: json, name: f.name });
-      await addLottieLayer(refs, json, f.name);
+      const hid = addToHistory({ data: json, name: f.name });
+      await addLottieLayer(refs, json, f.name, hid);
       setPlaceholderVisible(refs, false);
     } catch (e) {
       console.error('Ошибка парсинга Lottie JSON', e);
@@ -70,8 +70,8 @@ export function initDnd({ refs }) {
     if (textCandidate) {
       try {
         const json = JSON.parse(textCandidate);
-        addToHistory({ data: json, name: 'pasted.json' });
-        await addLottieLayer(refs, json, 'pasted.json');
+        const hid = addToHistory({ data: json, name: 'pasted.json' });
+        await addLottieLayer(refs, json, 'pasted.json', hid);
         setPlaceholderVisible(refs, false);
         await afterTwoFrames(); await afterTwoFrames();
         try { document.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
