@@ -410,11 +410,11 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 #lottie{pointer-events:auto;}
 
 
-/* === Multi-Lottie === */
-.lot-item{ pointer-events:auto; }
-.lot-item.selected::after{
-  content:""; position:absolute; inset:-4px;
-  border:1px dashed rgba(255,255,255,0.6); border-radius:4px;
-  pointer-events:none;
+/* ===== Multi-lottie layers ===== */
+#lotLayers.lot-layers{
+  position:absolute; inset:0; pointer-events:none; z-index:10;
 }
-.lottie-mount{ pointer-events:auto; }
+#lotLayers .lot-layer{
+  position:absolute; left:0; top:0; pointer-events:auto; user-select:none; touch-action:none;
+}
+

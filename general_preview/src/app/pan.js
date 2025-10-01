@@ -1,62 +1,65 @@
-
-// Multi-item pan: drag selected lot-item on stage
-import { getSelectedId, setSelectedId, getItem, setItemOffset } from './state.js';
+// src/app/pan.js
+// Перетаскивание ТОЛЬКО за саму Lottie: target = #lottie (fallback #lotStage)
+import { setLotOffset, getLotOffset } from './state.js';
 import { layoutLottie } from './lottie.js';
 
-export function initLottiePan({ refs }){
-  const stage = refs?.lotStage || document.getElementById('lotStage');
-  if (!stage) return;
+export function initLottiePan({ refs }) {
+  const target = (refs?.lottieMount) || document.getElementById('lottie')
+              || (refs?.lotStage)     || document.getElementById('lotStage');
+  if (!target) return;
 
-  try { stage.style.touchAction = 'none'; } catch {}
+  try { target.style.touchAction = 'none'; } catch {}
+  try { target.style.cursor = 'grab'; } catch {}
+
   let dragging = false;
-  let startX=0, startY=0, origX=0, origY=0, dragId=null;
+  let startX = 0, startY = 0;
+  let orig = { x: 0, y: 0 };
+  let raf = 0;
 
-  function onPointerDown(e){
-    const host = e.target.closest?.('.lot-item');
-    if (!host) return;
-    e.preventDefault();
-    dragId = host.dataset.id;
-    setSelectedId(dragId);
-    document.querySelectorAll('.lot-item.selected').forEach(el => el.classList.remove('selected'));
-    host.classList.add('selected');
-
-    const it = getItem(dragId);
+  const onPointerDown = (e) => {
+    // primary mouse or any touch; разрешаем только по Lottie
+    if (e.pointerType !== 'touch' && e.button !== 0) return;
     dragging = true;
     startX = e.clientX; startY = e.clientY;
-    origX = it?.offset?.x || 0; origY = it?.offset?.y || 0;
-    try { host.setPointerCapture?.(e.pointerId); } catch {}
-    document.documentElement.classList.add('lp-grabbing');
-  }
+    orig = getLotOffset();
+    try { target.setPointerCapture(e.pointerId); } catch {}
+    try { target.style.cursor = 'grabbing'; } catch {}
+    e.preventDefault();
+    e.stopPropagation();
+  };
 
-  function onPointerMove(e){
-    if (!dragging || !dragId) return;
+  const onPointerMove = (e) => {
+    if (!dragging) return;
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
-    setItemOffset(dragId, origX + dx, origY + dy);
-    layoutLottie({ refs });
+    setLotOffset(orig.x + dx, orig.y + dy);
+    if (!raf) {
+      raf = requestAnimationFrame(() => { raf = 0; layoutLottie(refs); });
+    }
     e.preventDefault();
-  }
+  };
 
-  function onPointerUp(e){
+  const onPointerUp = (e) => {
     if (!dragging) return;
     dragging = false;
-    try{ const host = stage.querySelector(`.lot-item[data-id="${dragId}"]`); host?.releasePointerCapture?.(e.pointerId); } catch {}
-    dragId = null;
-    document.documentElement.classList.remove('lp-grabbing');
+    try { target.releasePointerCapture(e.pointerId); } catch {}
+    try { target.style.cursor = 'grab'; } catch {}
     e.preventDefault();
-  }
+  };
 
-  stage.addEventListener('pointerdown', onPointerDown);
-  stage.addEventListener('pointermove', onPointerMove);
-  stage.addEventListener('pointerup', onPointerUp);
-  stage.addEventListener('pointercancel', onPointerUp);
-  stage.addEventListener('lostpointercapture', onPointerUp);
+  target.addEventListener('pointerdown', onPointerDown);
+  target.addEventListener('pointermove', onPointerMove);
+  target.addEventListener('pointerup', onPointerUp);
+  target.addEventListener('pointercancel', onPointerUp);
+  target.addEventListener('lostpointercapture', onPointerUp);
 
-  return { destroy(){
-    stage.removeEventListener('pointerdown', onPointerDown);
-    stage.removeEventListener('pointermove', onPointerMove);
-    stage.removeEventListener('pointerup', onPointerUp);
-    stage.removeEventListener('pointercancel', onPointerUp);
-    stage.removeEventListener('lostpointercapture', onPointerUp);
-  }};
+  return {
+    destroy() {
+      target.removeEventListener('pointerdown', onPointerDown);
+      target.removeEventListener('pointermove', onPointerMove);
+      target.removeEventListener('pointerup', onPointerUp);
+      target.removeEventListener('pointercancel', onPointerUp);
+      target.removeEventListener('lostpointercapture', onPointerUp);
+    }
+  };
 }
