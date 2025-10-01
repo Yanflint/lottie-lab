@@ -1,7 +1,8 @@
 // src/app/dnd-multi.js
-// Multi-Lottie DnD bound strictly to the preview area (no global document handlers).
+// Multi-Lottie DnD bound to the preview area; shows original hover overlay via setDropActive.
 
 import { setBackgroundFromSrc } from './lottie.js';
+import { setPlaceholderVisible, setDropActive } from './utils.js';
 import { addLottieFromJSON, initMultiLottie } from './multilottie.js';
 
 function getPreviewEl() {
@@ -34,6 +35,7 @@ async function handleFiles(refs, files) {
   if (imgs.length) {
     const url = URL.createObjectURL(imgs[0]);
     try { await setBackgroundFromSrc(refs, url, { fileName: imgs[0]?.name }); } catch {}
+    setPlaceholderVisible(refs, false);
   }
 
   const jsons = list.filter(isJsonFile);
@@ -41,6 +43,7 @@ async function handleFiles(refs, files) {
     try {
       const json = await fileToJSON(f);
       addLottieFromJSON(json, { name: f?.name, autoplay: true, loop: true, fps: 60 });
+      setPlaceholderVisible(refs, false);
     } catch (e) {
       console.warn('Bad Lottie file', f?.name, e);
     }
@@ -51,33 +54,30 @@ export function initMultiDnD({ refs } = {}) {
   const target = getPreviewEl();
   if (!target) return;
 
-  // Visual hint: add class while dragging
   let dragDepth = 0;
-  const addHover = () => target.classList.add('dnd-hover');
-  const rmHover  = () => target.classList.remove('dnd-hover');
 
   target.addEventListener('dragenter', (e) => {
     dragDepth++;
-    if (dragDepth === 1) addHover();
+    if (dragDepth === 1) setDropActive(true);
   }, true);
 
   target.addEventListener('dragover', (e) => {
     e.preventDefault();
     e.stopPropagation();
     if (dragDepth <= 0) dragDepth = 1;
-    addHover();
+    setDropActive(true);
   }, true);
 
   target.addEventListener('dragleave', (e) => {
     dragDepth = Math.max(0, dragDepth - 1);
-    if (dragDepth === 0) rmHover();
+    if (dragDepth === 0) setDropActive(false);
   }, true);
 
   target.addEventListener('drop', async (e) => {
     e.preventDefault();
     e.stopPropagation();
     dragDepth = 0;
-    rmHover();
+    setDropActive(false);
 
     const dt = e.dataTransfer;
     const list = dt?.files?.length ? Array.from(dt.files) : [];
@@ -88,31 +88,5 @@ export function initMultiDnD({ refs } = {}) {
       }
     }
     if (list.length) await handleFiles(refs, list);
-  }, true);
-
-  // Optional: paste only when focus is inside preview
-  target.addEventListener('paste', async (e) => {
-    const items = e.clipboardData?.items || [];
-    const files = [];
-    let textCandidate = null;
-
-    for (const it of items) {
-      if (it.type?.startsWith?.('image/')) {
-        const f = it.getAsFile?.();
-        if (f) files.push(f);
-      } else if (it.type === 'application/json' || it.type === 'text/plain') {
-        textCandidate = await (it.getAsString
-          ? new Promise((resolve) => it.getAsString(resolve))
-          : Promise.resolve(e.clipboardData.getData('text')));
-      }
-    }
-
-    if (files.length) await handleFiles(refs, files);
-    if (textCandidate) {
-      try {
-        const json = JSON.parse(textCandidate);
-        addLottieFromJSON(json, { autoplay: true, loop: true, fps: 60 });
-      } catch {}
-    }
   }, true);
 }

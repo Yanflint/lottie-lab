@@ -356,6 +356,7 @@ html.standalone.fit-safe .lottie-layer{
 /* ===================== DROP OVERLAY (DND HOVER) ===================== */
 .wrapper{ position: relative; }
 .drop-overlay{
+  pointer-events: none;
   position: absolute; inset: 0; display: none;
   align-items: center; justify-content: center;
   border-radius: var(--wrap-r, 18px);
@@ -372,7 +373,8 @@ html.standalone.fit-safe .lottie-layer{
   padding:10px 14px; border-radius: 12px; font-weight:700;
   box-shadow: 0 8px 24px rgba(0,0,0,.25);
 }
-body.dragging .drop-overlay{ display:flex; }
+body.dragging .drop-overlay{
+  pointer-events: none; display:flex; }
 
 /* Убираем фокус-обводку у кнопок */
 button:focus{ outline:none !important; box-shadow:none !important; }
@@ -409,28 +411,5 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 
 #lottie{pointer-events:auto;}
 
-/* DnD: highlight only preview */
-
-
-/* === DnD hover & clipping fixes === */
-#preview, #lotStage, .lot-stage {
-  position: relative;
-  overflow: hidden;            /* clip lottie layers inside preview */
-  border-radius: var(--wrap-r, 18px);
-}
-
-/* Make the layers obey the parent's radius visually */
-#lotLayers.lot-layers {
-  border-radius: inherit;
-}
-
-/* Optional: a very soft hover hint without dashed borders (no bleed) */
-#preview.dnd-hover::after, .lot-stage.dnd-hover::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  box-shadow: inset 0 0 0 2px rgba(255,255,255,0.25);
-  pointer-events: none;
-}
-
+#preview, #lotStage, .lot-stage { position: relative; overflow: hidden; border-radius: var(--wrap-r, 18px); }
+#lotLayers.lot-layers{ border-radius: inherit; }
