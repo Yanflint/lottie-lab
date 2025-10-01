@@ -27,7 +27,7 @@ async function processFilesSequential(refs, files) {
     try {
       const text = await f.text();
       const json = JSON.parse(text);
-      const hid = addToHistory({ data: json, name: f.name });
+      const hid = addToHistory({ data: json, name: f.name }); try{ document.dispatchEvent(new CustomEvent('lp:history-updated')); }catch{}
       await addLottieLayer(refs, json, f.name, hid);
       setPlaceholderVisible(refs, false);
     } catch (e) {
@@ -70,7 +70,7 @@ export function initDnd({ refs }) {
     if (textCandidate) {
       try {
         const json = JSON.parse(textCandidate);
-        const hid = addToHistory({ data: json, name: 'pasted.json' });
+        const hid = addToHistory({ data: json, name: 'pasted.json' }); try{ document.dispatchEvent(new CustomEvent('lp:history-updated')); }catch{}
         await addLottieLayer(refs, json, 'pasted.json', hid);
         setPlaceholderVisible(refs, false);
         await afterTwoFrames(); await afterTwoFrames();

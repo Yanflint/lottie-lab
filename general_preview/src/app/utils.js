@@ -27,7 +27,7 @@ export function setDropActive(on) {
 }
 
 export function setPlaceholderVisible(refs, on) {
-  const el = refs?.phEl;
+  const el = (refs?.phEl || refs?.placeholder || document.getElementById('ph'));
   if (!el) return;
   el.classList.toggle('hidden', !on);
 }

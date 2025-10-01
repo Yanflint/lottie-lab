@@ -1,11 +1,15 @@
 
 // src/app/history.js
 const KEY = 'lp_lottie_history_v1';
+const SESSION_RESET_DONE = 'lp_hist_session_reset_done';
+try{ if(!sessionStorage.getItem(SESSION_RESET_DONE)){ localStorage.removeItem(KEY); sessionStorage.setItem(SESSION_RESET_DONE,'1'); } }catch{}
 
 function readArr(){
   try { const t = localStorage.getItem(KEY); return t ? JSON.parse(t) : []; } catch { return []; }
 }
 function writeArr(arr){
+  try { document.dispatchEvent(new CustomEvent('lp:history-updated')); } catch {}
+
   try { localStorage.setItem(KEY, JSON.stringify(arr)); } catch {}
 }
 

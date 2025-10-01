@@ -147,3 +147,13 @@ export function initHistoryUI(){
 document.addEventListener('DOMContentLoaded', () => {
   try { initHistoryUI(); } catch(e) { console.warn('history UI init failed', e); }
 });
+
+
+document.addEventListener('lp:history-updated', () => {
+  try {
+    const panel = document.getElementById('historyPanel');
+    if (panel && !panel.classList.contains('hidden')) {
+      try { window.__renderHistory && window.__renderHistory(panel); } catch {}
+    }
+  } catch {}
+});
