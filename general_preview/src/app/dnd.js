@@ -1,7 +1,7 @@
-import { setBackgroundFromSrc, loadLottieFromData } from './lottie.js';
+import { setBackgroundFromSrc } from './lottie.js';
 import { setPlaceholderVisible, setDropActive, afterTwoFrames } from './utils.js';
-import { setLastLottie } from './state.js';
 import { addToHistory } from './history.js';
+import { addLottieLayer } from './layers.js';
 
 async function processFilesSequential(refs, files) {
   // Collect the first image and all JSONs
@@ -22,25 +22,17 @@ async function processFilesSequential(refs, files) {
     try { document.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
   }
 
-  // Load Lottie files: add all to history; display the last one
-  let lastJson = null;
+  // Add all JSONs as layers
   for (const f of jsonFiles) {
     try {
       const text = await f.text();
       const json = JSON.parse(text);
       addToHistory({ data: json, name: f.name });
-      lastJson = json;
+      await addLottieLayer(refs, json, f.name);
+      setPlaceholderVisible(refs, false);
     } catch (e) {
       console.error('Ошибка парсинга Lottie JSON', e);
     }
-  }
-
-  if (lastJson) {
-    await loadLottieFromData(refs, lastJson);
-    try { setLastLottie(lastJson); } catch {}
-    setPlaceholderVisible(refs, false);
-    await afterTwoFrames(); await afterTwoFrames();
-    try { document.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
   }
 }
 
@@ -64,7 +56,7 @@ export function initDnd({ refs }) {
   window.addEventListener('dragleave', onDragLeave);
   window.addEventListener('drop', onDrop);
 
-  // Paste support
+  // Paste: image and JSON
   document.addEventListener('paste', async (e) => {
     const items = e.clipboardData?.items || [];
     const files = []; let textCandidate = null;
@@ -79,8 +71,7 @@ export function initDnd({ refs }) {
       try {
         const json = JSON.parse(textCandidate);
         addToHistory({ data: json, name: 'pasted.json' });
-        setLastLottie(json);
-        await loadLottieFromData(refs, json);
+        await addLottieLayer(refs, json, 'pasted.json');
         setPlaceholderVisible(refs, false);
         await afterTwoFrames(); await afterTwoFrames();
         try { document.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
