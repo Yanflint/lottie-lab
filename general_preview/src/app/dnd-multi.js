@@ -2,7 +2,7 @@
 // Multi-Lottie DnD bound to the preview area; shows original hover overlay via setDropActive.
 
 import { setBackgroundFromSrc } from './lottie.js';
-import { setPlaceholderVisible, setDropActive } from './utils.js';
+import { setPlaceholderVisible, setDropActive, afterTwoFrames } from './utils.js';
 import { addLottieFromJSON, initMultiLottie } from './multilottie.js';
 
 function getPreviewEl() {
@@ -36,6 +36,7 @@ async function handleFiles(refs, files) {
     const url = URL.createObjectURL(imgs[0]);
     try { await setBackgroundFromSrc(refs, url, { fileName: imgs[0]?.name }); } catch {}
     setPlaceholderVisible(refs, false);
+    try { afterTwoFrames(() => document.dispatchEvent(new CustomEvent('lp:content-painted'))); } catch {}
   }
 
   const jsons = list.filter(isJsonFile);
@@ -44,6 +45,7 @@ async function handleFiles(refs, files) {
       const json = await fileToJSON(f);
       addLottieFromJSON(json, { name: f?.name, autoplay: true, loop: true, fps: 60 });
       setPlaceholderVisible(refs, false);
+    try { afterTwoFrames(() => document.dispatchEvent(new CustomEvent('lp:content-painted'))); } catch {}
     } catch (e) {
       console.warn('Bad Lottie file', f?.name, e);
     }
