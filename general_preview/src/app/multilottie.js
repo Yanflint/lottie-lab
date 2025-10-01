@@ -17,7 +17,7 @@ export function initMultiLottie() {
   const container = document.createElement('div');
   container.id = 'lotLayers';
   container.className = 'lot-layers';
-  Object.assign(container.style, { position:'absolute', inset:'0', pointerEvents:'none', zIndex:'10' });
+  Object.assign(container.style, { position:'absolute', inset:'0', pointerEvents:'none', zIndex:'10', borderRadius:'inherit' });
   const cs = getComputedStyle(host);
   if (cs.position === 'static') host.style.position = 'relative';
   host.appendChild(container);
