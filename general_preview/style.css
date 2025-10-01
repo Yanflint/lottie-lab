@@ -356,6 +356,7 @@ html.standalone.fit-safe .lottie-layer{
 /* ===================== DROP OVERLAY (DND HOVER) ===================== */
 .wrapper{ position: relative; }
 .drop-overlay{
+  pointer-events: none;
   position: absolute; inset: 0; display: none;
   align-items: center; justify-content: center;
   border-radius: var(--wrap-r, 18px);
@@ -372,7 +373,8 @@ html.standalone.fit-safe .lottie-layer{
   padding:10px 14px; border-radius: 12px; font-weight:700;
   box-shadow: 0 8px 24px rgba(0,0,0,.25);
 }
-body.dragging .drop-overlay{ display:flex; }
+body.dragging .drop-overlay{
+  pointer-events: none; display:flex; }
 
 /* Убираем фокус-обводку у кнопок */
 button:focus{ outline:none !important; box-shadow:none !important; }
@@ -408,13 +410,3 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 #preview, #lotStage { pointer-events: auto; touch-action: none; }
 
 #lottie{pointer-events:auto;}
-
-
-/* ===== Multi-lottie layers ===== */
-#lotLayers.lot-layers{
-  position:absolute; inset:0; pointer-events:none; z-index:10;
-}
-#lotLayers .lot-layer{
-  position:absolute; left:0; top:0; pointer-events:auto; user-select:none; touch-action:none;
-}
-
