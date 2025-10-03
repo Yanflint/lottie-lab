@@ -3,7 +3,6 @@
 import { showSuccessToast, showErrorToast } from './updateToast.js';
 import { withLoading } from './utils.js';
 import { state, getLotOffset } from './state.js';
-import { getLotsPayload } from './layers.js';
 
 // API endpoint (Yandex Cloud Function). No trailing slash.
 export const API_BASE = 'https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p'.replace(/\/+$/, '');
@@ -69,10 +68,7 @@ async function collectPayloadOrThrow() {
   } catch {}
 
   const opts = { loop: !!state.loopOn };
-  const lots = getLotsPayload();
-  // Если есть lots — первый кладём в lot (обратная совместимость)
-  const canonLot = lots?.length ? (lots[0].data || lot) : lot;
-  return lots?.length ? { lot: canonLot, lots, bg, opts } : { lot, bg, opts };
+  return { lot, bg, opts };
 }
 
 async function postPayload(payload) {
