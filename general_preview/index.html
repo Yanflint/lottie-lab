@@ -23,6 +23,17 @@
 
   <!-- Lottie -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js" defer></script>
+<script>
+  // Viewer-mode fallback: mark as viewer if share-like params are present (works on /wip/?id=... as well)
+  (function () {
+    try {
+      var sp = new URL(location.href).searchParams;
+      var hasShareParam = ['id','s','share','payload','rev'].some(function(k){ return sp.has(k); });
+      if (hasShareParam) { document.documentElement.classList.add('viewer'); }
+    } catch (e) {}
+  })();
+</script>
+
 
   <!-- ВАЖНО: абсолютный путь, чтобы работало по /s/:id -->
   <link rel="stylesheet" href="style.css" />
@@ -146,8 +157,8 @@ html.booting .placeholder { display: none !important; }
 
   <!-- Viewer desktop sizing fix: keep square preview centered; do not stretch fullscreen -->
   <style id="viewer-desktop-fix">
-  /* Desktop browser viewer (mouse/trackpad): square, centered, not fullscreen */
-  @media (hover: hover) and (pointer: fine) {
+  /* Desktop / large viewport viewer: square, centered, not fullscreen */
+  @media screen and (min-width: 840px) {
     html.viewer .page,
     html.viewer .app {
       height: auto !important;
@@ -157,11 +168,11 @@ html.booting .placeholder { display: none !important; }
       height: auto !important;
       aspect-ratio: 1 / 1 !important;
       margin: 4vh auto !important;
-      max-width: none !important; /* neutralize earlier globals safely */
+      max-width: none !important;
       max-height: none !important;
-      border-radius: 16px !important; /* nicer view than edge-to-edge */
+      border-radius: 16px !important;
       box-shadow: 0 10px 30px rgba(0,0,0,.25);
-      background: #000; /* match viewer bg */
+      background: #000;
       position: relative;
     }
     html.viewer .preview {
@@ -169,13 +180,11 @@ html.booting .placeholder { display: none !important; }
       height: 100% !important;
       position: relative;
     }
-    /* Layers fill the square box */
     html.viewer .bg,
     html.viewer .lottie-layer {
       position: absolute !important;
       inset: 0 !important;
     }
-    /* Background and Lottie fit within the square without stretching */
     html.viewer .bg img {
       width: 100% !important;
       height: 100% !important;
@@ -254,7 +263,21 @@ html.booting .placeholder { display: none !important; }
 
   <!-- Абсолютный путь к модулю -->
   <script type="module" src="src/app/main.js?v=0.15"></script>
-  <script src="build.js" defer></script>
+  <script src="build.js" defer onerror="(function(){try{var p=new URL(location.href).searchParams;var run=p.get('build')||String(Date.now());window.__BUILD__=window.__BUILD__||{run:run,ts:new Date().toISOString(),branch:'wip'};}catch(e){}})()"></script>
+  
+<script>
+  // Safety seed for window.__BUILD__ if not provided by build.js
+  (function(){
+    try{
+      if (!window.__BUILD__) {
+        var p = new URL(location.href).searchParams;
+        var run = p.get('build') || String(Date.now());
+        window.__BUILD__ = { run: run, ts: new Date().toISOString(), branch: 'wip' };
+      }
+    }catch(e){}
+  })();
+</script>
+
   <script src="build-tag.js" defer></script>
 </body>
 
