@@ -6,27 +6,6 @@ import { setPlaceholderVisible } from './utils.js';
 
 let anim = null;
 
-
-async function _fallbackIfSvgInvisible(container, lastAnim, animationData){
-  try {
-    // wait ~2 frames to allow layout
-    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-    const svg = container?.querySelector?.('svg');
-    const rect = svg?.getBoundingClientRect?.();
-    const ok = svg && rect && rect.width > 0 && rect.height > 0;
-    if (!ok && window.lottie && window.lottie.loadAnimation) {
-      try { lastAnim?.destroy?.(); } catch {}
-      container.innerHTML = '';
-      const anim2 = window.lottie.loadAnimation({
-        container, renderer: 'canvas', loop: true, autoplay: true, animationData
-      });
-      return anim2;
-    }
-  } catch (e) { console.error('fallback check failed', e); }
-  return lastAnim;
-}
-
-
 /* ========= ENV DETECT (PWA + mobile) ========= */
 (function detectEnv(){
   try {
@@ -258,9 +237,6 @@ const autoplay = !!state.loopOn;
       autoplay,
       animationData: lotJson
     });
-    
-    // verify SVG became visible, else fallback to canvas
-    anim = await _fallbackIfSvgInvisible(refs.lottieMount || refs.preview || refs.wrapper, anim, lotJson) || anim;
     }
 
     anim.addEventListener('DOMLoaded', () => {

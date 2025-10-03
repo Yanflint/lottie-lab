@@ -408,18 +408,3 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 #preview, #lotStage { pointer-events: auto; touch-action: none; }
 
 #lottie{pointer-events:auto;}
-
-
-/* === Lottie layers — safe defaults (patch) === */
-#preview, .preview { position: relative; overflow: hidden; }
-
-.multi-stage{ position: absolute; inset: 0; pointer-events: none; z-index: 4; }
-.multi-stage .lot-layer{ position: absolute; left: 0; top: 0; pointer-events: auto; }
-.multi-stage .lot-layer .lot-player{ position: relative; display: inline-block; }
-.multi-stage .lot-layer.selected{ outline: 1px dashed #6ee7b7; outline-offset: 2px; }
-
-/* Guarantee SVG visibility even if global styles try to hide it */
-.multi-stage svg{ display: block; opacity: 1; visibility: visible; mix-blend-mode: normal; filter: none; }
-
-/* If player becomes 0×0, give it a fallback footprint */
-.multi-stage .lot-layer .lot-player:empty::after{ content:""; display:block; width:256px; height:256px; }

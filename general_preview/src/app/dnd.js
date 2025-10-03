@@ -1,29 +1,38 @@
-import { setBackgroundFromSrc, loadLottieFromData } from './lottie.js';
-import { setPlaceholderVisible, setDropActive } from './utils.js';
-import { setLastLottie } from './state.js';
+import { setBackgroundFromSrc } from './lottie.js';
+import { setPlaceholderVisible, setDropActive, afterTwoFrames } from './utils.js';
+import { addToHistory } from './history.js';
+import { addLottieLayer } from './layers.js';
 
 async function processFilesSequential(refs, files) {
-  let imgFile = null, jsonFile = null;
+  // Collect the first image and all JSONs
+  let imgFile = null;
+  const jsonFiles = [];
   for (const f of files) {
     if (!imgFile && f.type?.startsWith?.('image/')) imgFile = f;
     const isJson = f.type === 'application/json' || f.name?.endsWith?.('.json') || f.type === 'text/plain';
-    if (!jsonFile && isJson) jsonFile = f;
+    if (isJson) jsonFiles.push(f);
   }
+
+  // Background first (optional)
   if (imgFile) {
     const url = URL.createObjectURL(imgFile);
     await setBackgroundFromSrc(refs, url, { fileName: imgFile?.name });
     setPlaceholderVisible(refs, false);
-    try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); document.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
+    await afterTwoFrames(); await afterTwoFrames();
+    try { document.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
   }
-  if (jsonFile) {
-    const text = await jsonFile.text();
+
+  // Add all JSONs as layers
+  for (const f of jsonFiles) {
     try {
+      const text = await f.text();
       const json = JSON.parse(text);
-      setLastLottie(json);
-      await loadLottieFromData(refs, json);
+      const hid = addToHistory({ data: json, name: f.name }); try{ document.dispatchEvent(new CustomEvent('lp:history-updated')); }catch{}
+      await addLottieLayer(refs, json, f.name, hid);
       setPlaceholderVisible(refs, false);
-    try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); document.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
-    } catch (e) { console.error('Invalid JSON', e); }
+    } catch (e) {
+      console.error('Ошибка парсинга Lottie JSON', e);
+    }
   }
 }
 
@@ -35,22 +44,19 @@ export function initDnd({ refs }) {
   const onDrop = async (e) => {
     e.preventDefault(); depth = 0; setDropActive(false);
     const dt = e.dataTransfer; if (!dt) return;
-    if (dt.files && dt.files.length) return processFilesSequential(refs, Array.from(dt.files));
-    if (dt.items && dt.items.length) {
-      const files = [];
+    const files = dt.files && dt.files.length ? Array.from(dt.files) : [];
+    if (!files.length && dt.items && dt.items.length) {
       for (const it of dt.items) if (it.kind === 'file') { const f = it.getAsFile(); if (f) files.push(f); }
-      if (files.length) return processFilesSequential(refs, files);
     }
+    if (files.length) return processFilesSequential(refs, files);
   };
+
   window.addEventListener('dragenter', onDragEnter);
   window.addEventListener('dragover', onDragOver);
   window.addEventListener('dragleave', onDragLeave);
   window.addEventListener('drop', onDrop);
-  document.addEventListener('dragenter', onDragEnter);
-  document.addEventListener('dragover', onDragOver);
-  document.addEventListener('dragleave', onDragLeave);
-  document.addEventListener('drop', onDrop);
 
+  // Paste: image and JSON
   document.addEventListener('paste', async (e) => {
     const items = e.clipboardData?.items || [];
     const files = []; let textCandidate = null;
@@ -61,7 +67,15 @@ export function initDnd({ refs }) {
       }
     }
     if (files.length) await processFilesSequential(refs, files);
-    if (textCandidate) { try { const json = JSON.parse(textCandidate); setLastLottie(json); await loadLottieFromData(refs, json); setPlaceholderVisible(refs, false);
-    try { const { afterTwoFrames } = await import('./utils.js'); await afterTwoFrames(); await afterTwoFrames(); document.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {} } catch {} }
+    if (textCandidate) {
+      try {
+        const json = JSON.parse(textCandidate);
+        const hid = addToHistory({ data: json, name: 'pasted.json' }); try{ document.dispatchEvent(new CustomEvent('lp:history-updated')); }catch{}
+        await addLottieLayer(refs, json, 'pasted.json', hid);
+        setPlaceholderVisible(refs, false);
+        await afterTwoFrames(); await afterTwoFrames();
+        try { document.dispatchEvent(new CustomEvent('lp:content-painted')); } catch {}
+      } catch {}
+    }
   });
 }
