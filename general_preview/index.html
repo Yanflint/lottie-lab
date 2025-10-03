@@ -2,24 +2,7 @@
 <html lang="ru">
 
 <head>
-    <script>
-  (function(){
-    try{
-      var isSharePath = /^\/s\//.test(location.pathname);
-      if (isSharePath) {
-        var head = document.getElementsByTagName('head')[0];
-        // If there is an existing <base>, remove it to avoid conflicts
-        var existing = head.querySelector('base[href]');
-        if (existing) head.removeChild(existing);
-        var base = document.createElement('base');
-        base.href = '/';
-        head.insertBefore(base, head.firstChild);
-      }
-    }catch(e){}
-  })();
-  </script>
-
-  <base href="./">
+    <base href="./">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Lottie-превью</title>

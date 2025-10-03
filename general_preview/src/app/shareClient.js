@@ -88,7 +88,16 @@ async function postPayload(payload) {
       if (data && typeof data.url === 'string') return data.url;
       if (data && data.id) {
         const origin = (window.__PUBLIC_ORIGIN__) || location.origin;
-        return origin.replace(/\/$/, '') + '/s/' + encodeURIComponent(data.id);
+        const u = new URL(location.href);
+// keep only the current directory (relative paths stay intact in / and /wip/)
+u.search = '';
+u.hash = '';
+if (!u.pathname.endsWith('/')) {
+  u.pathname = u.pathname.replace(/[^/]*$/, '');
+}
+u.searchParams.set('id', data.id);
+return u.pathname + '?' + u.searchParams.toString();
+
       }
       throw new Error('share: пустой ответ API');
     } catch (e) {
