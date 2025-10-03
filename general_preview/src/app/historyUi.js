@@ -1,3 +1,4 @@
+import { setLastLottie } from './state.js';
 
 // src/app/historyUi.js
 import { getHistory, removeItem, clearHistory, getItem } from './history.js';
