@@ -143,6 +143,52 @@ html.booting .controls,
 html.booting #mode,
 html.booting .placeholder { display: none !important; }
 </style>
+
+  <!-- Viewer desktop sizing fix: keep square preview centered; do not stretch fullscreen -->
+  <style id="viewer-desktop-fix">
+  /* Desktop browser viewer (mouse/trackpad): square, centered, not fullscreen */
+  @media (hover: hover) and (pointer: fine) {
+    html.viewer .page,
+    html.viewer .app {
+      height: auto !important;
+    }
+    html.viewer .wrapper {
+      width: min(90vmin, 960px) !important;
+      height: auto !important;
+      aspect-ratio: 1 / 1 !important;
+      margin: 4vh auto !important;
+      max-width: none !important; /* neutralize earlier globals safely */
+      max-height: none !important;
+      border-radius: 16px !important; /* nicer view than edge-to-edge */
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+      background: #000; /* match viewer bg */
+      position: relative;
+    }
+    html.viewer .preview {
+      width: 100% !important;
+      height: 100% !important;
+      position: relative;
+    }
+    /* Layers fill the square box */
+    html.viewer .bg,
+    html.viewer .lottie-layer {
+      position: absolute !important;
+      inset: 0 !important;
+    }
+    /* Background and Lottie fit within the square without stretching */
+    html.viewer .bg img {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: contain !important;
+    }
+    html.viewer #lotStage,
+    html.viewer #lottie {
+      width: 100% !important;
+      height: 100% !important;
+    }
+  }
+  </style>
+
 </head>
 
 
