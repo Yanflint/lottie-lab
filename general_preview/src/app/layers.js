@@ -191,26 +191,3 @@ export function initLayersHotkeys(){
 }
 
 document.addEventListener('DOMContentLoaded', () => { try { initLayersHotkeys(); } catch {} });
-
-
-export function getLayersSnapshot(){
-  const arr = Array.from(document.querySelectorAll('.multi-stage .lot-layer'));
-  return arr.map((el, idx) => {
-    const p = el.__pos || {x:0,y:0};
-    const vis = el.style.display !== 'none';
-    const anim = el.__anim;
-    const data = el.__data || (anim && anim.animationData) || null;
-    const player = el.querySelector('.lot-player');
-    const w = player ? player.clientWidth : (data?.w || 0);
-    const h = player ? player.clientHeight : (data?.h || 0);
-    return {
-      id: el.dataset.id || String(idx),
-      tagId: el.dataset.historyId || null,
-      name: el.dataset.name || 'Lottie',
-      x: +p.x || 0, y: +p.y || 0,
-      visible: !!vis,
-      w: +w || 0, h: +h || 0,
-      data
-    };
-  });
-}
