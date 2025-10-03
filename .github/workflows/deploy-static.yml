@@ -4,12 +4,20 @@ on:
   push:
     branches: [ "main", "wip" ]
   workflow_dispatch:
+    inputs:
+      target:
+        description: "Куда деплоим?"
+        type: choice
+        required: true
+        options: [ "prod", "wip" ]
+        default: "wip"
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
       AWS_DEFAULT_REGION: ru-central1
+<<<<<<< Updated upstream
       AWS_ENDPOINT_URL: https://storage.yandexcloud.net
       S3_BUCKET: ${{ vars.S3_BUCKET }}
     steps:
@@ -53,11 +61,46 @@ jobs:
 
       # 3) Заливаем всё, кроме index.html и build.js (их положим отдельно без кэша)
       - name: Upload assets (exclude index.html & build.js)
+=======
+      S3_ENDPOINT: https://storage.yandexcloud.net
+      S3_BUCKET: ${{ vars.S3_BUCKET }}   # имя бакета из Variables
+      # вычисляем префикс
+      PREFIX: ${{ github.ref_name == 'main' && '' || (github.ref_name == 'wip' && 'wip/' || '') }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Согласовываем manual target с веткой (fail-fast, если не совпало)
+      - name: Validate manual target (only on dispatch)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          target='${{ inputs.target }}'
+          ref='${{ github.ref_name }}'
+          if [ "$target" = "prod" ] && [ "$ref" != "main" ]; then
+            echo "::error ::Manual target=prod, но ветка не main"; exit 1
+          fi
+          if [ "$target" = "wip" ] && [ "$ref" = "main" ]; then
+            echo "::error ::Manual target=wip, но ветка main"; exit 1
+          fi
+
+      - name: Build (генерация build.js и т.п.)
+        run: |
+          # ваш билд тут
+          echo "build..."
+
+      - name: Sync static
+>>>>>>> Stashed changes
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
         run: |
+<<<<<<< Updated upstream
           aws s3 sync ./general_preview "s3://${S3_BUCKET}/${{ steps.path.outputs.prefix }}"             --endpoint-url "$AWS_ENDPOINT_URL"             --delete             --exclude "index.html"             --exclude "build.js"             --cache-control "public,max-age=31536000,immutable"
+=======
+          DEST="s3://${S3_BUCKET}/${PREFIX}"
+          echo "Sync to $DEST"
+          aws s3 sync ./general_preview "$DEST" \
+            --delete --acl public-read --endpoint-url "${S3_ENDPOINT}"
+>>>>>>> Stashed changes
 
       # 4) Кладём build.js без кэша (обновляется каждый пуш)
       - name: Upload build.js (no cache)
@@ -65,6 +108,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
         run: |
+<<<<<<< Updated upstream
           aws s3 cp ./general_preview/build.js "s3://${S3_BUCKET}/${{ steps.path.outputs.prefix }}build.js"             --endpoint-url "$AWS_ENDPOINT_URL"             --cache-control "no-store"             --content-type "application/javascript"             --metadata-directive REPLACE
 
       # 5) Кладём index.html без кэша и ПОСЛЕДНИМ
@@ -76,3 +120,9 @@ jobs:
           if [ -f ./general_preview/index.html ]; then
             aws s3 cp ./general_preview/index.html "s3://${S3_BUCKET}/${{ steps.path.outputs.prefix }}index.html"               --endpoint-url "$AWS_ENDPOINT_URL"               --cache-control "no-store"               --content-type "text/html"               --metadata-directive REPLACE
           fi
+=======
+          DEST="s3://${S3_BUCKET}/${PREFIX}build.js"
+          aws s3 cp general_preview/build.js "$DEST" \
+            --cache-control "max-age=0" --metadata-directive REPLACE \
+            --acl public-read --endpoint-url "${S3_ENDPOINT}"
+>>>>>>> Stashed changes

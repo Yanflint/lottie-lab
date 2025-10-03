@@ -1,12 +1,14 @@
 // src/app/controls.js
 import { restart, setLoop } from './lottie.js';
+import { restartAll, setLoopAll } from './layers.js';
 import { state } from './state.js';
 
 export function initControls({ refs }) {
   // Кнопка повторного проигрывания
   if (refs?.restartBtn) {
     refs.restartBtn.addEventListener('click', () => {
-      restart();
+      try { restart(); } catch {}
+      try { restartAll(); } catch {}
     });
   }
 
@@ -18,7 +20,8 @@ export function initControls({ refs }) {
     refs.loopChk.addEventListener('change', (e) => {
       const on = !!e.target.checked;
       state.loopOn = on;      // запомним в общем состоянии
-      setLoop(on);            // переключим текущую анимацию "на лету"
+      setLoop(on);
+      try { setLoopAll(on); } catch {}            // переключим текущую анимацию "на лету"
     });
   }
 }

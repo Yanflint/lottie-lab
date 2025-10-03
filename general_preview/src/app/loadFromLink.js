@@ -1,6 +1,7 @@
 // Загружаем по /s/:id. Если id нет и это standalone, пробуем "последний" снимок.
 // Флаг цикла (opts.loop) применяем до создания анимации.
 import { setPlaceholderVisible, afterTwoFrames } from './utils.js';
+import { renderFromPayload } from './layers.js';
 
 async function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 async function fetchStableLastPayload(maxMs=2000){
@@ -72,8 +73,7 @@ async function applyPayload(refs, data) {
     
     try { layoutLottie(refs); } catch {}try { layoutLottie(); } catch {}
 } catch {}
-    setLastLottie(data.lot);
-    await loadLottieFromData(refs, data.lot); // учтёт state.loopOn
+    renderFromPayload({ refs }, data); // учтёт state.loopOn
   }
 
   setPlaceholderVisible(refs, false);
