@@ -23,6 +23,17 @@
 
   <!-- Lottie -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js" defer></script>
+<script>
+  /* Viewer-mode fallback for share links on non-/s/ paths (e.g., /wip/?id=...) */
+  (function () {
+    try {
+      var sp = new URL(location.href).searchParams;
+      var hasShareParam = ['id','s','share','payload','rev'].some(function(k){ return sp.has(k); });
+      if (hasShareParam) { document.documentElement.classList.add('viewer'); }
+    } catch (e) {}
+  })();
+</script>
+
 
   <!-- ВАЖНО: абсолютный путь, чтобы работало по /s/:id -->
   <link rel="stylesheet" href="style.css" />
@@ -143,6 +154,40 @@ html.booting .controls,
 html.booting #mode,
 html.booting .placeholder { display: none !important; }
 </style>
+
+  <!-- Viewer desktop sizing fix: keep square preview centered; do not stretch fullscreen -->
+  <style id="viewer-desktop-fix">
+  @media screen and (min-width: 840px) {
+    html.viewer .page,
+    html.viewer .app { height: auto !important; }
+
+    html.viewer .wrapper {
+      width: min(90vmin, 960px) !important;
+      height: auto !important;
+      aspect-ratio: 1 / 1 !important;
+      margin: 4vh auto !important;
+      max-width: none !important;
+      max-height: none !important;
+      border-radius: 16px !important;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+      background: #000;
+      position: relative;
+    }
+    html.viewer .preview { width: 100% !important; height: 100% !important; position: relative; }
+
+    html.viewer .bg,
+    html.viewer .lottie-layer { position: absolute !important; inset: 0 !important; }
+
+    html.viewer .bg img {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: contain !important;
+    }
+    html.viewer #lotStage,
+    html.viewer #lottie { width: 100% !important; height: 100% !important; }
+  }
+  </style>
+
 </head>
 
 
@@ -208,7 +253,21 @@ html.booting .placeholder { display: none !important; }
 
   <!-- Абсолютный путь к модулю -->
   <script type="module" src="src/app/main.js?v=0.15"></script>
-  <script src="build.js" defer></script>
+  <script src="build.js" defer onerror="(function(){try{var p=new URL(location.href).searchParams;var run=p.get('build')||String(Date.now());window.__BUILD__=window.__BUILD__||{run:run,ts:new Date().toISOString(),branch:'wip'};}catch(e){}})()"></script>
+  
+  <script>
+    /* Safety seed for window.__BUILD__ if not provided by build.js (kept for local runs) */
+    (function(){
+      try{
+        if (!window.__BUILD__) {
+          var p = new URL(location.href).searchParams;
+          var run = p.get('build') || String(Date.now());
+          window.__BUILD__ = { run: run, ts: new Date().toISOString(), branch: 'wip' };
+        }
+      }catch(e){}
+    })();
+  </script>
+
   <script src="build-tag.js" defer></script>
 </body>
 
