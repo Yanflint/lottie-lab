@@ -62,4 +62,3 @@ jobs:
           aws s3 cp general_preview/build.js "$DEST" \
             --cache-control "max-age=0" --metadata-directive REPLACE \
             --acl public-read --endpoint-url "${S3_ENDPOINT}"
-ы
