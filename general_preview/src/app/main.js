@@ -1,12 +1,3 @@
-// --- PWA visibility gating control ---
-const IS_STANDALONE = (typeof window !== 'undefined') && (
-  (window.matchMedia && (window.matchMedia('(display-mode: standalone)').matches ||
-                         window.matchMedia('(display-mode: fullscreen)').matches ||
-                         window.matchMedia('(display-mode: minimal-ui)').matches)) ||
-  (typeof navigator !== 'undefined' && navigator.standalone === true) // iOS Safari
-);
-const GATE_BY_VISIBILITY = !IS_STANDALONE; // in PWA do not gate ticks by document.visibilityState
-// --------------------------------------
 // src/app/main.js
 
 // 1) Отметка standalone (A2HS)
@@ -17,6 +8,8 @@ const isStandalone =
   (navigator.standalone === true);
 
 if (isStandalone) document.documentElement.classList.add('standalone');
+try{ document.documentElement.classList.remove('booting'); }catch(e){}
+
 
 // Viewer mode on /s/*
 const isViewer = /^\/s\//.test(location.pathname);
