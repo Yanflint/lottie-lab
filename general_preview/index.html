@@ -23,16 +23,6 @@
 
   <!-- Lottie -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js" defer></script>
-<script>
-  /* Viewer-mode fallback for share links on non-/s/ paths (e.g., /wip/?id=...) */
-  (function () {
-    try {
-      var sp = new URL(location.href).searchParams;
-      var hasShareParam = ['id','s','share','payload','rev'].some(function(k){ return sp.has(k); });
-      if (hasShareParam) { document.documentElement.classList.add('viewer'); }
-    } catch (e) {}
-  })();
-</script>
 
 
   <!-- ВАЖНО: абсолютный путь, чтобы работало по /s/:id -->
