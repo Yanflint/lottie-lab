@@ -200,6 +200,21 @@ export function setLoop(on) {
  * — задаём габариты стейджа по w/h из JSON
  */
 export async function loadLottieFromData(refs, data) {
+  /* __ensure_mount__ */
+  try { if (!refs || typeof refs !== 'object') refs = {}; } catch {}
+  let mount = null;
+  try {
+    mount = (refs && refs.lottieMount) || document.getElementById('lottie');
+    if (!mount) {
+      mount = document.createElement('div');
+      mount.id = 'lottie';
+      mount.className = 'lottie-mount';
+      const host = (refs && (refs.lotStage || refs.preview || refs.wrapper)) || document.getElementById('lotStage') || document.getElementById('preview') || document.getElementById('wrapper') || document.body;
+      try { host.appendChild(mount); } catch {}
+      if (refs) refs.lottieMount = mount;
+    }
+  } catch {}
+
   try {
     const lotJson = typeof data === 'string' ? JSON.parse(data) : data;
     if (!lotJson || typeof lotJson !== 'object') return null;
@@ -224,14 +239,14 @@ const autoplay = !!state.loopOn;
     const engine = pickEngine();
     if (engine === 'rlottie') {
       anim = createRlottiePlayer({
-        container: refs.lottieMount,
+        container: mount,
         loop,
         autoplay,
         animationData: lotJson
       });
     } else {
       anim = window.lottie.loadAnimation({
-      container: refs.lottieMount,
+      container: mount,
       renderer: 'svg',
       loop,
       autoplay,
