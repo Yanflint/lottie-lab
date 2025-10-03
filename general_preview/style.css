@@ -408,3 +408,28 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 #preview, #lotStage { pointer-events: auto; touch-action: none; }
 
 #lottie{pointer-events:auto;}
+
+
+/* === Lottie visibility fixes === */
+#wrapper { position: relative; }
+#preview, .preview { position: relative; width: 100%; height: 100%; overflow: hidden; }
+#lottie { position: absolute; inset: 0; }
+
+/* Multi-layer stage should cover preview and clip children */
+.multi-stage { position: absolute; inset: 0; pointer-events: none; z-index: 1000; overflow: hidden; background: transparent; }
+.multi-stage .lot-layer { position: absolute; left: 0; top: 0; pointer-events: auto; }
+.multi-stage .lot-layer .lot-player { position: relative; display: inline-block; }
+.multi-stage .lot-layer.selected { outline: 1px dashed #6ee7b7; outline-offset: 2px; }
+
+/* Guarantee SVG visibility */
+.multi-stage svg, #lottie svg { display: block; opacity: 1; visibility: visible; mix-blend-mode: normal; filter: none; isolation: isolate; transform: translateZ(0); }
+
+/* Fallback size for empty players */
+.multi-stage .lot-layer .lot-player:empty::after { content: ""; display: block; width: 256px; height: 256px; }
+
+/* Background/placeholder below everything */
+#ph { z-index: 0; }
+#background, #bgImg { position: absolute; inset: 0; object-fit: contain; z-index: 0; }
+
+/* Remove unexpected visual effects */
+#preview, .preview, #lottie, .multi-stage, .lot-layer, .lot-player { mix-blend-mode: normal; filter: none; backdrop-filter: none; opacity: 1; }
