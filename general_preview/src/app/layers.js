@@ -2,6 +2,7 @@
 // src/app/layers.js
 import { pickEngine } from './engine.js';
 import { createPlayer as createRlottiePlayer } from './rlottieAdapter.js';
+import { setLastLottie } from './state.js';
 // Multi-layer manager: multiple Lottie animations shown simultaneously inside #preview,
 // each has its own (x,y) and can be toggled visible/hidden. Layers are clipped by preview bounds.
 
@@ -123,6 +124,7 @@ export async function addLottieLayer(refs, animationData, name='Lottie', tagId=n
     container: player, renderer: 'svg', loop: true, autoplay: true, animationData
   });
   layer.__anim = anim;
+  try { setLastLottie(animationData); } catch {}
   try { (document.getElementById('ph')||{}).classList.add('hidden'); } catch {}
 
   makeDraggable(layer);

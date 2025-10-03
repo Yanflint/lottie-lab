@@ -127,6 +127,7 @@ export function initHistoryUI(){
       if (!has){
         // create once, then will be toggled
         await ensureLayerFor(id, it.data, it.name);
+        try { setLastLottie(it.data); } catch {}
         setLayerVisibleByTag(id, true);
       } else {
         const vis = isLayerVisibleByTag(id);
