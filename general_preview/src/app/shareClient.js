@@ -1,107 +1,150 @@
-// Клиент «Поделиться»
-import { state } from './state.js';
-import { withLoading, showToastNear } from './utils.js';
-import { savePinned } from './pinned.js';
+// general_preview/src/app/shareClient.js
+// build yc14 (silent)
+import { showSuccessToast, showErrorToast } from './updateToast.js';
+import { withLoading } from './utils.js';
+import { state, getLotOffset } from './state.js';
 
-async function imageElementToDataURL(imgEl) {
-  if (!imgEl || !imgEl.src) return null;
-  const src = imgEl.src;
-  if (src.startsWith('data:')) return src;
-  if (src.startsWith('blob:')) {
-    await new Promise((res) => {
-      if (imgEl.complete && imgEl.naturalWidth) return res();
-      imgEl.onload = () => res();
-      imgEl.onerror = () => res();
-    });
-    const blob = await (await fetch(src)).blob().catch(() => null);
-    if (!blob) return null;
-    return await new Promise((resolve) => {
-      const fr = new FileReader();
-      fr.onload = () => resolve(fr.result);
-      fr.onerror = () => resolve(null);
-      fr.readAsDataURL(blob);
-    });
-  }
-  return src;
+// API endpoint (Yandex Cloud Function). No trailing slash.
+export const API_BASE = 'https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p'.replace(/\/+$/, '');
+// Use only the base path (no /share) to avoid CORS noise.
+const PATHS = [''];
+
+function bgMeta() {
+  return {
+    name: (state.lastBgMeta?.fileName || ''),
+    assetScale: (+state.lastBgMeta?.assetScale || 1)
+  };
 }
 
-async function buildPayload(refs) {
-  const rawLot = state.lastLottieJSON;
-  if (!rawLot) throw new Error('Нет данных Lottie');
-  const lot = JSON.parse(JSON.stringify(rawLot));
-  try {
-    const pos = state.lotOffset || { x:0, y:0 };
-    lot.meta = lot.meta || {};
-    lot.meta._lpPos = { x: +pos.x || 0, y: +pos.y || 0 };
-  } catch {}
+function readCurrentBg() {
+  const img = document.getElementById('bgImg');
+  if (!img) return null;
+  const src = (img.currentSrc || img.src || '').trim();
+  if (!src) return null;
+  const meta = bgMeta();
 
-  let bg = null;
-  const imgEl = refs?.bgImg;
-  if (imgEl && imgEl.src) {
-    const maybeData = await imageElementToDataURL(imgEl);
-    const name = (state.lastBgMeta?.fileName || '');
-    const assetScale = (state.lastBgMeta?.assetScale || undefined);
-    if (maybeData && typeof maybeData === 'string' && maybeData.startsWith('data:')) {
-      bg = { kind:'data', value: maybeData, name, assetScale };
-    } else if (maybeData) {
-      bg = { kind:'url',  value: maybeData, name, assetScale };
-    }
+  if (/^blob:/.test(src)) {
+    const w = img.naturalWidth || img.width || 0;
+    const h = img.naturalHeight || img.height || 0;
+    if (w <= 0 || h <= 0) return null;
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+    const dataUrl = c.toDataURL('image/png');
+    return { value: dataUrl, ...meta };
   }
+  return { value: src, ...meta };
+}
+
+async function collectPayloadOrThrow() {
+  const lot = state.lastLottieJSON || null;
+  const bg  = readCurrentBg();
+
+  if (!lot && !bg) {
+    const err = new Error('Загрузите графику');
+    err.code = 'NO_ASSETS';
+    throw err;
+  }
+  if (lot && !bg) {
+    const err = new Error('Загрузите фон');
+    err.code = 'NO_BG';
+    throw err;
+  }
+  if (bg && !lot) {
+    const err = new Error('Загрузите анимацию');
+    err.code = 'NO_LOTTIE';
+    throw err;
+  }
+
+  try {
+    lot.meta = lot.meta || {};
+    const off = getLotOffset();
+    lot.meta._lpOffset = { x: +off.x || 0, y: +off.y || 0 };
+    lot.meta._lpPos    = { x: +off.x || 0, y: +off.y || 0 };
+    if (state.lastBgMeta && (state.lastBgMeta.fileName || state.lastBgMeta.assetScale)) {
+      lot.meta._lpBgMeta = { fileName: state.lastBgMeta.fileName || '', assetScale: +state.lastBgMeta.assetScale || 1 };
+    }
+  } catch {}
 
   const opts = { loop: !!state.loopOn };
   return { lot, bg, opts };
 }
 
-async function copyToClipboard(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.position = 'fixed';
-    ta.style.left = '-9999px';
-    document.body.appendChild(ta);
-    ta.select();
+async function postPayload(payload) {
+  let lastErr = null;
+  for (const p of PATHS) {
+    const url = API_BASE + p;
     try {
-      document.execCommand('copy');
-      return true;
-    } catch {
-      return false;
-    } finally {
-      document.body.removeChild(ta);
+      const bodyStr = JSON.stringify(payload);
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: bodyStr,
+      });
+      const txt = await resp.text();
+      let data = null; try { data = txt ? JSON.parse(txt) : null; } catch {}
+      if (!resp.ok) throw new Error(`share failed: ${resp.status}`);
+      if (data && typeof data.url === 'string') return data.url;
+      if (data && data.id) {
+        const origin = (window.__PUBLIC_ORIGIN__) || location.origin;
+        return origin.replace(/\/$/, '') + '/s/' + encodeURIComponent(data.id);
+      }
+      throw new Error('share: пустой ответ API');
+    } catch (e) {
+      lastErr = e;
     }
   }
+  throw lastErr || new Error('share: все попытки не удались');
 }
 
-export function initShare({ refs }) {
-  const btn = refs?.shareBtn;
-  if (!btn) return;
+// Public API
+export async function createShareLink() {
+  const payload = await collectPayloadOrThrow();
+  return postPayload(payload);
+}
 
-  btn.addEventListener('click', async () => {
-    const hasLot = !!state.lastLottieJSON;
-    const hasBg  = !!(refs?.bgImg && refs.bgImg.src);
-    if (!hasLot && !hasBg) { showToastNear(refs.toastEl, btn, 'Загрузите графику'); return; }
-    if (!hasLot && hasBg)  { showToastNear(refs.toastEl, btn, 'Загрузите анимацию'); return; }
-    if (hasLot && !hasBg)  { showToastNear(refs.toastEl, btn, 'Загрузите фон'); return; }
-
-    await withLoading(btn, async () => {
-      const payload = await buildPayload(refs);
-      const res = await fetch('/api/share', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json; charset=utf-8' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const t = await res.text().catch(() => '');
-        throw new Error(`share failed: ${res.status}${t ? ' ' + t : ''}`);
+export function initShare({ onSuccess, onError } = {}) {
+  const btn = document.querySelector('[data-share], #shareBtn');
+  if (!btn) return { destroy(){} };
+  async function handler(e) {
+    try {
+      e?.preventDefault?.();
+      // Pre-check: specific toasts depending on what's missing
+      const hasLot = !!state.lastLottieJSON;
+      const hasBg  = !!readCurrentBg();
+      if (!hasLot && !hasBg) {
+        showErrorToast('Загрузите графику', btn);
+        return;
       }
-      const { id } = await res.json();
-      const shortUrl = `${location.origin}/s/${id}`;
-
-      savePinned(payload);
-      await copyToClipboard(shortUrl);
-      showToastNear(refs.toastEl, btn, 'Ссылка скопирована');
-    });
-  });
+      if (hasLot && !hasBg) {
+        showErrorToast('Загрузите фон', btn);
+        return;
+      }
+      if (hasBg && !hasLot) {
+        showErrorToast('Загрузите анимацию', btn);
+        return;
+      }
+      const url = await withLoading(btn, () => createShareLink());
+      try { await navigator.clipboard.writeText(url); } catch {}
+      showSuccessToast('Ссылка скопирована', btn);
+      const out = document.querySelector('#shareUrl,[data-share-url]');
+      if (out) { if ('value' in out) out.value = url; else out.textContent = url; }
+      onSuccess?.(url);
+    } catch (err) {
+      const m = (err?.message || '').toLowerCase();
+      if (err?.code === 'NO_ASSETS' || m.includes('Загрузите графику')) {
+        showErrorToast('Загрузите графику', btn);
+      } else if (err?.code === 'NO_BG' || m.includes('Загрузите фон')) {
+        showErrorToast('Загрузите фон', btn);
+      } else if (err?.code === 'NO_LOTTIE' || m.includes('Загрузите анимацию')) {
+        showErrorToast('Загрузите анимацию', btn);
+      } else {
+        showErrorToast(err?.message || 'Share failed', btn);
+      }
+      onError?.(err);
+    }
+  }
+  btn.addEventListener('click', handler);
+  return { destroy(){ btn.removeEventListener('click', handler); } };
 }

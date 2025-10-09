@@ -398,3 +398,13 @@ button::-moz-focus-inner{ border:0 !important; }
 html:not(.viewer) #lotStage { cursor: grab; }
 html:not(.viewer) .lp-grabbing, 
 html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
+
+/* stage pointer events for drag */
+#lotStage,.lot-stage{pointer-events:auto}
+.bg{pointer-events:none}
+
+
+/* drag-hotfix */
+#preview, #lotStage { pointer-events: auto; touch-action: none; }
+
+#lottie{pointer-events:auto;}
