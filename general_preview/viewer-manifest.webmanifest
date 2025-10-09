@@ -1,7 +1,7 @@
 {
-  "name": "Lottie Preview",
-  "short_name": "Lottie",
-  "start_url": "/s/last",
+  "name": "Lottie Viewer",
+  "short_name": "Viewer",
+  "start_url": "/viewer/launch.html",
   "scope": "/",
   "display": "standalone",
   "background_color": "#000000",

@@ -8,8 +8,6 @@ const isStandalone =
   (navigator.standalone === true);
 
 if (isStandalone) document.documentElement.classList.add('standalone');
-try{ document.documentElement.classList.remove('booting'); }catch(e){}
-
 
 // Viewer mode on /s/*
 const isViewer = /^\/s\//.test(location.pathname);
@@ -29,7 +27,7 @@ import { initDnd }           from './dnd.js';
 import { state }           from './state.js';
 import { getAnim, restart } from './lottie.js';
 import { initControls }      from './controls.js';
-import { initShare }         from './shareClient.js?v=yc14';
+import { initShare }         from './shareClient.js';
 import { initLoadFromLink }  from './loadFromLink.js';
 import { layoutLottie }      from './lottie.js';
 import { initAutoRefreshIfViewingLast } from './autoRefresh.js'; // ← НОВОЕ
@@ -76,7 +74,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 showToastIfFlag(); // покажет "Обновлено", если страница была перезагружена авто-рефрешом
 
   // Авто-рефреш для /s/last (Viewer)
-  if (isViewer) initAutoRefreshIfViewingLast(); // run only on /s/* viewer
+  initAutoRefreshIfViewingLast(); // ← НОВОЕ
 
   await initLoadFromLink({ refs, isStandalone });
 
