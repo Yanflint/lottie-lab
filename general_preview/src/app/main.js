@@ -37,13 +37,18 @@ function installViewerFixCSS() {
       s = document.createElement('style');
       s.id = '__viewerFix';
       s.textContent = `
-      html.viewer body, html.viewer html { height:auto !important; }
+      
+      html.viewer html, html.viewer body { height:100%; overflow:hidden !important; }
+      html.viewer .page { min-height:100dvh; display:grid; place-items:center; padding:16px; }
       html.viewer .app { width:auto !important; max-width:none !important; }
       html.viewer .wrapper {
+        /* intrinsic size */
         width:auto !important;
         height:var(--preview-h, auto) !important;
         aspect-ratio:var(--preview-ar, auto) !important;
-        max-width:none !important; max-height:none !important;
+        /* scale down to fit viewport, avoid scrollbars */
+        max-width: calc(100vw - 32px) !important;
+        max-height: calc(100dvh - 32px) !important;
         margin:0 auto !important;
       }
       html.viewer .bg img {
@@ -52,12 +57,18 @@ function installViewerFixCSS() {
         display:block !important; margin:0 auto !important;
       }
       @media (max-width: 768px){
+        html.viewer .page { padding:0; }
         html.viewer .wrapper {
           width:100vw !important; max-width:100vw !important;
-          height:auto !important; max-height:none !important;
+          height:auto !important; max-height:calc(100dvh) !important;
           aspect-ratio:var(--preview-ar, auto) !important;
           margin:0 !important; border-radius:0 !important; overflow:hidden !important;
         }
+        html.viewer .bg img {
+          width:100vw !important; height:auto !important;
+          max-width:100vw !important; max-height:none !important;
+        }
+      }
         html.viewer .bg img {
           width:100vw !important; height:auto !important;
           max-width:100vw !important; max-height:none !important;
