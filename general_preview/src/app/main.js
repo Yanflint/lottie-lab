@@ -12,7 +12,7 @@ try{ document.documentElement.classList.remove('booting'); }catch(e){}
 
 
 // Viewer mode on /s/*
-const isViewer = /^\/s\//.test(location.pathname);
+const isViewer = /^\/s\//.test(location.pathname) || new URL(location.href).searchParams.has('id') || (window.__FORCE_VIEWER__===true);
 if (isViewer) document.documentElement.classList.add('viewer');
 
 // === Viewer Hard Override CSS Injection ===============================
