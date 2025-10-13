@@ -220,15 +220,7 @@ html.is-standalone.is-mobile .app{
 /* Превью во весь экран телефона, по центру.
    Если высота макета не влезает — обрежется по вертикали (overflow:hidden).
    Пропорции не меняем. */
-html.is-standalone.is-mobile .wrapper{
-  height:100dvh;
-  max-height:100dvh;
-  width:100vw;
-  max-width:100vw;
-  margin:0;
-  border-radius:0;
-  overflow:hidden;          /* обрезаем лишнее по краям */
-}
+html.is-standalone.is-mobile .wrapper{ /* kept for app; viewer overrides inline */ }
 
 /* Декор убираем на телефоне */
 html.is-standalone.is-mobile .wrapper::after{ display:none; }
@@ -408,43 +400,3 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 #preview, #lotStage { pointer-events: auto; touch-action: none; }
 
 #lottie{pointer-events:auto;}
-
-
-
-/* ===================== VIEWER BEHAVIOR FIXES ===================== */
-/* In shared-viewer mode (/s/), keep preview strictly 1:1 to its intrinsic size on desktop.
-   Positioning stays identical to editor; do NOT stretch to viewport. */
-html.viewer .wrapper{
-  /* keep natural size from --preview-h and --preview-ar */
-  max-height: none;
-  max-width: none;
-}
-
-/* In viewer mode, background image follows intrinsic size (wrapper defines the box). */
-html.viewer .bg img{
-  width: auto;
-  height: auto;
-  max-width: 100%;
-  max-height: 100%;
-  display: block;
-  margin: 0 auto;
-}
-
-/* On mobile browsers (not only standalone), fit preview by width and center it. */
-@media (max-width: 768px){
-  html.viewer .wrapper{
-    width: 100vw;
-    max-width: 100vw;
-    height: auto;               /* let aspect-ratio drive height */
-    max-height: none;
-    aspect-ratio: var(--preview-ar, auto);
-    margin: 0;
-    border-radius: 0;
-    overflow: hidden;
-  }
-  html.viewer .bg img{
-    width: 100vw;
-    height: auto;
-  }
-}
-/* ================================================================ */
