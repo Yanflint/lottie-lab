@@ -31,17 +31,11 @@ import { setBackgroundFromSrc, loadLottieFromData, layoutLottie } from './lottie
 import { loadPinned } from './pinned.js';
 
 function getShareIdFromLocation() {
-  // Support /s/:id and /wip/:id, or ?id=...
-  try {
-    const m = location.pathname.match(/\/(s|wip)\/([^\/?#]+)/);
-    if (m && m[2]) return m[2];
-  } catch {}
-  try {
-    const u = new URL(location.href);
-    const q = u.searchParams.get('id');
-    if (q) return q;
-  } catch {}
-  return null;
+  const m = location.pathname.match(/\/s\/([^/?#]+)/);
+  if (m && m[1]) return m[1];
+  const u = new URL(location.href);
+  const q = u.searchParams.get('id');
+  return q || null;
 }
 
 function applyLoopFromPayload(refs, data) {
