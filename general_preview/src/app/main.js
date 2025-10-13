@@ -52,27 +52,27 @@ function installViewerFixCSS() {
         margin:0 auto !important;
       }
       html.viewer .bg img {
-        width:auto !important; height:100% !important;
-        max-width:none !important; max-height:none !important;
-        display:block !important; margin:0 auto !important;
-      }
+  width: 100% !important; height: 100% !important;
+  object-fit: contain !important;
+  display: block !important; margin: 0 auto !important;
+}
+
       @media (max-width: 768px){
-        html.viewer .page { padding:0; }
-        html.viewer .wrapper {
-          width:100vw !important; max-width:100vw !important;
-          height:auto !important; max-height:calc(100dvh) !important;
-          aspect-ratio:var(--preview-ar, auto) !important;
-          margin:0 !important; border-radius:0 !important; overflow:hidden !important;
-        }
+  html.viewer .page { padding:0; }
+  html.viewer .wrapper {
+    width:100vw !important; max-width:100vw !important;
+    height:auto !important; max-height:calc(100dvh) !important;
+    aspect-ratio:var(--preview-ar, auto) !important;
+    margin:0 !important; border-radius:0 !important; overflow:hidden !important;
+  }
+}
+
         html.viewer .bg img {
-          width:100vw !important; height:auto !important;
-          max-width:100vw !important; max-height:none !important;
-        }
-      }
-        html.viewer .bg img {
-          width:100vw !important; height:auto !important;
-          max-width:100vw !important; max-height:none !important;
-        }
+  width: 100% !important; height: 100% !important;
+  object-fit: contain !important;
+  display: block !important; margin: 0 auto !important;
+}
+
       }`;
       document.head.appendChild(s);
     }
