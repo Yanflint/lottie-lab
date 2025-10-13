@@ -210,4 +210,53 @@ window.addEventListener('resize', () => { try { layoutLottie(refs); } catch {} }
     }
   } catch {}
 
+
+// === Hard viewer sizing override (resists external styles) ===
+function forceViewerSizing(refs){
+  try {
+    const isMobile = window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
+    const wrap = refs?.wrapper;
+    const bg   = refs?.bgImg;
+    if (!wrap || !bg) return;
+
+    // Read CSS variables (already set by setBackgroundFromSrc)
+    const cs = getComputedStyle(wrap);
+    const ar = cs.getPropertyValue('--preview-ar').trim();
+    const h  = cs.getPropertyValue('--preview-h').trim();
+
+    if (!isMobile) {
+      wrap.style.setProperty('width', 'auto', 'important');
+      if (h) wrap.style.setProperty('height', h, 'important');
+      if (ar) wrap.style.setProperty('aspect-ratio', ar, 'important');
+      wrap.style.setProperty('max-width', 'none', 'important');
+      wrap.style.setProperty('max-height', 'none', 'important');
+      wrap.style.setProperty('margin', '0 auto', 'important');
+
+      bg.style.setProperty('width', 'auto', 'important');
+      bg.style.setProperty('height', '100%', 'important');
+      bg.style.setProperty('max-width', 'none', 'important');
+      bg.style.setProperty('max-height', 'none', 'important');
+      bg.style.setProperty('display', 'block', 'important');
+      bg.style.setProperty('margin', '0 auto', 'important');
+    } else {
+      wrap.style.setProperty('width', '100vw', 'important');
+      wrap.style.setProperty('max-width', '100vw', 'important');
+      wrap.style.setProperty('height', 'auto', 'important');
+      wrap.style.setProperty('max-height', 'none', 'important');
+      wrap.style.setProperty('aspect-ratio', ar || 'auto', 'important');
+      wrap.style.setProperty('margin', '0', 'important');
+      wrap.style.setProperty('border-radius', '0', 'important');
+      wrap.style.setProperty('overflow', 'hidden', 'important');
+
+      bg.style.setProperty('width', '100vw', 'important');
+      bg.style.setProperty('height', 'auto', 'important');
+      bg.style.setProperty('max-width', '100vw', 'important');
+      bg.style.setProperty('max-height', 'none', 'important');
+      bg.style.setProperty('display', 'block', 'important');
+    }
+  } catch {}
+}
+
+  // Apply viewer sizing after first layout
+  try { if (isViewer) { setTimeout(() => forceViewerSizing(refs), 0); window.addEventListener('resize', () => forceViewerSizing(refs), { passive:true }); } } catch {}
 });
