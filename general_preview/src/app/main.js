@@ -19,9 +19,8 @@ try {
   if (isViewer && sessionStorage.getItem('lp_boot_refreshed') !== '1') {
     sessionStorage.setItem('lp_boot_refreshed','1');
     location.replace(location.href);
-} catch(e){}
-
-
+}
+catch(e){}
 // 2) Импорты модулей
 import { initDnd }           from './dnd.js';
 import { state }           from './state.js';
@@ -98,7 +97,6 @@ if (!isViewer) initDnd({ refs });
   // Hotkey: Reset (R) in editor only; allow Ctrl/Cmd+R refresh; ignore inputs; ru/en layout safe
   window.addEventListener('keydown', (e) => {
   try {
-    // В viewer хоткеи редактора не нужны
     if (isViewer) return;
   } catch(e){}
 
@@ -111,38 +109,11 @@ if (!isViewer) initDnd({ refs });
                    || t.getAttribute?.('role') === 'textbox'));
   if (isEditable) return;
 
-  // Reset (R) — пример горячей клавиши
   if (e.key && e.key.toLowerCase() === 'r') {
     try { e.preventDefault(); layoutLottie?.(refs); } catch(e){}
   }
-});if (isEditable) return;
+});
 
-    const isRCode = e.code === 'KeyR';
-    const isRKey  = (e.key === 'r' || e.key === 'R' || e.key === 'к' || e.key === 'К');
-    if (isRCode || isRKey) {
-      e.preventDefault();
-      try { setLotOffset(0, 0); } catch(e){}
-      try { relayout(); } catch(e){}
-    }
-  }, { passive: false });
-
-  // Тап = перезапуск (если было добавлено ранее)
-  const restartByTap = (e) => {
-    if (isViewer) return;
-    const isTouch = e.pointerType ? (e.pointerType === 'touch') : (e.touches && e.touches.length === 1);
-    if (!isTouch && !isStandalone) return;
-    if (refs.mode && refs.mode.contains(e.target)) return;
-    refs.restartBtn?.click();
-  };
-  refs.preview?.addEventListener('pointerdown', restartByTap, { passive: true });
-  refs.preview?.addEventListener('touchstart',  restartByTap, { passive: true });
-
-  // In viewer mode: click to RESTART animation (always from start)
-  if (isViewer && refs.preview) {
-    refs.preview.addEventListener('click', (e) => {
-      if (refs.mode && refs.mode.contains(e.target)) return;
-      try { restart(); } catch(e){}
-    });
 window.addEventListener('resize', () => { try { layoutLottie(refs); } catch(e){} });
 
   // ===== [TEST OVERLAY UI] only in viewer mode =====
@@ -223,6 +194,8 @@ function pokeLayout(){
   try { window.dispatchEvent(new Event('resize')); } catch(e){}
   try { if (window.lottie && window.lottie.resize) { window.lottie.resize(); } } catch(e){}
 }
+catch(e){}
+
 if (isViewer) {
   setTimeout(pokeLayout, 50);
   setTimeout(pokeLayout, 250);
@@ -231,23 +204,13 @@ if (isViewer) {
     if (window.visualViewport) {
       visualViewport.addEventListener('resize', pokeLayout, { passive:true });
       visualViewport.addEventListener('scroll',  pokeLayout, { passive:true });
-      if ('ongeometrychange' in visualViewport) visualViewport.addEventListener('geometrychange', pokeLayout, { passive:true });
+      if ('ongeometrychange' in visualViewport) {
+        visualViewport.addEventListener('geometrychange', pokeLayout, { passive:true });
+      }
+    }
   } catch(e){}
   window.addEventListener('orientationchange', pokeLayout, { passive:true });
   window.addEventListener('pageshow',          pokeLayout, { passive:true });
   document.addEventListener('visibilitychange', pokeLayout, { passive:true });
-// __viewer_pokes_wired__
-try {
-  if (isViewer) {
-    window.addEventListener('orientationchange', pokeLayout, {passive:true});
-    window.addEventListener('pageshow', pokeLayout, {passive:true});
-    document.addEventListener('visibilitychange', pokeLayout, {passive:true});
-    window.addEventListener('resize', pokeLayout, {passive:true});
-    if (window.visualViewport) {
-      visualViewport.addEventListener('resize', pokeLayout, {passive:true});
-      visualViewport.addEventListener('scroll', pokeLayout, {passive:true});
-      if ('ongeometrychange' in visualViewport) visualViewport.addEventListener('geometrychange', pokeLayout, {passive:true});
-    setTimeout(pokeLayout, 50);
-    setTimeout(pokeLayout, 250);
-    setTimeout(pokeLayout, 1000);
-} catch(e){}
+}
+
