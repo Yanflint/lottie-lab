@@ -1,30 +1,20 @@
 
-/* viewer.css — robust viewer sizing */
+/* viewer.css — DESKTOP viewer: intrinsic size, centered; no stretch */
 html.viewer, html.viewer body {
-  height: 100%;
   margin: 0;
   padding: 0;
   overflow: hidden;
 }
-html.viewer .page { width:100%; min-height:100dvh; display:grid; place-items:center; padding:0; }
-html.viewer .app, html.viewer .wrapper { width:auto; height:auto; margin:0; overflow:visible; }
-@supports (height: 1svh) {
-  html.viewer .page { width:100%; min-height:100dvh; display:grid; place-items:center; padding:0; }
-  html.viewer .app, html.viewer .wrapper { width:auto; height:auto; margin:0; overflow:visible; }
+
+html.viewer .page {
+  width: 100%;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 0;
 }
-/* No UI in viewer */
-html.viewer .controls, html.viewer #mode, html.viewer #dropOverlay, html.viewer .placeholder { display: none !important; }
-html.viewer .wrapper::after { display: none !important; }
-/* No rounding */
-html.viewer #wrapper, html.viewer .wrapper, html.viewer .preview,
-html.viewer .bg, html.viewer .bg img, html.viewer .lottie-layer,
-html.viewer #lotStage, html.viewer .lot-stage { border-radius: 0 !important; }
-/* Center & contain */
-html.viewer .bg { display: flex; align-items: center; justify-content: center; }
-html.viewer .bg img { display:block; margin:0 auto; width:auto; height:auto; max-width:calc(100vw - 64px); max-height:calc(100dvh - 64px); }
 
-
-/* --- Desktop viewer: intrinsic 1:1, centered --- */
+/* Hard desktop overrides */
 html.viewer .app,
 html.viewer .wrapper,
 html.viewer .preview,
@@ -50,13 +40,25 @@ html.viewer .bg img {
   max-width: calc(100vw - 64px) !important;
   max-height: calc(100dvh - 64px) !important;
   margin: 0 auto !important;
-  object-fit: contain !important; /* harmless with width/height:auto */
+  object-fit: contain !important; /* harmless with auto sizes */
 }
 
-/* Keep controls & decoration hidden */
+/* Hide any controls/decoration in viewer */
 html.viewer .controls,
 html.viewer #mode,
 html.viewer #dropOverlay,
 html.viewer .placeholder { display:none !important; }
 html.viewer .wrapper::after { display:none !important; }
 
+/* Ensure NO rounding in viewer */
+html.viewer #wrapper, html.viewer .wrapper, html.viewer .preview,
+html.viewer .bg, html.viewer .bg img, html.viewer .lottie-layer,
+html.viewer #lotStage, html.viewer .lot-stage { border-radius: 0 !important; }
+
+/* Override any stray 100vw/100vh from base/theme */
+html.viewer .app, html.viewer .wrapper, html.viewer body {
+  width: auto !important;
+  height: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+}
