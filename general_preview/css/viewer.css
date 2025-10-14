@@ -1,22 +1,55 @@
 
-/* viewer.css — desktop/tablet viewer overrides */
-html.viewer, html.viewer body { height:100%; overflow:hidden; }
-html.viewer .page { min-height:100dvh; display:grid; place-items:center; padding:0; }
-html.viewer .app { width:100vw; height:100dvh; max-width:none; }
+/* viewer.css — robust viewer sizing (desktop & mobile webviews) */
+html.viewer, html.viewer body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+html.viewer .page {
+  width: 100%;
+  min-height: 100dvh;              /* fallback */
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+/* width:100% avoids right-shift in Telegram/embedded webviews */
+html.viewer .app,
+html.viewer .wrapper {
+  width: 100%;
+  height: 100dvh;                   /* fallback */
+  margin: 0;
+  overflow: hidden;
+}
+/* Prefer stable small viewport height where supported */
+@supports (height: 1svh) {
+  html.viewer .page { min-height: 100svh; }
+  html.viewer .app,
+  html.viewer .wrapper { height: 100svh; }
+}
+
+/* Hide any controls and decoration in viewer */
 html.viewer .controls,
 html.viewer #mode,
 html.viewer #dropOverlay,
-html.viewer .placeholder { display:none !important; }
+html.viewer .placeholder { display: none !important; }
+html.viewer .wrapper::after { display: none !important; }
 
-/* Remove dashed decoration completely in viewer (desktop & mobile) */
-html.viewer .wrapper::after { display:none !important; }
-
-/* No rounding anywhere */
+/* No rounding anywhere in viewer */
 html.viewer #wrapper, html.viewer .wrapper, html.viewer .preview,
 html.viewer .bg, html.viewer .bg img, html.viewer .lottie-layer,
-html.viewer #lotStage, html.viewer .lot-stage { border-radius:0 !important; }
+html.viewer #lotStage, html.viewer .lot-stage { border-radius: 0 !important; }
 
-/* Center & scale-to-fit both directions */
-html.viewer .wrapper { width:100vw; height:100dvh; margin:0; overflow:hidden; }
-html.viewer .bg { display:flex; align-items:center; justify-content:center; }
-html.viewer .bg img { width:100%; height:100%; object-fit:contain; display:block; margin:0; }
+/* Center & scale-to-fit without cropping */
+html.viewer .bg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+html.viewer .bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  margin: 0;
+}

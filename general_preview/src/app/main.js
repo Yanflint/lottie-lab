@@ -16,46 +16,6 @@ const urlObj = new URL(window.location.href);
 const isViewer = (window.__FORCE_VIEWER__ === true) || window.location.pathname.startsWith('/s/') || urlObj.searchParams.has('id');
 if (isViewer) document.documentElement.classList.add('viewer');
 
-function installViewerFixCSS() {
-  try {
-    for (const ss of Array.from(document.styleSheets)) {
-      const href = ss.href || '';
-      const sameOrigin = !href || href.startsWith(location.origin);
-      if (!sameOrigin) continue;
-      try {
-        const rules = ss.cssRules; for (let i=rules.length-1;i>=0;i--){
-          const t = rules[i].cssText || '';
-          if (/html\.viewer/.test(t) && /(100dvh|100vh|100vw)/i.test(t)) ss.deleteRule(i);
-        }
-      } catch {}
-    }
-    let s = document.getElementById('__viewerFix');
-    if (!s) {
-      s = document.createElement('style'); s.id='__viewerFix';
-      s.textContent = `
-      html.viewer, html.viewer body { height:100%; overflow:hidden; }
-      html.viewer .page { min-height:100dvh; display:grid; place-items:center; padding:0; }
-      html.viewer .app { width:100vw; height:100dvh; max-width:none; }
-      html.viewer .controls, html.viewer #mode, html.viewer #dropOverlay, html.viewer .placeholder { display:none !important; }
-      html.viewer .wrapper::after { display:none !important; }
-      html.viewer #wrapper, html.viewer .wrapper, html.viewer .preview, html.viewer .bg, html.viewer .bg img, html.viewer .lottie-layer, html.viewer #lotStage, html.viewer .lot-stage { border-radius:0 !important; }
-      html.viewer .wrapper { width:100vw; height:100dvh; margin:0; overflow:hidden; }
-      html.viewer .bg { display:flex; align-items:center; justify-content:center; }
-      html.viewer .bg img { width:100%; height:100%; object-fit:contain; display:block; margin:0; }`;
-      document.head.appendChild(s);
-    }
-  } catch {}
-}
-try {
-  if (isViewer) {
-    installViewerFixCSS();
-    window.addEventListener('load', installViewerFixCSS, { once: true });
-    setTimeout(installViewerFixCSS, 0);
-  }
-} catch (e) {}
-
-
-
 // [PATCH] Boot hard refresh once per session, to avoid stale payload
 try {
   if (isViewer && sessionStorage.getItem('lp_boot_refreshed') !== '1') {
@@ -252,3 +212,44 @@ window.addEventListener('resize', () => { try { layoutLottie(refs); } catch {} }
   } catch {}
 
 });
+
+function installViewerFixCSS() {
+  try {
+    // Remove same-origin rules that force html.viewer to 100vh/100vw
+    for (const ss of Array.from(document.styleSheets)) {
+      const href = ss.href || '';
+      const sameOrigin = !href || href.startsWith(location.origin);
+      if (!sameOrigin) continue;
+      try {
+        const rules = ss.cssRules;
+        for (let i = rules.length - 1; i >= 0; i--) {
+          const t = rules[i].cssText || '';
+          if (/html\.viewer/.test(t) && /(100dvh|100vh|100vw)/i.test(t)) {
+            ss.deleteRule(i);
+          }
+        }
+      } catch {}
+    }
+  } catch {}
+}
+
+function pokeLayout(){
+  try { if (typeof installViewerFixCSS === 'function') installViewerFixCSS(); } catch(e){}
+  try { window.dispatchEvent(new Event('resize')); } catch(e){}
+  try { if (window.lottie && window.lottie.resize) { window.lottie.resize(); } } catch(e){}
+}
+if (isViewer) {
+  setTimeout(pokeLayout, 50);
+  setTimeout(pokeLayout, 250);
+  setTimeout(pokeLayout, 1000);
+  try {
+    if (window.visualViewport) {
+      visualViewport.addEventListener('resize', pokeLayout, { passive:true });
+      visualViewport.addEventListener('scroll',  pokeLayout, { passive:true });
+      if ('ongeometrychange' in visualViewport) visualViewport.addEventListener('geometrychange', pokeLayout, { passive:true });
+    }
+  } catch(e){}
+  window.addEventListener('orientationchange', pokeLayout, { passive:true });
+  window.addEventListener('pageshow',          pokeLayout, { passive:true });
+  document.addEventListener('visibilitychange', pokeLayout, { passive:true });
+}

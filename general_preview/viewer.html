@@ -11,9 +11,9 @@
   <link rel="icon" type="image/png" href="/icons/icon-180.png" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js" defer></script>
   <link rel="stylesheet" href="/style.css" />
-  <!-- viewer css will be injected below -->
   <link rel="stylesheet" href="/css/viewer.css" />
   <link rel="stylesheet" href="/css/viewer-mobile.css" />
+  <script>document.documentElement.classList.add('viewer'); window.__FORCE_VIEWER__=true;</script>
 </head>
 <body>
   <div class="page">
@@ -30,8 +30,6 @@
       </div>
     </div>
   </div>
-
-  <script>document.documentElement.classList.add('viewer'); window.__FORCE_VIEWER__=true;</script>
   <script type="module" src="/src/app/main.js?v=0.15"></script>
   <script src="/build.js" defer></script>
   <script src="/build-tag.js" defer></script>

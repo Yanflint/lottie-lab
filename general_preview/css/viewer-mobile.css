@@ -1,6 +1,6 @@
 
-/* viewer-mobile.css — only mobile-specific tweaks */
+/* viewer-mobile.css — mobile specific tweaks (kept minimal) */
 @media (max-width: 768px) {
-  html.viewer .page { padding:0; }
-  html.viewer .app, html.viewer .wrapper { width:100vw; height:100dvh; }
+  html.viewer .page { padding: 0; }
+  html.viewer .app, html.viewer .wrapper { width: 100%; height: 100svh; }
 }
