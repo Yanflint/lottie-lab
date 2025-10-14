@@ -2,8 +2,8 @@
 /* viewer-mobile.css — only mobile-specific tweaks */
 @media (max-width: 768px) {
   html.viewer .page { padding:0; min-height:100dvh; display:grid; place-items:center; }
-  /* Avoid 100vw to prevent right shift in in-app webviews (Telegram) */
-  html.viewer .app, html.viewer .wrapper { width:100%; height:100dvh; }
-  /* Keep image contained without forcing extra width */
-  html.viewer .bg img { max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; margin:0 auto; display:block; }
+  /* Use small viewport to avoid in-app webview scrollbars causing shift */
+  html.viewer .app, html.viewer .wrapper { width:100svw; height:100dvh; }
+  /* Restore contained background sizing to drive correct Lottie fit */
+  html.viewer .bg img { width:100%; height:100%; object-fit:contain; display:block; margin:0; }
 }
