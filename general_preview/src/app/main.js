@@ -12,11 +12,8 @@ try{ document.documentElement.classList.remove('booting'); }catch(e){}
 
 
 // Viewer mode on /s/*
-const urlObj = new URL(window.location.href);
-const urlObj = new URL(window.location.href);
-const isViewer = (window.__FORCE_VIEWER__ === true) || window.location.pathname.startsWith('/s/') || urlObj.searchParams.has('id');
+const isViewer = (window.__FORCE_VIEWER__ === true) || window.location.pathname.startsWith('/s/') || (new URL(window.location.href)).searchParams.has('id');
 if (isViewer) document.documentElement.classList.add('viewer');
-
 // [PATCH] Boot hard refresh once per session, to avoid stale payload
 try {
   if (isViewer && sessionStorage.getItem('lp_boot_refreshed') !== '1') {
@@ -100,9 +97,7 @@ if (!isViewer) initDnd({ refs });
   window.addEventListener('orientationchange', relayout, { passive: true });
 
   // Hotkey: Reset (R) in editor only; allow Ctrl/Cmd+R refresh; ignore inputs; ru/en layout safe
-  window.addEventListener('keydown', (e) => {
-    try {
-      const isViewer = location.pathname.includes('/s/');
+  window.addEventListener('keydowthname.includes('/s/');
       if (isViewer) return;
     } catch {}
 
