@@ -1,3 +1,59 @@
+
+/* viewer bootstrap (safe, regex-free, no globals leaked) */
+(() => {
+  const isViewer = (window.__FORCE_VIEWER__ === true)
+                || window.location.pathname.startsWith('/s/')
+                || (new URL(window.location.href)).searchParams.has('id');
+
+  if (isViewer) document.documentElement.classList.add('viewer');
+
+  function installViewerFixCSS() {
+    try {
+      let el = document.getElementById('__viewerFix');
+      if (!el) {
+        el = document.createElement('style');
+        el.id = '__viewerFix';
+        el.textContent = `
+          html.viewer, html.viewer body { height:100%; margin:0; padding:0; overflow:hidden; }
+          html.viewer .page { width:100%; min-height:100dvh; display:grid; place-items:center; padding:0; }
+          @supports (height: 1svh) { html.viewer .page { min-height:100svh; } }
+          html.viewer .app, html.viewer .wrapper { width:100%; height:100dvh; margin:0; overflow:hidden; }
+          @supports (height: 1svh) { html.viewer .app, html.viewer .wrapper { height:100svh; } }
+          html.viewer .wrapper::after { display:none !important; }
+          html.viewer .bg { display:flex; align-items:center; justify-content:center; }
+          html.viewer .bg img { width:100%; height:100%; object-fit:contain; display:block; margin:0; }
+        `;
+        document.head.appendChild(el);
+      }
+    } catch(e){}
+  }
+
+  function pokeLayout(){
+    try { installViewerFixCSS(); } catch(e){}
+    try { window.dispatchEvent(new Event('resize')); } catch(e){}
+    try { if (window.lottie && window.lottie.resize) { window.lottie.resize(); } } catch(e){}
+  }
+
+  if (isViewer) {
+    // pulses for in-app overlays (TG translate bar, etc.)
+    setTimeout(pokeLayout, 50);
+    setTimeout(pokeLayout, 250);
+    setTimeout(pokeLayout, 1000);
+    try {
+      if (window.visualViewport) {
+        visualViewport.addEventListener('resize', pokeLayout, { passive:true });
+        visualViewport.addEventListener('scroll',  pokeLayout, { passive:true });
+        if ('ongeometrychange' in visualViewport) {
+          visualViewport.addEventListener('geometrychange', pokeLayout, { passive:true });
+        }
+      }
+    } catch(e){}
+    window.addEventListener('orientationchange', pokeLayout, { passive:true });
+    window.addEventListener('pageshow',          pokeLayout, { passive:true });
+    document.addEventListener('visibilitychange', pokeLayout, { passive:true });
+  }
+})();
+
 // src/app/main.js
 
 // 1) Отметка standalone (A2HS)
@@ -12,15 +68,18 @@ try{ document.documentElement.classList.remove('booting'); }catch(e){}
 
 
 // Viewer mode on /s/*
-const isViewer = (window.__FORCE_VIEWER__ === true) || window.location.pathname.startsWith('/s/') || (new URL(window.location.href)).searchParams.has('id');
+const isViewer = /^\/s\//.test(location.pathname);
 if (isViewer) document.documentElement.classList.add('viewer');
+
 // [PATCH] Boot hard refresh once per session, to avoid stale payload
 try {
   if (isViewer && sessionStorage.getItem('lp_boot_refreshed') !== '1') {
     sessionStorage.setItem('lp_boot_refreshed','1');
     location.replace(location.href);
-}
-catch(e){}
+  }
+} catch {}
+
+
 // 2) Импорты модулей
 import { initDnd }           from './dnd.js';
 import { state }           from './state.js';
@@ -84,37 +143,76 @@ if (!isViewer) initDnd({ refs });
   initShare({ refs, isStandalone });
 
   /* DISABLE TAB FOCUS */
-  try { document.querySelectorAll('button').forEach(b => b.setAttribute('tabindex','-1')); } catch(e){}
+  try { document.querySelectorAll('button').forEach(b => b.setAttribute('tabindex','-1')); } catch {}
   /* REMOVE SHARE TITLE */
-  try { refs.shareBtn?.removeAttribute('title'); } catch(e){}
+  try { refs.shareBtn?.removeAttribute('title'); } catch {}
 
   // Перелайаут
-  const relayout = () => { try { layoutLottie(refs); } catch(e){} };
-  try { layoutLottie(refs); } catch(e){}
+  const relayout = () => { try { layoutLottie(refs); } catch {} };
+  try { layoutLottie(refs); } catch {}
   window.addEventListener('resize', relayout, { passive: true });
   window.addEventListener('orientationchange', relayout, { passive: true });
 
   // Hotkey: Reset (R) in editor only; allow Ctrl/Cmd+R refresh; ignore inputs; ru/en layout safe
   window.addEventListener('keydown', (e) => {
-  try {
+    try {
+      const isViewer = location.pathname.includes('/s/');
+      if (isViewer) return;
+    } catch {}
+
+    const hasMods = e.ctrlKey || e.metaKey || e.altKey || e.shiftKey;
+    if (hasMods) return;
+
+    const t = e.target;
+    const isEditable = !!(t && (t.closest?.('input, textarea') || t.isContentEditable || t.getAttribute?.('role') === 'textbox'));
+    if (isEditable) return;
+
+    const isRCode = e.code === 'KeyR';
+    const isRKey  = (e.key === 'r' || e.key === 'R' || e.key === 'к' || e.key === 'К');
+    if (isRCode || isRKey) {
+      e.preventDefault();
+      try { setLotOffset(0, 0); } catch {}
+      try { relayout(); } catch {}
+    }
+  }, { passive: false });
+
+  // Тап = перезапуск (если было добавлено ранее)
+  const restartByTap = (e) => {
     if (isViewer) return;
-  } catch(e){}
+    const isTouch = e.pointerType ? (e.pointerType === 'touch') : (e.touches && e.touches.length === 1);
+    if (!isTouch && !isStandalone) return;
+    if (refs.mode && refs.mode.contains(e.target)) return;
+    refs.restartBtn?.click();
+  };
+  refs.preview?.addEventListener('pointerdown', restartByTap, { passive: true });
+  refs.preview?.addEventListener('touchstart',  restartByTap, { passive: true });
 
-  const hasMods = e.ctrlKey || e.metaKey || e.altKey || e.shiftKey;
-  if (hasMods) return;
-
-  const t = e.target;
-  const isEditable = !!(t && (t.closest?.('input, textarea, [contenteditable="true"]')
-                   || t.isContentEditable
-                   || t.getAttribute?.('role') === 'textbox'));
-  if (isEditable) return;
-
-  if (e.key && e.key.toLowerCase() === 'r') {
-    try { e.preventDefault(); layoutLottie?.(refs); } catch(e){}
+  // In viewer mode: click to RESTART animation (always from start)
+  if (isViewer && refs.preview) {
+    refs.preview.addEventListener('click', (e) => {
+      if (refs.mode && refs.mode.contains(e.target)) return;
+      try { restart(); } catch {}
+    });
   }
-});
 
-window.addEventListener('resize', () => { try { layoutLottie(refs); } catch(e){} });
+
+window.addEventListener('keydown', (e) => {
+  const keys = ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];
+  if (!keys.includes(e.key)) return;
+  const tag = (document.activeElement?.tagName || '').toLowerCase();
+  if (['input','textarea','select'].includes(tag)) return;
+  const step = e.shiftKey ? 10 : 1;
+  let dx = 0, dy = 0;
+  if (e.key === 'ArrowLeft')  dx = -step;
+  if (e.key === 'ArrowRight') dx = +step;
+  if (e.key === 'ArrowUp')    dy = -step;
+  if (e.key === 'ArrowDown')  dy = +step;
+  bumpLotOffset(dx, dy);
+  layoutLottie(refs);
+  e.preventDefault();
+}, { passive: false });
+
+window.addEventListener('resize', () => { try { layoutLottie(refs); } catch {} });
 
   // ===== [TEST OVERLAY UI] only in viewer mode =====
   try {
@@ -138,12 +236,12 @@ window.addEventListener('resize', () => { try { layoutLottie(refs); } catch(e){}
       rb.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        try { sessionStorage.setItem('lp_show_toast','1'); } catch(e){}
+        try { sessionStorage.setItem('lp_show_toast','1'); } catch {}
         location.replace(location.href);
       });
       document.body.appendChild(rb); // ensure it's on top layer
 
-      // Debug visibility gating (hidden by default; enable via ?debug=1 || localStorage('lp_debug'='1'))
+      // Debug visibility gating (hidden by default; enable via ?debug=1 or localStorage('lp_debug'='1'))
       try {
         const sp = new URL(location.href).searchParams;
         const dbgParam = (sp.get('debug')||'').toLowerCase();
@@ -151,7 +249,7 @@ window.addEventListener('resize', () => { try { layoutLottie(refs); } catch(e){}
         const debugOn  = (dbgParam==='1'||dbgParam==='true'||dbgParam==='on') || (!dbgParam && (dbgPref==='1'||dbgPref==='true'||dbgPref==='on'));
         ov.style.display = debugOn ? '' : 'none';
         rb.style.display = debugOn ? '' : 'none';
-      } catch(e){}
+      } catch {}
 
       // Expose updater
       window.__updateOverlay = (m) => {
@@ -163,54 +261,9 @@ window.addEventListener('resize', () => { try { layoutLottie(refs); } catch(e){}
             `scale: ${m?.fitScale?.toFixed ? m.fitScale.toFixed(4) : m?.fitScale ?? 1}`
           ].join('\n');
           ov.textContent = txt;
-        } catch(e){}
+        } catch {}
       };
     }
-  } catch(e){}
+  } catch {}
 
 });
-
-function installViewerFixCSS() {
-  try {
-    // Remove same-origin rules that force html.viewer to 100vh/100vw
-    for (const ss of Array.from(document.styleSheets)) {
-      const href = ss.href || '';
-      const sameOrigin = !href || href.startsWith(location.origin);
-      if (!sameOrigin) continue;
-      try {
-        const rules = ss.cssRules;
-        for (let i = rules.length - 1; i >= 0; i--) {
-          const t = rules[i].cssText || '';
-          if (/html\.viewer/.test(t) && /(100dvh|100vh|100vw)/i.test(t)) {
-            ss.deleteRule(i);
-        }
-      } catch(e){}
-    }
-  } catch(e){}
-}
-
-function pokeLayout(){
-  try { if (typeof installViewerFixCSS === 'function') installViewerFixCSS(); } catch(e){}
-  try { window.dispatchEvent(new Event('resize')); } catch(e){}
-  try { if (window.lottie && window.lottie.resize) { window.lottie.resize(); } } catch(e){}
-}
-catch(e){}
-
-if (isViewer) {
-  setTimeout(pokeLayout, 50);
-  setTimeout(pokeLayout, 250);
-  setTimeout(pokeLayout, 1000);
-  try {
-    if (window.visualViewport) {
-      visualViewport.addEventListener('resize', pokeLayout, { passive:true });
-      visualViewport.addEventListener('scroll',  pokeLayout, { passive:true });
-      if ('ongeometrychange' in visualViewport) {
-        visualViewport.addEventListener('geometrychange', pokeLayout, { passive:true });
-      }
-    }
-  } catch(e){}
-  window.addEventListener('orientationchange', pokeLayout, { passive:true });
-  window.addEventListener('pageshow',          pokeLayout, { passive:true });
-  document.addEventListener('visibilitychange', pokeLayout, { passive:true });
-}
-

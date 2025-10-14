@@ -1,6 +1,4 @@
 
 /* editor.css — editor-only adjustments */
 html:not(.viewer) .wrapper::after { display: block; }
-#wrapper, .wrapper, .preview, .bg, .bg img, .lottie-layer, #lotStage, .lot-stage {
-  border-radius: 0 !important;
-}
+#wrapper, .wrapper, .preview, .bg, .bg img, .lottie-layer, #lotStage, .lot-stage { border-radius: 0 !important; }
