@@ -19,7 +19,6 @@ try {
   if (isViewer && sessionStorage.getItem('lp_boot_refreshed') !== '1') {
     sessionStorage.setItem('lp_boot_refreshed','1');
     location.replace(location.href);
-  }
 } catch {}
 
 
@@ -116,8 +115,7 @@ if (!isViewer) initDnd({ refs });
   if (e.key && e.key.toLowerCase() === 'r') {
     try { e.preventDefault(); layoutLottie?.(refs); } catch {}
   }
-});
-if (isEditable) return;
+});if (isEditable) return;
 
     const isRCode = e.code === 'KeyR';
     const isRKey  = (e.key === 'r' || e.key === 'R' || e.key === 'к' || e.key === 'К');
@@ -145,25 +143,6 @@ if (isEditable) return;
       if (refs.mode && refs.mode.contains(e.target)) return;
       try { restart(); } catch {}
     });
-  }
-
-
-window.addEventListener('keydown', (e) => {
-  const keys = ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];
-  if (!keys.includes(e.key)) return;
-  const tag = (document.activeElement?.tagName || '').toLowerCase();
-  if (['input','textarea','select'].includes(tag)) return;
-  const step = e.shiftKey ? 10 : 1;
-  let dx = 0, dy = 0;
-  if (e.key === 'ArrowLeft')  dx = -step;
-  if (e.key === 'ArrowRight') dx = +step;
-  if (e.key === 'ArrowUp')    dy = -step;
-  if (e.key === 'ArrowDown')  dy = +step;
-  bumpLotOffset(dx, dy);
-  layoutLottie(refs);
-  e.preventDefault();
-}, { passive: false });
-
 window.addEventListener('resize', () => { try { layoutLottie(refs); } catch {} });
 
   // ===== [TEST OVERLAY UI] only in viewer mode =====
@@ -233,7 +212,6 @@ function installViewerFixCSS() {
           const t = rules[i].cssText || '';
           if (/html\.viewer/.test(t) && /(100dvh|100vh|100vw)/i.test(t)) {
             ss.deleteRule(i);
-          }
         }
       } catch {}
     }
@@ -254,13 +232,10 @@ if (isViewer) {
       visualViewport.addEventListener('resize', pokeLayout, { passive:true });
       visualViewport.addEventListener('scroll',  pokeLayout, { passive:true });
       if ('ongeometrychange' in visualViewport) visualViewport.addEventListener('geometrychange', pokeLayout, { passive:true });
-    }
   } catch(e){}
   window.addEventListener('orientationchange', pokeLayout, { passive:true });
   window.addEventListener('pageshow',          pokeLayout, { passive:true });
   document.addEventListener('visibilitychange', pokeLayout, { passive:true });
-}
-
 // __viewer_pokes_wired__
 try {
   if (isViewer) {
@@ -272,9 +247,7 @@ try {
       visualViewport.addEventListener('resize', pokeLayout, {passive:true});
       visualViewport.addEventListener('scroll', pokeLayout, {passive:true});
       if ('ongeometrychange' in visualViewport) visualViewport.addEventListener('geometrychange', pokeLayout, {passive:true});
-    }
     setTimeout(pokeLayout, 50);
     setTimeout(pokeLayout, 250);
     setTimeout(pokeLayout, 1000);
-  }
 } catch(e){}
