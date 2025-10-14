@@ -12,7 +12,8 @@ try{ document.documentElement.classList.remove('booting'); }catch(e){}
 
 
 // Viewer mode on /s/*
-const isViewer = /^\/s\//.test(location.pathname) || new URL(location.href).searchParams.has('id') || (window.__FORCE_VIEWER__===true);
+const urlObj = new URL(window.location.href);
+const isViewer = (window.__FORCE_VIEWER__ === true) || window.location.pathname.startsWith('/s/') || urlObj.searchParams.has('id');
 if (isViewer) document.documentElement.classList.add('viewer');
 
 function installViewerFixCSS() {
@@ -45,7 +46,14 @@ function installViewerFixCSS() {
     }
   } catch {}
 }
-try { if (/^\\/s\\//.test(location.pathname) || new URL(location.href).searchParams.has('id') || (window.__FORCE_VIEWER__===true)) { installViewerFixCSS(); window.addEventListener('load', installViewerFixCSS, { once:true }); setTimeout(installViewerFixCSS, 0); } } catch {}
+try {
+  if (isViewer) {
+    installViewerFixCSS();
+    window.addEventListener('load', installViewerFixCSS, { once: true });
+    setTimeout(installViewerFixCSS, 0);
+  }
+} catch (e) {}
+
 
 
 // [PATCH] Boot hard refresh once per session, to avoid stale payload
