@@ -1,3 +1,41 @@
+
+/* Desktop viewer stretch scrubber (same-origin only) */
+(function viewerKillStretch(){
+  const isViewer =
+    document.documentElement.classList.contains('viewer') ||
+    location.pathname.startsWith('/s/') ||
+    (new URL(location.href)).searchParams.has('id');
+
+  if (!isViewer) return;
+
+  function scrubStretchRules() {
+    try {
+      for (const ss of Array.from(document.styleSheets)) {
+        const href = ss.href || '';
+        if (href && !href.startsWith(location.origin)) continue;
+        const rules = ss.cssRules;
+        for (let i = rules.length - 1; i >= 0; i--) {
+          const t = rules[i].cssText || '';
+          if (/html\.viewer/.test(t) && /(100vw|100vh|100dvh|width:\s*100%|height:\s*100%)/i.test(t)) {
+            ss.deleteRule(i);
+          }
+        }
+      }
+    } catch(e){}
+    try { window.dispatchEvent(new Event('resize')); } catch(e){}
+  }
+
+  const run = () => scrubStretchRules();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', run, { once: true });
+  } else {
+    run();
+  }
+  setTimeout(run, 50);
+  setTimeout(run, 250);
+  setTimeout(run, 1000);
+})();
+
 // src/app/main.js
 
 // 1) Отметка standalone (A2HS)
