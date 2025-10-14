@@ -22,3 +22,41 @@ html.viewer #lotStage, html.viewer .lot-stage { border-radius: 0 !important; }
 /* Center & contain */
 html.viewer .bg { display: flex; align-items: center; justify-content: center; }
 html.viewer .bg img { display:block; margin:0 auto; width:auto; height:auto; max-width:calc(100vw - 64px); max-height:calc(100dvh - 64px); }
+
+
+/* --- Desktop viewer: intrinsic 1:1, centered --- */
+html.viewer .app,
+html.viewer .wrapper,
+html.viewer .preview,
+html.viewer .lottie-layer,
+html.viewer #lotStage {
+  width: auto !important;
+  height: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 auto !important;
+  overflow: visible !important;
+}
+
+html.viewer .bg {
+  display: block !important;
+  text-align: center !important;
+}
+
+html.viewer .bg img {
+  display: inline-block !important;
+  width: auto !important;
+  height: auto !important;
+  max-width: calc(100vw - 64px) !important;
+  max-height: calc(100dvh - 64px) !important;
+  margin: 0 auto !important;
+  object-fit: contain !important; /* harmless with width/height:auto */
+}
+
+/* Keep controls & decoration hidden */
+html.viewer .controls,
+html.viewer #mode,
+html.viewer #dropOverlay,
+html.viewer .placeholder { display:none !important; }
+html.viewer .wrapper::after { display:none !important; }
+

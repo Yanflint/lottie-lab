@@ -14,8 +14,7 @@
         el = document.createElement('style');
         el.id = '__viewerFix';
         el.textContent = `
-  html.viewer, html.viewer body { height:100%; margin:0; padding:0; overflow:hidden; }
-  html.viewer .page { width:100%; min-height:100dvh; display:grid; place-items:center; padding:0; }
+  /* Runtime viewer mobile-only reinforcements */
   @media (max-width: 768px) {
     html.viewer .app, html.viewer .wrapper { width:100%; height:100dvh; margin:0; overflow:hidden; }
     @supports (height: 1svh) { html.viewer .app, html.viewer .wrapper { height:100svh; } }
