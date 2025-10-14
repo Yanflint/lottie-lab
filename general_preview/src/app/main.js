@@ -19,7 +19,7 @@ try {
   if (isViewer && sessionStorage.getItem('lp_boot_refreshed') !== '1') {
     sessionStorage.setItem('lp_boot_refreshed','1');
     location.replace(location.href);
-} catch {}
+} catch(e){}
 
 
 // 2) Импорты модулей
@@ -85,13 +85,13 @@ if (!isViewer) initDnd({ refs });
   initShare({ refs, isStandalone });
 
   /* DISABLE TAB FOCUS */
-  try { document.querySelectorAll('button').forEach(b => b.setAttribute('tabindex','-1')); } catch {}
+  try { document.querySelectorAll('button').forEach(b => b.setAttribute('tabindex','-1')); } catch(e){}
   /* REMOVE SHARE TITLE */
-  try { refs.shareBtn?.removeAttribute('title'); } catch {}
+  try { refs.shareBtn?.removeAttribute('title'); } catch(e){}
 
   // Перелайаут
-  const relayout = () => { try { layoutLottie(refs); } catch {} };
-  try { layoutLottie(refs); } catch {}
+  const relayout = () => { try { layoutLottie(refs); } catch(e){} };
+  try { layoutLottie(refs); } catch(e){}
   window.addEventListener('resize', relayout, { passive: true });
   window.addEventListener('orientationchange', relayout, { passive: true });
 
@@ -100,7 +100,7 @@ if (!isViewer) initDnd({ refs });
   try {
     // В viewer хоткеи редактора не нужны
     if (isViewer) return;
-  } catch {}
+  } catch(e){}
 
   const hasMods = e.ctrlKey || e.metaKey || e.altKey || e.shiftKey;
   if (hasMods) return;
@@ -113,7 +113,7 @@ if (!isViewer) initDnd({ refs });
 
   // Reset (R) — пример горячей клавиши
   if (e.key && e.key.toLowerCase() === 'r') {
-    try { e.preventDefault(); layoutLottie?.(refs); } catch {}
+    try { e.preventDefault(); layoutLottie?.(refs); } catch(e){}
   }
 });if (isEditable) return;
 
@@ -121,8 +121,8 @@ if (!isViewer) initDnd({ refs });
     const isRKey  = (e.key === 'r' || e.key === 'R' || e.key === 'к' || e.key === 'К');
     if (isRCode || isRKey) {
       e.preventDefault();
-      try { setLotOffset(0, 0); } catch {}
-      try { relayout(); } catch {}
+      try { setLotOffset(0, 0); } catch(e){}
+      try { relayout(); } catch(e){}
     }
   }, { passive: false });
 
@@ -141,9 +141,9 @@ if (!isViewer) initDnd({ refs });
   if (isViewer && refs.preview) {
     refs.preview.addEventListener('click', (e) => {
       if (refs.mode && refs.mode.contains(e.target)) return;
-      try { restart(); } catch {}
+      try { restart(); } catch(e){}
     });
-window.addEventListener('resize', () => { try { layoutLottie(refs); } catch {} });
+window.addEventListener('resize', () => { try { layoutLottie(refs); } catch(e){} });
 
   // ===== [TEST OVERLAY UI] only in viewer mode =====
   try {
@@ -167,7 +167,7 @@ window.addEventListener('resize', () => { try { layoutLottie(refs); } catch {} }
       rb.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        try { sessionStorage.setItem('lp_show_toast','1'); } catch {}
+        try { sessionStorage.setItem('lp_show_toast','1'); } catch(e){}
         location.replace(location.href);
       });
       document.body.appendChild(rb); // ensure it's on top layer
@@ -180,7 +180,7 @@ window.addEventListener('resize', () => { try { layoutLottie(refs); } catch {} }
         const debugOn  = (dbgParam==='1'||dbgParam==='true'||dbgParam==='on') || (!dbgParam && (dbgPref==='1'||dbgPref==='true'||dbgPref==='on'));
         ov.style.display = debugOn ? '' : 'none';
         rb.style.display = debugOn ? '' : 'none';
-      } catch {}
+      } catch(e){}
 
       // Expose updater
       window.__updateOverlay = (m) => {
@@ -192,10 +192,10 @@ window.addEventListener('resize', () => { try { layoutLottie(refs); } catch {} }
             `scale: ${m?.fitScale?.toFixed ? m.fitScale.toFixed(4) : m?.fitScale ?? 1}`
           ].join('\n');
           ov.textContent = txt;
-        } catch {}
+        } catch(e){}
       };
     }
-  } catch {}
+  } catch(e){}
 
 });
 
@@ -213,9 +213,9 @@ function installViewerFixCSS() {
           if (/html\.viewer/.test(t) && /(100dvh|100vh|100vw)/i.test(t)) {
             ss.deleteRule(i);
         }
-      } catch {}
+      } catch(e){}
     }
-  } catch {}
+  } catch(e){}
 }
 
 function pokeLayout(){
