@@ -88,7 +88,7 @@ async function postPayload(payload) {
       if (data && typeof data.url === 'string') return data.url;
       if (data && data.id) {
         const origin = (window.__PUBLIC_ORIGIN__) || location.origin;
-        return origin.replace(/\/$/, '') + 'viewer-shell.html?id=' + encodeURIComponent(data.id);
+        return new URL('/viewer-shell.html?id=' + encodeURIComponent(data.id), origin).toString();
       }
       throw new Error('share: пустой ответ API');
     } catch (e) {
