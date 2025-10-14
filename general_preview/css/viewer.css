@@ -6,23 +6,11 @@ html.viewer, html.viewer body {
   padding: 0;
   overflow: hidden;
 }
-html.viewer .page {
-  width: 100%;
-  min-height: 100dvh;              /* fallback */
-  display: grid;
-  place-items: center;
-  padding: 0;
-}
-html.viewer .app,
-html.viewer .wrapper {
-  width: 100%;                     /* avoid Telegram right shift */
-  height: 100dvh;                  /* fallback */
-  margin: 0;
-  overflow: hidden;
-}
+html.viewer .page { width:100%; min-height:100dvh; display:grid; place-items:center; padding:0; }
+html.viewer .app, html.viewer .wrapper { width:auto; height:auto; margin:0; overflow:visible; }
 @supports (height: 1svh) {
-  html.viewer .page { min-height: 100svh; }
-  html.viewer .app, html.viewer .wrapper { height: 100svh; }
+  html.viewer .page { width:100%; min-height:100dvh; display:grid; place-items:center; padding:0; }
+  html.viewer .app, html.viewer .wrapper { width:auto; height:auto; margin:0; overflow:visible; }
 }
 /* No UI in viewer */
 html.viewer .controls, html.viewer #mode, html.viewer #dropOverlay, html.viewer .placeholder { display: none !important; }
@@ -33,4 +21,4 @@ html.viewer .bg, html.viewer .bg img, html.viewer .lottie-layer,
 html.viewer #lotStage, html.viewer .lot-stage { border-radius: 0 !important; }
 /* Center & contain */
 html.viewer .bg { display: flex; align-items: center; justify-content: center; }
-html.viewer .bg img { width: 100%; height: 100%; object-fit: contain; display: block; margin: 0; }
+html.viewer .bg img { display:block; margin:0 auto; width:auto; height:auto; max-width:calc(100vw - 64px); max-height:calc(100dvh - 64px); }

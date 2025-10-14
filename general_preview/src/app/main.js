@@ -14,15 +14,15 @@
         el = document.createElement('style');
         el.id = '__viewerFix';
         el.textContent = `
-          html.viewer, html.viewer body { height:100%; margin:0; padding:0; overflow:hidden; }
-          html.viewer .page { width:100%; min-height:100dvh; display:grid; place-items:center; padding:0; }
-          @supports (height: 1svh) { html.viewer .page { min-height:100svh; } }
-          html.viewer .app, html.viewer .wrapper { width:100%; height:100dvh; margin:0; overflow:hidden; }
-          @supports (height: 1svh) { html.viewer .app, html.viewer .wrapper { height:100svh; } }
-          html.viewer .wrapper::after { display:none !important; }
-          html.viewer .bg { display:flex; align-items:center; justify-content:center; }
-          html.viewer .bg img { width:100%; height:100%; object-fit:contain; display:block; margin:0; }
-        `;
+  html.viewer, html.viewer body { height:100%; margin:0; padding:0; overflow:hidden; }
+  html.viewer .page { width:100%; min-height:100dvh; display:grid; place-items:center; padding:0; }
+  @media (max-width: 768px) {
+    html.viewer .app, html.viewer .wrapper { width:100%; height:100dvh; margin:0; overflow:hidden; }
+    @supports (height: 1svh) { html.viewer .app, html.viewer .wrapper { height:100svh; } }
+    html.viewer .bg { display:flex; align-items:center; justify-content:center; }
+    html.viewer .bg img { width:100%; height:100%; object-fit:contain; display:block; margin:0; }
+  }
+`;
         document.head.appendChild(el);
       }
     } catch(e){}
