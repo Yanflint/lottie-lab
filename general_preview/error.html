@@ -10,9 +10,8 @@
       var m = (location.pathname||'').match(/\/s\/([^\/?#]+)/);
       if (m && m[1]) {
         var id = m[1];
-        location.replace('/viewer.html?id=' + encodeURIComponent(id));
+        location.replace('/viewer-shell.html?id=' + encodeURIComponent(id));
       } else {
-        // fallback: go to root
         location.replace('/');
       }
     } catch(e) {

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <base href="/" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Lottie-превью — mobile</title>
+  <script>document.documentElement.classList.add('viewer'); document.documentElement.classList.add('mobile');</script>
+  <link rel="stylesheet" href="/css/layers.css" />
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/css/viewer-mobile.css" />
+</head>
+<body>
+  <div class="page">
+    <div class="app">
+      <div id="wrapper" class="wrapper" aria-label="Область превью">
+        <div id="preview" class="preview">
+          <div class="bg"><img id="bgImg" alt=""></div>
+          <div class="lottie-layer">
+            <div id="lotStage" class="lot-stage">
+              <div id="lottie" class="lottie-mount"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/app/main.js?v=0.15"></script>
+  <script src="/build.js" defer></script>
+  <script src="/build-tag.js" defer></script>
+</body>
+</html>

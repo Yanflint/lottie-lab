@@ -1,10 +1,10 @@
 @layer viewer {
 /* Desktop viewer: intrinsic 1:1 centered, no stretch */
-html.viewer, html.viewer body { height:auto !important; margin:0; padding:0; overflow:auto; }
+html.viewer, html.viewer body { margin:0; padding:0; overflow:hidden; }
 
 html.viewer .page {
   width: 100%;
-  min-height: 100svh;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
   padding: 0;
@@ -30,12 +30,12 @@ html.viewer img#bgImg {
   width: auto !important;
   height: auto !important;
   max-width: calc(100vw - 64px) !important;
-  max-height: calc(100svh - 64px) !important;
+  max-height: calc(100dvh - 64px) !important;
   object-fit: contain !important;
   margin: 0 auto !important;
 }
 
-/* Hide any viewer UI */
+/* Hide UI/decor */
 html.viewer .controls, html.viewer #mode, html.viewer #dropOverlay, html.viewer .placeholder { display:none !important; }
 html.viewer .wrapper::after { display:none !important; }
 
