@@ -8,7 +8,7 @@
 
   // Desktop-only: do NOT touch mobile rules
   const isDesktop = (typeof matchMedia === 'function') ? matchMedia('(min-width: 769px)').matches : (window.innerWidth >= 769);
-  if (!isViewer || !isDesktop) return;
+  if (!isViewer || !isDesktop || document.documentElement.classList.contains('mobile')) return;
 
   function scrubStretchRules() {
     try {
