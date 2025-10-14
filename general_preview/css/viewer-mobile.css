@@ -1,6 +1,7 @@
 
 /* viewer-mobile.css — only mobile-specific tweaks */
 @media (max-width: 768px) {
-  html.viewer .page { padding:0; }
+  html.viewer .page { padding:0; min-height:100dvh; display:flex; align-items:center; justify-content:center; }
   html.viewer .app, html.viewer .wrapper { width:100vw; height:100dvh; }
+  html.viewer .bg, html.viewer .preview, html.viewer .lottie-layer, html.viewer #lotStage { display:flex; align-items:center; justify-content:center; }
 }
