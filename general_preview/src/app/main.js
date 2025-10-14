@@ -97,16 +97,27 @@ if (!isViewer) initDnd({ refs });
   window.addEventListener('orientationchange', relayout, { passive: true });
 
   // Hotkey: Reset (R) in editor only; allow Ctrl/Cmd+R refresh; ignore inputs; ru/en layout safe
-  window.addEventListener('keydowthname.includes('/s/');
-      if (isViewer) return;
-    } catch {}
+  window.addEventListener('keydown', (e) => {
+  try {
+    // В viewer хоткеи редактора не нужны
+    if (isViewer) return;
+  } catch {}
 
-    const hasMods = e.ctrlKey || e.metaKey || e.altKey || e.shiftKey;
-    if (hasMods) return;
+  const hasMods = e.ctrlKey || e.metaKey || e.altKey || e.shiftKey;
+  if (hasMods) return;
 
-    const t = e.target;
-    const isEditable = !!(t && (t.closest?.('input, textarea') || t.isContentEditable || t.getAttribute?.('role') === 'textbox'));
-    if (isEditable) return;
+  const t = e.target;
+  const isEditable = !!(t && (t.closest?.('input, textarea, [contenteditable="true"]')
+                   || t.isContentEditable
+                   || t.getAttribute?.('role') === 'textbox'));
+  if (isEditable) return;
+
+  // Reset (R) — пример горячей клавиши
+  if (e.key && e.key.toLowerCase() === 'r') {
+    try { e.preventDefault(); layoutLottie?.(refs); } catch {}
+  }
+});
+if (isEditable) return;
 
     const isRCode = e.code === 'KeyR';
     const isRKey  = (e.key === 'r' || e.key === 'R' || e.key === 'к' || e.key === 'К');
