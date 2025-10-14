@@ -13,6 +13,7 @@ try{ document.documentElement.classList.remove('booting'); }catch(e){}
 
 // Viewer mode on /s/*
 const urlObj = new URL(window.location.href);
+const urlObj = new URL(window.location.href);
 const isViewer = (window.__FORCE_VIEWER__ === true) || window.location.pathname.startsWith('/s/') || urlObj.searchParams.has('id');
 if (isViewer) document.documentElement.classList.add('viewer');
 
@@ -253,3 +254,21 @@ if (isViewer) {
   window.addEventListener('pageshow',          pokeLayout, { passive:true });
   document.addEventListener('visibilitychange', pokeLayout, { passive:true });
 }
+
+// __viewer_pokes_wired__
+try {
+  if (isViewer) {
+    window.addEventListener('orientationchange', pokeLayout, {passive:true});
+    window.addEventListener('pageshow', pokeLayout, {passive:true});
+    document.addEventListener('visibilitychange', pokeLayout, {passive:true});
+    window.addEventListener('resize', pokeLayout, {passive:true});
+    if (window.visualViewport) {
+      visualViewport.addEventListener('resize', pokeLayout, {passive:true});
+      visualViewport.addEventListener('scroll', pokeLayout, {passive:true});
+      if ('ongeometrychange' in visualViewport) visualViewport.addEventListener('geometrychange', pokeLayout, {passive:true});
+    }
+    setTimeout(pokeLayout, 50);
+    setTimeout(pokeLayout, 250);
+    setTimeout(pokeLayout, 1000);
+  }
+} catch(e){}
