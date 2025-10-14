@@ -11,15 +11,9 @@
   <link rel="icon" type="image/png" href="/icons/icon-180.png" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js" defer></script>
   <link rel="stylesheet" href="/style.css" />
-  <style>
-    /* Минимум декора; без контролов. */
-    .controls, #mode, #dropOverlay, .placeholder { display:none !important; }
-  </style>
-  <script>
-    // Форсим viewer-класс и метку
-    document.documentElement.classList.add('viewer');
-    window.__FORCE_VIEWER__ = true;
-  </script>
+  <!-- viewer css will be injected below -->
+  <link rel="stylesheet" href="/css/viewer.css" />
+  <link rel="stylesheet" href="/css/viewer-mobile.css" />
 </head>
 <body>
   <div class="page">
@@ -37,7 +31,7 @@
     </div>
   </div>
 
-  <!-- Монтируем основной код -->
+  <script>document.documentElement.classList.add('viewer'); window.__FORCE_VIEWER__=true;</script>
   <script type="module" src="/src/app/main.js?v=0.15"></script>
   <script src="/build.js" defer></script>
   <script src="/build-tag.js" defer></script>

@@ -18,7 +18,7 @@ html, body, button, input, select, textarea, label {
   --btn-pad-y: 8px;
   --btn-pad-x: 12px;
   --btn-radius: 12px;
-  --wrap-r: 16px;
+  --wrap-r:0px;
   --btn-dim-bg: #525b72;
 
   /* расстояние между превью и блоком кнопок */

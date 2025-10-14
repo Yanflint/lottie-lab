@@ -1,0 +1,6 @@
+
+/* editor.css — editor-only adjustments */
+/* Decoration only in editor */
+html:not(.viewer) .wrapper::after { display:block; }
+/* No rounding in editor as requested */
+#wrapper, .wrapper, .preview, .bg, .bg img, .lottie-layer, #lotStage, .lot-stage { border-radius:0 !important; }
