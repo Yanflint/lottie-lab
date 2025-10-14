@@ -1,3 +1,4 @@
+@layer base {
 /* GLOBAL ARIAL 12 */
 html, body, button, input, select, textarea, label {
   font-family: Arial, sans-serif;
@@ -408,3 +409,4 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 #preview, #lotStage { pointer-events: auto; touch-action: none; }
 
 #lottie{pointer-events:auto;}
+}
