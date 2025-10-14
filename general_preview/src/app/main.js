@@ -19,7 +19,7 @@ function installViewerFixCSS() {
   try {
     for (const ss of Array.from(document.styleSheets)) {
       const href = ss.href || '';
-      const sameOrigin = !href or href.startsWith(location.origin);
+      const sameOrigin = !href || href.startsWith(location.origin);
       if (!sameOrigin) continue;
       try {
         const rules = ss.cssRules; for (let i=rules.length-1;i>=0;i--){
@@ -218,7 +218,7 @@ window.addEventListener('resize', () => { try { layoutLottie(refs); } catch {} }
       });
       document.body.appendChild(rb); // ensure it's on top layer
 
-      // Debug visibility gating (hidden by default; enable via ?debug=1 or localStorage('lp_debug'='1'))
+      // Debug visibility gating (hidden by default; enable via ?debug=1 || localStorage('lp_debug'='1'))
       try {
         const sp = new URL(location.href).searchParams;
         const dbgParam = (sp.get('debug')||'').toLowerCase();
