@@ -1,12 +1,14 @@
 
-/* Desktop viewer stretch scrubber (same-origin only) */
+/* Desktop viewer stretch scrubber (same-origin only, DESKTOP ONLY) */
 (function viewerKillStretch(){
   const isViewer =
     document.documentElement.classList.contains('viewer') ||
     location.pathname.startsWith('/s/') ||
     (new URL(location.href)).searchParams.has('id');
 
-  if (!isViewer) return;
+  // Desktop-only: do NOT touch mobile rules
+  const isDesktop = (typeof matchMedia === 'function') ? matchMedia('(min-width: 769px)').matches : (window.innerWidth >= 769);
+  if (!isViewer || !isDesktop) return;
 
   function scrubStretchRules() {
     try {
@@ -15,8 +17,13 @@
         if (href && !href.startsWith(location.origin)) continue;
         const rules = ss.cssRules;
         for (let i = rules.length - 1; i >= 0; i--) {
-          const t = rules[i].cssText || '';
-          if (/html\.viewer/.test(t) && /(100vw|100vh|100dvh|width:\s*100%|height:\s*100%)/i.test(t)) {
+          const r = rules[i];
+          // Only remove STYLE rules, skip @media entirely
+          if (typeof CSSRule !== 'undefined' && r && r.type !== CSSRule.STYLE_RULE) continue;
+          const txt = r.cssText || '';
+          const sel = r.selectorText || '';
+          if ((/html\.viewer/.test(sel) || /html\.viewer/.test(txt)) &&
+              (/(100vw|100vh|100dvh)/i.test(txt) || /(?:^|;)\s*width:\s*100%/i.test(txt) || /(?:^|;)\s*height:\s*100%/i.test(txt))) {
             ss.deleteRule(i);
           }
         }
@@ -27,7 +34,7 @@
 
   const run = () => scrubStretchRules();
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', run, { once: true });
+    document.addEventListener('DOMContentLoaded', run, { once:true });
   } else {
     run();
   }
@@ -35,6 +42,7 @@
   setTimeout(run, 250);
   setTimeout(run, 1000);
 })();
+
 
 // src/app/main.js
 
