@@ -1,4 +1,3 @@
-@layer base {
 /* GLOBAL ARIAL 12 */
 html, body, button, input, select, textarea, label {
   font-family: Arial, sans-serif;
@@ -19,7 +18,7 @@ html, body, button, input, select, textarea, label {
   --btn-pad-y: 8px;
   --btn-pad-x: 12px;
   --btn-radius: 12px;
-  --wrap-r:0px;
+  --wrap-r: 16px;
   --btn-dim-bg: #525b72;
 
   /* расстояние между превью и блоком кнопок */
@@ -76,7 +75,7 @@ body{
 }
 
 /* Пунктирная рамка: не мешает кликам и не перекрывает контролы */
-html:not(.viewer) .wrapper::after{
+.wrapper::after{
   content:"";
   position:absolute;
   inset:-6px;
@@ -232,7 +231,7 @@ html.is-standalone.is-mobile .wrapper{
 }
 
 /* Декор убираем на телефоне */
-html.is-standalone.is-mobile html:not(.viewer) .wrapper::after{ display:none; }
+html.is-standalone.is-mobile .wrapper::after{ display:none; }
 
 /* Для этого режима картинку подгоняем по ширине экрана,
    чтобы при высоких макетах шла обрезка по вертикали.
@@ -409,4 +408,3 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 #preview, #lotStage { pointer-events: auto; touch-action: none; }
 
 #lottie{pointer-events:auto;}
-}
