@@ -2,20 +2,7 @@
 <html lang="ru">
 
 <head>
-  <!-- Dynamic base to support both root and /s/:id viewer paths -->
-  <script>
-    (function(){
-      try{
-        var path = location.pathname || '/';
-        // If we're under /s/<id>, use base="/" so assets resolve from site root; else use "./" for relative portability.
-        var baseHref = /^\/s\//.test(path) ? '/' : './';
-        var base = document.createElement('base');
-        base.setAttribute('href', baseHref);
-        document.head.appendChild(base);
-      }catch(e){}
-    })();
-  </script>
-
+  <base href="./">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Lottie-превью</title>
@@ -28,7 +15,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Lottie Preview" />
-  <link rel="apple-touch-icon" href="/icons/icon-180.png" />
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
 
   <!-- favicon чтобы не было 404 -->
   <link rel="icon" type="image/png"

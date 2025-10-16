@@ -1,1 +1,1 @@
-window.__API_BASE__ = '/api';
+window.__API_BASE__ = '.';
