@@ -1,152 +1,351 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Share Preview</title>
-  <style>
-    :root { color-scheme: dark light; }
-    * { box-sizing: border-box; }
-    html, body { height: 100%; margin: 0; }
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif; }
-
-    .wrapper {
-      min-height: 100dvh;
-      display: grid;
-      place-items: center;
-      padding: 16px;
-      background: #0F0F10;
+<base href="/"/>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
+<title>Lottie-превью</title>
+<!-- PWA -->
+<link href="manifest.webmanifest" rel="manifest"/>
+<meta content="#000000" name="theme-color"/>
+<!-- iOS: запуск без UI Safari -->
+<meta content="yes" name="apple-mobile-web-app-capable"/>
+<meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
+<meta content="Lottie Preview" name="apple-mobile-web-app-title"/>
+<link href="/icons/icon-180.png" rel="apple-touch-icon">
+<!-- favicon чтобы не было 404 -->
+<link href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/Urn1ogAAAAASUVORK5CYII=" rel="icon" type="image/png"/>
+<!-- Lottie -->
+<script defer="" src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+<!-- ВАЖНО: абсолютный путь, чтобы работало по /s/:id -->
+<link href="/style.css" rel="stylesheet"/>
+<script>
+  // Early viewer-mode bootstrap to avoid editor flash on /s/*
+  (function () {
+    try { if (/^\/s\//.test(location.pathname)) { document.documentElement.classList.add('booting'); document.documentElement.classList.add('viewer'); } } catch (e) {}
+  })();
+</script>
+<style>
+    /* viewer mode overrides */
+    html.viewer .controls,
+    html.viewer #mode,
+    html.viewer #dropOverlay,
+    html.viewer .placeholder {
+      display: none !important;
     }
 
-    .stage {
-      position: relative;
-      transform-origin: center center;
+    html.viewer .wrapper::after {
+      display: none !important;
     }
 
-    #bg {
-      display: block;
-      width: auto;
-      height: auto;
-      max-width: none;
-      max-height: none;
-      image-rendering: auto;
+    html.viewer .wrapper {
+      max-width: none !important;
+      max-height: none !important;
+      border-radius: 0 !important;
     }
 
-    .lottie {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
+    html.viewer body,
+    html.viewer html {
+      background: #000;
     }
+  
+/* Mobile browser viewer: fit-by-width & vertical center */
+@media (hover: none) and (pointer: coarse) {
+  html.viewer .wrapper {
+    width: 100vw !important;
+    height: 100dvh !important;
+    margin: 0 auto !important;
+  }
+  /* background image and lottie stage scale by width */
+  html.viewer .bg img {
+    width: 100% !important;
+    height: auto !important;
+  }
+}
+/* Fallback for browsers without 100dvh */
+@supports not (height: 100dvh) {
+  @media (hover: none) and (pointer: coarse) {
+    html.viewer .wrapper { height: 100vh !important; }
+  }
+}
 
-    .helper {
-      position: fixed; inset: 12px auto auto 12px;
-      background: rgba(255,255,255,0.08);
-      color: #fff; padding: 6px 10px; border-radius: 999px;
-      backdrop-filter: blur(6px);
-      font: 12px/1.2 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      user-select: none;
+/* Edge-to-edge viewer on mobile and desktop */
+html.viewer .page {
+  padding: 0 !important;
+}
+html.viewer .app {
+  width: 100vw !important;
+  max-width: none !important;
+  align-items: stretch !important;
+}
+html.viewer body, html.viewer html {
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden !important;
+}
+html.viewer .wrapper {
+  width: 100vw !important;
+  height: 100dvh !important;
+  margin: 0 !important;
+}
+html.viewer .bg img {
+  width: 100% !important;
+  height: auto !important;
+}
+@supports not (height: 100dvh) {
+  html.viewer .wrapper { height: 100vh !important; }
+}
+
+/* Desktop web viewer: square 1:1 centered, editor-like, no controls */
+@media (hover: hover) and (pointer: fine) {
+  /* restore some breathing room on desktop */
+  html.viewer .page { padding: 16px !important; }
+
+  /* center container */
+  html.viewer .app {
+    width: 100% !important;
+    max-width: 1000px !important;
+    align-items: center !important;
+  }
+
+  /* square stage centered; size limited by the smaller viewport side minus padding */
+  html.viewer .wrapper {
+    aspect-ratio: 1 / 1 !important;
+    width: min(calc(100dvh - 32px), calc(100vw - 32px)) !important;
+    height: min(calc(100dvh - 32px), calc(100vw - 32px)) !important;
+    margin: 0 auto !important;
+  }
+  @supports not (height: 100dvh) {
+    html.viewer .wrapper {
+      width: min(calc(100vh - 32px), calc(100vw - 32px)) !important;
+      height: min(calc(100vh - 32px), calc(100vw - 32px)) !important;
     }
-  </style>
+  }
+
+  /* background fits the square box without stretching */
+  html.viewer .bg img {
+    width: auto !important;
+    height: 100% !important;
+  }
+}
+
+/* prevent editor flash during initial parse */
+html.booting .controls,
+html.booting #mode,
+html.booting .placeholder { display: none !important; }
+</style>
+</link><style>/* === Share Preview Inject START === */
+#__share_preview_wrapper{position:fixed;inset:0;display:none;z-index:2147483000;align-items:center;justify-content:center;background:#0F0F10}
+#.__sp--active #__share_preview_wrapper{display:flex}
+#__sp_stage{position:relative;transform-origin:center center}
+#__sp_bg{display:block;width:auto;height:auto;max-width:none;max-height:none;image-rendering:auto}
+#__sp_lottie{position:absolute;inset:0;pointer-events:none}
+/* === Share Preview Inject END === */</style><style>
+/* === injected: desktop 1:1 overrides === */
+@media (hover: hover) and (pointer: fine) {
+  html.viewer .wrapper {
+    display: grid !important;
+    place-items: center !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    margin: 0 !important;
+  }
+  html.viewer .bg img {
+    width: auto !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+  }
+  html.viewer .lottie-layer, html.viewer #lotStage, html.viewer #lottie {
+    position: absolute !important;
+    inset: 0 !important;
+    pointer-events: none !important;
+  }
+}
+</style>
 </head>
 <body>
-  <div class="wrapper" id="root">
-    <div class="stage" id="stage" aria-label="preview stage">
-      <img id="bg" alt="PNG background preview" />
-      <div id="lottie" class="lottie"></div>
-    </div>
-  </div>
+<div class="page">
+<div class="app">
+<div aria-label="Область превью" class="wrapper" id="wrapper">
+<div class="preview" id="preview">
+<div class="placeholder" id="ph">
+<div class="ph">
+<div class="ph-1">Перетащите файл:</div>
+<div class="ph-2">PNG / JSON</div>
+</div>
+</div>
+<div class="bg"><img alt="" id="bgImg"/></div>
+<div class="lottie-layer">
+<div class="lot-stage" id="lotStage">
+<div class="lottie-mount" id="lottie"></div>
+</div>
+</div>
+</div>
+<div class="drop-overlay" id="dropOverlay">
+<div class="box">Положите тут</div>
+</div>
+</div>
+<div class="controls" id="mode">
+<button aria-label="Повтор" class="btn secondary" id="restartBtn" title="Повторить анимацию">▶</button>
+<label class="chk" title="Играть зацикленно">
+<input id="loopChk" type="checkbox"/> Цикл
+        </label>
+<!-- стиль кнопки НЕ меняю, твой класс/градиенты сохранятся -->
+<button class="btn accent" id="shareBtn">Поделиться</button>
+</div>
+</div>
+</div>
+<div aria-live="polite" class="toast" id="toast" role="status"></div>
+<div class="ver" id="ver"></div>
+<!-- детектор standalone для CSS (только класс, без визуальных изменений) -->
+<script type="module">
+    const isStandalone =
+      (window.matchMedia && (window.matchMedia('(display-mode: standalone)').matches ||
+        window.matchMedia('(display-mode: fullscreen)').matches)) ||
+      (navigator.standalone === true);
 
-  <div class="helper" id="badge" hidden>Десктоп: 1:1 · Мобайл: по ширине</div>
+    if (isStandalone) {
+      document.documentElement.classList.add('standalone');
 
-  <script>
-    (function () {
-      const params = new URLSearchParams(location.search);
-      const imgUrl = params.get('img') || params.get('png') || '';
-      const lottieUrl = params.get('lottie') || params.get('json') || '';
+      // Режим подгонки: ?fit=edge | ?fit=safe (по умолчанию safe)
+      const fit = new URL(location.href).searchParams.get('fit');
+      const mode = (fit === 'edge' || fit === 'safe') ? fit : 'safe';
+      document.documentElement.classList.add(`fit-${mode}`);
+    }
+  </script>
+<!-- Абсолютный путь к модулю -->
+<script src="/src/app/main.js?v=0.15" type="module"></script>
+<script defer="" src="build.js"></script>
+<script defer="" src="build-tag.js"></script>
+<script>// === Share Preview Inject START ===
+(function(){
+  try{
+    const params = new URLSearchParams(location.search);
+    const imgUrl = params.get('img') || params.get('png') || '';
+    const lottieUrl = params.get('lottie') || params.get('json') || '';
+    if(!imgUrl && !lottieUrl) return; // only activate when user passes params
 
-      const stage = document.getElementById('stage');
-      const bg = document.getElementById('bg');
-      const lottieContainer = document.getElementById('lottie');
-      const badge = document.getElementById('badge');
+    // Mark document to show overlay
+    document.documentElement.classList.add('__sp--active');
 
-      let naturalW = 0, naturalH = 0;
+    // Create overlay structure
+    const wrap = document.createElement('div');
+    wrap.id = '__share_preview_wrapper';
+    const stage = document.createElement('div');
+    stage.id = '__sp_stage';
+    const img = document.createElement('img');
+    img.id = '__sp_bg';
+    const lottie = document.createElement('div');
+    lottie.id = '__sp_lottie';
+    stage.appendChild(img);
+    stage.appendChild(lottie);
+    wrap.appendChild(stage);
+    document.body.appendChild(wrap);
 
-      function isMobile() {
-        return matchMedia('(max-width: 768px)').matches;
+    let naturalW=0, naturalH=0;
+    const isMobile = () => matchMedia('(max-width: 768px)').matches;
+
+    function layout(){
+      if(!naturalW || !naturalH) return;
+      stage.style.width = naturalW + 'px';
+      stage.style.height = naturalH + 'px';
+      lottie.style.width = naturalW + 'px';
+      lottie.style.height = naturalH + 'px';
+      if(isMobile()){
+        const vw = Math.min(innerWidth, document.documentElement.clientWidth);
+        const scale = vw / naturalW;
+        stage.style.transform = 'scale(' + scale + ')';
+      }else{
+        stage.style.transform = 'none';
       }
+    }
 
-      function updateBadge() {
-        badge.hidden = false;
-        badge.textContent = isMobile() ? 'Мобайл: по ширине' : 'Десктоп: 1:1';
-      }
-
-      function layout() {
-        if (!naturalW || !naturalH) return;
-        stage.style.width = naturalW + 'px';
-        stage.style.height = naturalH + 'px';
-        lottieContainer.style.width = naturalW + 'px';
-        lottieContainer.style.height = naturalH + 'px';
-
-        if (isMobile()) {
-          const vw = Math.min(innerWidth, document.documentElement.clientWidth);
-          const scale = vw / naturalW;
-          stage.style.transform = 'scale(' + scale + ')';
-        } else {
-          stage.style.transform = 'none';
-        }
-        updateBadge();
-      }
-
-      function afterImageLoaded() {
-        naturalW = bg.naturalWidth || bg.width;
-        naturalH = bg.naturalHeight || bg.height;
-        layout();
-
-        if (lottieUrl) {
-          if (!window.bodymovin) {
-            const s = document.createElement('script');
-            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js';
-            s.onload = initLottie;
-            s.onerror = () => console.warn('Не удалось загрузить lottie-web');
-            document.head.appendChild(s);
-          } else {
-            initLottie();
-          }
-        }
-      }
-
-      function initLottie() {
-        try {
+    function initLottie(){
+      if(!lottieUrl) return;
+      function loadAnim(){
+        try{
           window.bodymovin.loadAnimation({
-            container: lottieContainer,
+            container: lottie,
             renderer: 'svg',
             loop: true,
             autoplay: true,
             path: lottieUrl,
             rendererSettings: { preserveAspectRatio: 'xMidYMid meet', progressiveLoad: true }
           });
-        } catch (err) {
-          console.error(err);
-        }
+        }catch(e){ console.error(e); }
       }
-
-      if (imgUrl) {
-        bg.src = imgUrl;
-        bg.addEventListener('load', afterImageLoaded, { once: true });
-        bg.addEventListener('error', () => {
-          console.error('Не удалось загрузить PNG по ссылке', imgUrl);
-        });
-      } else {
-        naturalW = 360; naturalH = 360;
-        const canvas = document.createElement('canvas');
-        canvas.width = naturalW; canvas.height = naturalH;
-        bg.src = canvas.toDataURL('image/png');
-        bg.addEventListener('load', afterImageLoaded, { once: true });
+      if(!window.bodymovin){
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js';
+        s.onload = loadAnim;
+        s.onerror = () => console.warn('Не удалось загрузить lottie-web');
+        document.head.appendChild(s);
+      }else{
+        loadAnim();
       }
+    }
 
-      addEventListener('resize', layout);
-      addEventListener('orientationchange', layout);
-    })();
-  </script>
+    function afterImageLoaded(){
+      naturalW = img.naturalWidth || img.width;
+      naturalH = img.naturalHeight || img.height;
+      layout();
+      initLottie();
+    }
+
+    if(imgUrl){
+      img.src = imgUrl;
+      img.addEventListener('load', afterImageLoaded, { once:true });
+      img.addEventListener('error', () => console.error('Не удалось загрузить PNG по ссылке', imgUrl));
+    }else{
+      // If only Lottie provided, create 360x360 virtual stage
+      naturalW = 360; naturalH = 360;
+      stage.style.width = naturalW + 'px';
+      stage.style.height = naturalH + 'px';
+      initLottie();
+      layout();
+    }
+
+    addEventListener('resize', layout);
+    addEventListener('orientationchange', layout);
+  }catch(err){ console.error('Share Preview injection error:', err); }
+})();
+// === Share Preview Inject END ===</script>
+<!-- === injected: stage sizing === -->
+<script>
+(function(){
+  if(!/\bviewer\b/.test(document.documentElement.className)) return;
+  function syncStage(){
+    try{
+      var img = document.getElementById('bgImg');
+      var stage = document.getElementById('lotStage');
+      if(!img || !stage) return;
+      var w = img.naturalWidth || img.width;
+      var h = img.naturalHeight || img.height;
+      if(!w || !h) return;
+      stage.style.width = w + 'px';
+      stage.style.height = h + 'px';
+      // Center stage container in its parent
+      var preview = document.getElementById('preview') || stage.parentElement;
+      if(preview){
+        preview.style.position = 'relative';
+        stage.style.left = '50%';
+        stage.style.top = '50%';
+        stage.style.transform = 'translate(-50%, -50%)';
+      }
+    }catch(e){}
+  }
+  var img = document.getElementById('bgImg');
+  if(img){
+    if(img.complete) syncStage();
+    img.addEventListener('load', syncStage);
+  }
+  addEventListener('resize', syncStage);
+  addEventListener('orientationchange', syncStage);
+  document.addEventListener('DOMContentLoaded', syncStage);
+})();
+</script>
+
 </body>
 </html>
