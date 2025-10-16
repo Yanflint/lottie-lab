@@ -1,6 +1,7 @@
 // Загружаем по /s/:id. Если id нет и это standalone, пробуем "последний" снимок.
 // Флаг цикла (opts.loop) применяем до создания анимации.
 import { setPlaceholderVisible, afterTwoFrames } from './utils.js';
+import { showErrorToast } from './updateToast.js';
 
 async function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 async function fetchStableLastPayload(maxMs=2000){
@@ -124,3 +125,20 @@ export async function initLoadFromLink({ refs, isStandalone }) {
 
   // 4) Ничего не нашли — остаётся плейсхолдер
 }
+
+// Visual feedback if nothing loaded in viewer
+try {
+  if (document.documentElement.classList.contains('viewer')) {
+    // after a short delay, if neither bg nor lottie applied — show message
+    setTimeout(() => {
+      try {
+        const wrap = document.getElementById('wrapper');
+        const hasBg = wrap?.classList?.contains('has-bg');
+        const hasLot = wrap?.classList?.contains('has-lottie');
+        if (!hasBg && !hasLot) {
+          showErrorToast('Не удалось загрузить данные по ссылке', null);
+        }
+      } catch {}
+    }, 800);
+  }
+} catch {}
