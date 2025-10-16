@@ -12,76 +12,8 @@ try{ document.documentElement.classList.remove('booting'); }catch(e){}
 
 
 // Viewer mode on /s/*
-const isViewer = /^\/s\//.test(location.pathname) || new URL(location.href).searchParams.has('id') || (window.__FORCE_VIEWER__===true);
+const isViewer = /^\/s\//.test(location.pathname);
 if (isViewer) document.documentElement.classList.add('viewer');
-
-// === Viewer Hard Override CSS Injection ===============================
-function installViewerFixCSS() {
-  try {
-    for (const ss of Array.from(document.styleSheets)) {
-      const href = ss.href || '';
-      const sameOrigin = !href || href.startsWith(location.origin);
-      if (!sameOrigin) continue;
-      try {
-        const rules = ss.cssRules;
-        for (let i = rules.length - 1; i >= 0; i--) {
-          const t = rules[i].cssText || '';
-          if (/html\.viewer/.test(t) && /(100dvh|100vh|100vw)/i.test(t)) {
-            ss.deleteRule(i);
-          }
-        }
-      } catch {}
-    }
-    let s = document.getElementById('__viewerFix');
-    if (!s) {
-      s = document.createElement('style');
-      s.id = '__viewerFix';
-      s.textContent = `
-      
-      html.viewer html, html.viewer body { height:100%; overflow:hidden !important; }
-      html.viewer .page { min-height:100dvh; display:grid; place-items:center; padding:16px; }
-      html.viewer .app { width:auto !important; max-width:none !important; }
-      html.viewer .wrapper {
-        /* intrinsic size */
-        width:auto !important;
-        height:var(--preview-h, auto) !important;
-        aspect-ratio:var(--preview-ar, auto) !important;
-        /* scale down to fit viewport, avoid scrollbars */
-        max-width: calc(100vw - 32px) !important;
-        max-height: calc(100dvh - 32px) !important;
-        margin:0 auto !important;
-      }
-      html.viewer .bg img {
-  width: 100% !important; height: 100% !important;
-  object-fit: contain !important;
-  display: block !important; margin: 0 auto !important;
-}
-
-      @media (max-width: 768px){
-  html.viewer .page { padding:0; }
-  html.viewer .wrapper {
-    width:100vw !important; max-width:100vw !important;
-    height:auto !important; max-height:calc(100dvh) !important;
-    aspect-ratio:var(--preview-ar, auto) !important;
-    margin:0 !important; border-radius:0 !important; overflow:hidden !important;
-  }
-}
-
-        html.viewer .bg img {
-  width: 100% !important; height: 100% !important;
-  object-fit: contain !important;
-  display: block !important; margin: 0 auto !important;
-}
-
-      }`;
-      document.head.appendChild(s);
-    }
-  } catch (e) { try { console.warn('viewerFix failed', e); } catch {} }
-}
-// ======================================================================
-
-try { if (isViewer) { installViewerFixCSS(); window.addEventListener('load', installViewerFixCSS, { once:true }); setTimeout(installViewerFixCSS, 0); } } catch {}
-
 
 // [PATCH] Boot hard refresh once per session, to avoid stale payload
 try {

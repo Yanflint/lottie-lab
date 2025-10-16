@@ -75,7 +75,7 @@ body{
 }
 
 /* Пунктирная рамка: не мешает кликам и не перекрывает контролы */
-html:not(.viewer) .wrapper::after{
+.wrapper::after{
   content:"";
   position:absolute;
   inset:-6px;
@@ -231,7 +231,7 @@ html.is-standalone.is-mobile .wrapper{
 }
 
 /* Декор убираем на телефоне */
-html.is-standalone.is-mobile html:not(.viewer) .wrapper::after{ display:none; }
+html.is-standalone.is-mobile .wrapper::after{ display:none; }
 
 /* Для этого режима картинку подгоняем по ширине экрана,
    чтобы при высоких макетах шла обрезка по вертикали.
