@@ -44,33 +44,33 @@
     }
     html.viewer .wrapper::after { display: none !important; }
 
-    /* Desktop (mouse/trackpad): show actual image size without forced scale */
+    /* Desktop (mouse/trackpad): show actual image size driven by JS vars; no fit-to-screen */
     @media (hover: hover) and (pointer: fine) {
       html.viewer .page {
-        padding: 16px !important;           /* keep some breathing room */
+        padding: 16px !important;
+        overflow: auto !important;
       }
       html.viewer .app {
         width: auto !important;
         max-width: none !important;
-        align-items: center !important;      /* center preview */
+        align-items: center !important;
       }
       html.viewer .wrapper {
-        width: auto !important;
-        height: auto !important;
+        /* keep height: var(--preview-h) and aspect-ratio from base CSS */
         max-width: none !important;
         max-height: none !important;
         margin: 0 !important;
-        aspect-ratio: auto !important;
       }
       html.viewer .bg img {
+        /* keep 1:1 scale relative to wrapper size */
         width: auto !important;
-        height: auto !important;
-        max-width: 100% !important;          /* if too wide, allow it to fit */
+        height: 100% !important;
+        max-width: none !important;
         max-height: none !important;
       }
     }
 
-    /* Mobile (touch): keep current edge‑to‑edge behavior */
+    /* Mobile (touch): keep edge-to-edge */
     @media (hover: none) and (pointer: coarse) {
       html.viewer .page { padding: 0 !important; }
       html.viewer .app {
@@ -85,7 +85,7 @@
       }
       html.viewer .wrapper {
         width: 100vw !important;
-        height: 100dvh !important;
+        height: 100dvh !iment;
         margin: 0 !important;
       }
       html.viewer .bg img {
