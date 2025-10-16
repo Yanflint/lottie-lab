@@ -2,7 +2,20 @@
 <html lang="ru">
 
 <head>
-  <base href="/">
+  <!-- Dynamic base to support both root and /s/:id viewer paths -->
+  <script>
+    (function(){
+      try{
+        var path = location.pathname || '/';
+        // If we're under /s/<id>, use base="/" so assets resolve from site root; else use "./" for relative portability.
+        var baseHref = /^\/s\//.test(path) ? '/' : './';
+        var base = document.createElement('base');
+        base.setAttribute('href', baseHref);
+        document.head.appendChild(base);
+      }catch(e){}
+    })();
+  </script>
+
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Lottie-превью</title>
@@ -25,7 +38,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js" defer></script>
 
   <!-- ВАЖНО: абсолютный путь, чтобы работало по /s/:id -->
-  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="style.css" />
 
   
 <script>
@@ -160,7 +173,7 @@
 
 
   <!-- Абсолютный путь к модулю -->
-  <script type="module" src="/src/app/main.js?v=0.15"></script>
+  <script type="module" src="src/app/main.js?v=0.15"></script>
   <script src="build.js" defer></script>
   <script src="build-tag.js" defer></script>
 </body>
