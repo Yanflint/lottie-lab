@@ -31,13 +31,15 @@ import { setBackgroundFromSrc, loadLottieFromData, layoutLottie } from './lottie
 import { loadPinned } from './pinned.js';
 
 function getShareIdFromLocation() {
+  try {
+    const u = new URL(location.href);
+    const q = u.searchParams.get('id');
+    if (q) return q;
+  } catch {}
   const m = location.pathname.match(/\/s\/([^/?#]+)/);
-  if (m && m[1]) return m[1];
-  const u = new URL(location.href);
-  const q = u.searchParams.get('id');
-  return q || null;
+  if (m && m[1] && m[1] !== 'index.html') return m[1];
+  return null;
 }
-
 function applyLoopFromPayload(refs, data) {
   if (data && data.opts && typeof data.opts.loop === 'boolean') {
     state.loopOn = !!data.opts.loop;
