@@ -9,6 +9,14 @@ export const API_BASE = 'https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p'
 // Use only the base path (no /share) to avoid CORS noise.
 const PATHS = [''];
 
+function toAbsoluteShareUrl(input) {
+  try {
+    // Accept both absolute and relative inputs; resolve against origin root
+    var originBase = (window.__PUBLIC_ORIGIN__ || location.origin || '').replace(/\/+$/, '/') ;
+    return new URL(String(input), originBase).href;
+  } catch (_){ return String(input); }
+}
+
 function toRelativeShareUrl(input) {
   try {
     var u = new URL(String(input), location.origin);
@@ -99,8 +107,8 @@ async function postPayload(payload) {
       const txt = await resp.text();
       let data = null; try { data = txt ? JSON.parse(txt) : null; } catch {}
       if (!resp.ok) throw new Error(`share failed: ${resp.status}`);
-      if (data && typeof data.url === 'string') return toRelativeShareUrl(data.url);
-      if (data && data.id) { return 's/index.html?id=' + encodeURIComponent(data.id); }
+      if (data && typeof data.url === 'string') return toAbsoluteShareUrl(data.url);
+      if (data && data.id) { return toAbsoluteShareUrl('s/index.html?id=' + encodeURIComponent(data.id)); }
       throw new Error('share: пустой ответ API');
     } catch (e) {
       lastErr = e;
