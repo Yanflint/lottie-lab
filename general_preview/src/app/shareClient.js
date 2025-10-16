@@ -9,6 +9,20 @@ export const API_BASE = 'https://functions.yandexcloud.net/d4eafmlpa576cpu1o92p'
 // Use only the base path (no /share) to avoid CORS noise.
 const PATHS = [''];
 
+function toRelativeShareUrl(input) {
+  try {
+    var u = new URL(String(input), location.origin);
+    // Try /s/<id>
+    var m = u.pathname.match(/\/s\/([^/?#]+)/);
+    if (m && m[1]) return 's/index.html?id=' + encodeURIComponent(m[1]);
+    // Try ?id=...
+    var q = u.searchParams.get('id');
+    if (q) return 's/index.html?id=' + encodeURIComponent(q);
+  } catch (_){}
+  // Fallback: assume it's already an id
+  return 's/index.html?id=' + encodeURIComponent(String(input));
+}
+
 function bgMeta() {
   return {
     name: (state.lastBgMeta?.fileName || ''),
@@ -85,11 +99,8 @@ async function postPayload(payload) {
       const txt = await resp.text();
       let data = null; try { data = txt ? JSON.parse(txt) : null; } catch {}
       if (!resp.ok) throw new Error(`share failed: ${resp.status}`);
-      if (data && typeof data.url === 'string') return data.url;
-      if (data && data.id) {
-        const origin = (window.__PUBLIC_ORIGIN__) || location.origin;
-        return origin.replace(/\/$/, '') + '/s/' + encodeURIComponent(data.id);
-      }
+      if (data && typeof data.url === 'string') return toRelativeShareUrl(data.url);
+      if (data && data.id) { return 's/index.html?id=' + encodeURIComponent(data.id); }
       throw new Error('share: пустой ответ API');
     } catch (e) {
       lastErr = e;
