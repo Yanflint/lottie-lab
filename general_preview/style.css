@@ -7,7 +7,7 @@ html, body, button, input, select, textarea, label {
 :root{ --btn-font:12px;
   --bg:#647cdb; --muted:#9aa3b2;
   --accent:#6ee7b7; --accent-orange:#FF7700;
-  --preview-bg:#0b0f1a;
+  --preview-bg:#00cb25;
 
   /* запас под панель/отступы, чтобы превью не упиралось в край окна */
   --controls-space: 150px;
