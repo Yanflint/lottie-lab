@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Routing…</title>
+  <script>
+  (function(){
+    try {
+      var m = (location.pathname||'').match(/\/s\/([^\/?#]+)/);
+      if (m && m[1]) {
+        var id = m[1];
+        location.replace('/viewer-shell.html?id=' + encodeURIComponent(id));
+      } else {
+        location.replace('/');
+      }
+    } catch(e) {
+      location.replace('/');
+    }
+  })();
+  </script>
+  <style>html,body{height:100%;margin:0}body{display:grid;place-items:center;font:14px system-ui}</style>
+</head>
+<body>Routing…</body>
+</html>

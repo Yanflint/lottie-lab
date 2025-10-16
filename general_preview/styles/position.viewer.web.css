@@ -1,0 +1,13 @@
+/* position.viewer.web.css — просмотр по ссылке в браузере (desktop/web) */
+html, body { overflow: hidden; height: 100%; }
+.wrapper { height: 100vh; display: flex; align-items: center; justify-content: center; }
+.preview { position: relative; }
+/* Фон строго 1:1 как загружали. Центрируем. Если не влазит — уменьшаем. Никаких скроллов. */
+.bg img {
+  max-width: 100vw;
+  max-height: 100vh;
+  width: auto; height: auto;
+  margin: 0 auto;
+}
+/* Прячем UI */
+.controls, #mode, #dropOverlay, .placeholder { display: none !important; }
