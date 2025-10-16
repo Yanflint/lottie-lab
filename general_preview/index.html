@@ -42,107 +42,60 @@
     html.viewer .placeholder {
       display: none !important;
     }
+    html.viewer .wrapper::after { display: none !important; }
 
-    html.viewer .wrapper::after {
-      display: none !important;
+    /* Desktop (mouse/trackpad): show actual image size without forced scale */
+    @media (hover: hover) and (pointer: fine) {
+      html.viewer .page {
+        padding: 16px !important;           /* keep some breathing room */
+      }
+      html.viewer .app {
+        width: auto !important;
+        max-width: none !important;
+        align-items: center !important;      /* center preview */
+      }
+      html.viewer .wrapper {
+        width: auto !important;
+        height: auto !important;
+        max-width: none !important;
+        max-height: none !important;
+        margin: 0 !important;
+        aspect-ratio: auto !important;
+      }
+      html.viewer .bg img {
+        width: auto !important;
+        height: auto !important;
+        max-width: 100% !important;          /* if too wide, allow it to fit */
+        max-height: none !important;
+      }
     }
 
-    html.viewer .wrapper {
-      max-width: none !important;
-      max-height: none !important;
-      border-radius: 0 !important;
-    }
-
-    html.viewer body,
-    html.viewer html {
-      background: #000;
-    }
-  
-/* Mobile browser viewer: fit-by-width & vertical center */
-@media (hover: none) and (pointer: coarse) {
-  html.viewer .wrapper {
-    width: 100vw !important;
-    height: 100dvh !important;
-    margin: 0 auto !important;
-  }
-  /* background image and lottie stage scale by width */
-  html.viewer .bg img {
-    width: 100% !important;
-    height: auto !important;
-  }
-}
-/* Fallback for browsers without 100dvh */
-@supports not (height: 100dvh) {
-  @media (hover: none) and (pointer: coarse) {
-    html.viewer .wrapper { height: 100vh !important; }
-  }
-}
-
-/* Edge-to-edge viewer on mobile and desktop */
-html.viewer .page {
-  padding: 0 !important;
-}
-html.viewer .app {
-  width: 100vw !important;
-  max-width: none !important;
-  align-items: stretch !important;
-}
-html.viewer body, html.viewer html {
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow-x: hidden !important;
-}
-html.viewer .wrapper {
-  width: 100vw !important;
-  height: 100dvh !important;
-  margin: 0 !important;
-}
-html.viewer .bg img {
-  width: 100% !important;
-  height: auto !important;
-}
-@supports not (height: 100dvh) {
-  html.viewer .wrapper { height: 100vh !important; }
-}
-
-/* Desktop web viewer: square 1:1 centered, editor-like, no controls */
-@media (hover: hover) and (pointer: fine) {
-  /* restore some breathing room on desktop */
-  html.viewer .page { padding: 16px !important; }
-
-  /* center container */
-  html.viewer .app {
-    width: 100% !important;
-    max-width: 1000px !important;
-    align-items: center !important;
-  }
-
-  /* square stage centered; size limited by the smaller viewport side minus padding */
-  html.viewer .wrapper {
-    aspect-ratio: 1 / 1 !important;
-    width: min(calc(100dvh - 32px), calc(100vw - 32px)) !important;
-    height: min(calc(100dvh - 32px), calc(100vw - 32px)) !important;
-    margin: 0 auto !important;
-  }
-  @supports not (height: 100dvh) {
-    html.viewer .wrapper {
-      width: min(calc(100vh - 32px), calc(100vw - 32px)) !important;
-      height: min(calc(100vh - 32px), calc(100vw - 32px)) !important;
-    }
-  }
-
-  /* background fits the square box without stretching */
-  html.viewer .bg img {
-    width: auto !important;
-    height: 100% !important;
-  }
-}
-
-/* prevent editor flash during initial parse */
-html.booting .controls,
-html.booting #mode,
-html.booting .placeholder { display: none !important; }
-</style>
+    /* Mobile (touch): keep current edge‑to‑edge behavior */
+    @media (hover: none) and (pointer: coarse) {
+      html.viewer .page { padding: 0 !important; }
+      html.viewer .app {
+        width: 100vw !important;
+        max-width: none !important;
+        align-items: stretch !important;
+      }
+      html.viewer body, html.viewer html {
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow-x: hidden !important;
+      }
+      html.viewer .wrapper {
+        width: 100vw !important;
+        height: 100dvh !important;
+        margin: 0 !important;
+      }
+      html.viewer .bg img {
+        width: 100% !important;
+        height: auto !important;
+      }
+      @supports not (height: 100dvh) {
+        html.viewer .wrapper { height: 100vh !important; }
+      }
+    }</style>
 </head>
 
 
