@@ -1,168 +1,152 @@
 <!doctype html>
 <html lang="ru">
-
 <head>
-  <base href="./">
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Lottie-превью</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Share Preview</title>
+  <style>
+    :root { color-scheme: dark light; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif; }
 
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#000000" />
-
-  <!-- iOS: запуск без UI Safari -->
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Lottie Preview" />
-  <link rel="apple-touch-icon" href="icons/icon-180.png" />
-
-  <!-- favicon чтобы не было 404 -->
-  <link rel="icon" type="image/png"
-    href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/Urn1ogAAAAASUVORK5CYII=" />
-
-  <!-- Lottie -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js" defer></script>
-
-  <!-- ВАЖНО: абсолютный путь, чтобы работало по /s/:id -->
-  <link rel="stylesheet" href="style.css" />
-
-  
-<script>
-  // Early viewer-mode bootstrap to avoid editor flash on /s/*
-  (function () {
-    try { if (/^\/s\//.test(location.pathname)) { document.documentElement.classList.add('booting'); document.documentElement.classList.add('viewer'); } } catch (e) {}
-  })();
-</script>
-<style>
-    /* viewer mode overrides */
-    html.viewer .controls,
-    html.viewer #mode,
-    html.viewer #dropOverlay,
-    html.viewer .placeholder {
-      display: none !important;
-    }
-    html.viewer .wrapper::after { display: none !important; }
-
-    /* Desktop (mouse/trackpad): show actual image size driven by JS vars; no fit-to-screen */
-    @media (hover: hover) and (pointer: fine) {
-      html.viewer .page {
-        padding: 16px !important;
-        overflow: auto !important;
-      }
-      html.viewer .app {
-        width: auto !important;
-        max-width: none !important;
-        align-items: center !important;
-      }
-      html.viewer .wrapper {
-        /* keep height: var(--preview-h) and aspect-ratio from base CSS */
-        max-width: none !important;
-        max-height: none !important;
-        margin: 0 !important;
-      }
-      html.viewer .bg img {
-        /* keep 1:1 scale relative to wrapper size */
-        width: auto !important;
-        height: 100% !important;
-        max-width: none !important;
-        max-height: none !important;
-      }
+    .wrapper {
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+      background: #0F0F10;
     }
 
-    /* Mobile (touch): keep edge-to-edge */
-    @media (hover: none) and (pointer: coarse) {
-      html.viewer .page { padding: 0 !important; }
-      html.viewer .app {
-        width: 100vw !important;
-        max-width: none !important;
-        align-items: stretch !important;
-      }
-      html.viewer body, html.viewer html {
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow-x: hidden !important;
-      }
-      html.viewer .wrapper {
-        width: 100vw !important;
-        height: 100dvh !iment;
-        margin: 0 !important;
-      }
-      html.viewer .bg img {
-        width: 100% !important;
-        height: auto !important;
-      }
-      @supports not (height: 100dvh) {
-        html.viewer .wrapper { height: 100vh !important; }
-      }
-    }</style>
+    .stage {
+      position: relative;
+      transform-origin: center center;
+    }
+
+    #bg {
+      display: block;
+      width: auto;
+      height: auto;
+      max-width: none;
+      max-height: none;
+      image-rendering: auto;
+    }
+
+    .lottie {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .helper {
+      position: fixed; inset: 12px auto auto 12px;
+      background: rgba(255,255,255,0.08);
+      color: #fff; padding: 6px 10px; border-radius: 999px;
+      backdrop-filter: blur(6px);
+      font: 12px/1.2 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      user-select: none;
+    }
+  </style>
 </head>
-
-
 <body>
-  <div class="page">
-    <div class="app">
-
-      <div id="wrapper" class="wrapper" aria-label="Область превью">
-        <div id="preview" class="preview">
-          <div id="ph" class="placeholder">
-            <div class="ph">
-              <div class="ph-1">Перетащите файл:</div>
-              <div class="ph-2">PNG / JSON</div>
-            </div>
-          </div>
-
-          <div class="bg"><img id="bgImg" alt=""></div>
-
-          <div class="lottie-layer">
-            <div id="lotStage" class="lot-stage">
-              <div id="lottie" class="lottie-mount"></div>
-            </div>
-          </div>
-        </div>
-
-        <div id="dropOverlay" class="drop-overlay">
-          <div class="box">Положите тут</div>
-        </div>
-      </div>
-
-      <div id="mode" class="controls">
-        <button class="btn secondary" id="restartBtn" title="Повторить анимацию" aria-label="Повтор">▶</button>
-        <label class="chk" title="Играть зацикленно">
-          <input type="checkbox" id="loopChk"> Цикл
-        </label>
-
-        <!-- стиль кнопки НЕ меняю, твой класс/градиенты сохранятся -->
-        <button class="btn accent" id="shareBtn">Поделиться</button>
-      </div>
+  <div class="wrapper" id="root">
+    <div class="stage" id="stage" aria-label="preview stage">
+      <img id="bg" alt="PNG background preview" />
+      <div id="lottie" class="lottie"></div>
     </div>
   </div>
 
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <div id="ver" class="ver"></div>
+  <div class="helper" id="badge" hidden>Десктоп: 1:1 · Мобайл: по ширине</div>
 
-  <!-- детектор standalone для CSS (только класс, без визуальных изменений) -->
-  <script type="module">
-    const isStandalone =
-      (window.matchMedia && (window.matchMedia('(display-mode: standalone)').matches ||
-        window.matchMedia('(display-mode: fullscreen)').matches)) ||
-      (navigator.standalone === true);
+  <script>
+    (function () {
+      const params = new URLSearchParams(location.search);
+      const imgUrl = params.get('img') || params.get('png') || '';
+      const lottieUrl = params.get('lottie') || params.get('json') || '';
 
-    if (isStandalone) {
-      document.documentElement.classList.add('standalone');
+      const stage = document.getElementById('stage');
+      const bg = document.getElementById('bg');
+      const lottieContainer = document.getElementById('lottie');
+      const badge = document.getElementById('badge');
 
-      // Режим подгонки: ?fit=edge | ?fit=safe (по умолчанию safe)
-      const fit = new URL(location.href).searchParams.get('fit');
-      const mode = (fit === 'edge' || fit === 'safe') ? fit : 'safe';
-      document.documentElement.classList.add(`fit-${mode}`);
-    }
+      let naturalW = 0, naturalH = 0;
+
+      function isMobile() {
+        return matchMedia('(max-width: 768px)').matches;
+      }
+
+      function updateBadge() {
+        badge.hidden = false;
+        badge.textContent = isMobile() ? 'Мобайл: по ширине' : 'Десктоп: 1:1';
+      }
+
+      function layout() {
+        if (!naturalW || !naturalH) return;
+        stage.style.width = naturalW + 'px';
+        stage.style.height = naturalH + 'px';
+        lottieContainer.style.width = naturalW + 'px';
+        lottieContainer.style.height = naturalH + 'px';
+
+        if (isMobile()) {
+          const vw = Math.min(innerWidth, document.documentElement.clientWidth);
+          const scale = vw / naturalW;
+          stage.style.transform = 'scale(' + scale + ')';
+        } else {
+          stage.style.transform = 'none';
+        }
+        updateBadge();
+      }
+
+      function afterImageLoaded() {
+        naturalW = bg.naturalWidth || bg.width;
+        naturalH = bg.naturalHeight || bg.height;
+        layout();
+
+        if (lottieUrl) {
+          if (!window.bodymovin) {
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js';
+            s.onload = initLottie;
+            s.onerror = () => console.warn('Не удалось загрузить lottie-web');
+            document.head.appendChild(s);
+          } else {
+            initLottie();
+          }
+        }
+      }
+
+      function initLottie() {
+        try {
+          window.bodymovin.loadAnimation({
+            container: lottieContainer,
+            renderer: 'svg',
+            loop: true,
+            autoplay: true,
+            path: lottieUrl,
+            rendererSettings: { preserveAspectRatio: 'xMidYMid meet', progressiveLoad: true }
+          });
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      if (imgUrl) {
+        bg.src = imgUrl;
+        bg.addEventListener('load', afterImageLoaded, { once: true });
+        bg.addEventListener('error', () => {
+          console.error('Не удалось загрузить PNG по ссылке', imgUrl);
+        });
+      } else {
+        naturalW = 360; naturalH = 360;
+        const canvas = document.createElement('canvas');
+        canvas.width = naturalW; canvas.height = naturalH;
+        bg.src = canvas.toDataURL('image/png');
+        bg.addEventListener('load', afterImageLoaded, { once: true });
+      }
+
+      addEventListener('resize', layout);
+      addEventListener('orientationchange', layout);
+    })();
   </script>
-
-
-  <!-- Абсолютный путь к модулю -->
-  <script type="module" src="src/app/main.js?v=0.15"></script>
-  <script src="build.js" defer></script>
-  <script src="build-tag.js" defer></script>
 </body>
-
 </html>

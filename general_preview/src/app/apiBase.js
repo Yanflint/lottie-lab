@@ -16,10 +16,8 @@ export function getApiBase() {
 }
 
 export function buildApiUrl(pathWithLeadingSlash, query='') {
-  const clean = String(pathWithLeadingSlash || '').replace(/^\/+/, ''); // strip leading '/'
-  const base = getApiBase(); // '.', './api', '' etc.
-  const root = base ? String(base).replace(/\/+$/, '') + '/' : '';
-  const p = clean || '';
-  const q = query ? ((p.includes('?') ? '&' : '?') + query) : '';
-  return root + p + q;
+  const p = pathWithLeadingSlash.startsWith('/') ? pathWithLeadingSlash : ('/' + pathWithLeadingSlash);
+  const base = getApiBase();
+  if (!base) return p + (query ? (p.includes('?') ? '&' : '?') + query : '');
+  return base + p + (query ? (p.includes('?') ? '&' : '?') + query : '');
 }
