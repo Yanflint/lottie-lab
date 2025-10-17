@@ -2,6 +2,7 @@
 
 <html lang="ru">
 <head>
+<<<<<<< Updated upstream
 <base href="/"/>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
@@ -20,6 +21,34 @@
 <script defer="" src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
 <!-- ВАЖНО: абсолютный путь, чтобы работало по /s/:id -->
 <link href="/style.css" rel="stylesheet"/>
+=======
+  <base href="/">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Lottie-превью</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#000000" />
+
+  <!-- iOS: запуск без UI Safari -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Lottie Preview" />
+  <link rel="apple-touch-icon" href="/icons/icon-180.png" />
+
+  <!-- favicon чтобы не было 404 -->
+  <link rel="icon" type="image/png"
+    href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/Urn1ogAAAAASUVORK5CYII=" />
+
+  <!-- Lottie -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js" defer></script>
+
+  <!-- ВАЖНО: абсолютный путь, чтобы работало по /s/:id -->
+  <link rel="stylesheet" href="/style.css" />
+
+  
+>>>>>>> Stashed changes
 <script>
   // Early viewer-mode bootstrap to avoid editor flash on /s/*
   (function () {
@@ -135,6 +164,7 @@ html.booting .controls,
 html.booting #mode,
 html.booting .placeholder { display: none !important; }
 </style>
+<<<<<<< Updated upstream
 </link><style>/* === Share Preview Inject START === */
 #__share_preview_wrapper{position:fixed;inset:0;display:none;z-index:2147483000;align-items:center;justify-content:center;background:#0F0F10}
 #.__sp--active #__share_preview_wrapper{display:flex}
@@ -164,6 +194,8 @@ html.booting .placeholder { display: none !important; }
   }
 }
 </style>
+=======
+>>>>>>> Stashed changes
 </head>
 <body>
 <div class="page">
@@ -230,6 +262,7 @@ html.booting .placeholder { display: none !important; }
     // Mark document to show overlay
     document.documentElement.classList.add('__sp--active');
 
+<<<<<<< Updated upstream
     // Create overlay structure
     const wrap = document.createElement('div');
     wrap.id = '__share_preview_wrapper';
@@ -347,5 +380,11 @@ html.booting .placeholder { display: none !important; }
 })();
 </script>
 
+=======
+  <!-- Абсолютный путь к модулю -->
+  <script type="module" src="/src/app/main.js?v=0.15"></script>
+  <script src="build.js" defer></script>
+  <script src="build-tag.js" defer></script>
+>>>>>>> Stashed changes
 </body>
 </html>
