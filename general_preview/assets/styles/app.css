@@ -502,3 +502,30 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
 }
 
 /* === END {path.relative_to(ROOT)} === */
+
+/* --- Mobile centering & left-gap hard fix --- */
+@media (max-width: 768px) {
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Center preview wrappers and avoid 100vw overflow */
+  .preview, [class*="preview"], .lp-bg, .lp-lottie, .bg, [class*="bg"], .container, .app {
+    width: 100% !important;          /* override previous 100vw */
+    max-width: 100% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+  }
+
+  /* If centering was done via translate, neutralize only on the wrapper */
+  .preview, [class*="preview"], .lp-bg, .bg {
+    transform: none !important;
+  }
+}
+/* --- End mobile centering fix --- */
