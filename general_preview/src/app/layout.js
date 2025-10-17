@@ -26,7 +26,7 @@ export function layout({ refs }) {
   }
 
   // Синхронизируем лотти со scale фона
-  try { layoutLottie(refs); } catch {} else {
+  else {
     preview.style.maxWidth = Math.min(1200, vw - pad * 2) + 'px';
     preview.style.maxHeight = (vh - pad * 2) + 'px';
     previewBox.style.width = '';
