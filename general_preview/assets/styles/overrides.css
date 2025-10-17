@@ -1,0 +1,15 @@
+/* overrides.css — neutralize conflicting rules */
+@media (max-width: 768px) {
+  .preview, [class*="preview"], .bg, [class*="bg"], img, .image, [class*="image"] {
+    height: auto !important;
+    max-height: none !important;
+  }
+  .preview, [class*="preview"], .bg, [class*="bg"] {
+    overflow-y: auto !important;
+    overflow: visible !important;
+  }
+  img, .preview img, [class*="preview"] img { object-fit: contain !important; }
+}
+@supports (height: 100dvh) {
+  .vh-screen { min-height: 100dvh; }
+}
