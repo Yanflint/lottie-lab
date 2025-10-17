@@ -1,77 +1,49 @@
-/* app.css — CLEAN MINIMAL */
-/* 1) Base sanity */
+/* app.css — fresh minimal, tidy */
 *, *::before, *::after { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; }
+html, body { margin: 0; padding: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+img, video, canvas, svg { max-width: 100%; height: auto; display: block; }
 
-/* 2) Media defaults (no crop) */
-img, video, canvas, svg { max-width: 100%; height: auto; }
-
-/* 3) Preview blocks fit horizontally */
-.preview, [class*="preview"], .lp-bg, .lp-lottie, .bg, [class*="bg"], .container, .app {
-  width: 100%;
-  max-width: 100%;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-/* 4) Background previews */
-.lp-bg, .bg, [class*="bg"] {
-  background-repeat: no-repeat;
-  background-position: top center;
-  background-size: contain;
-  position: relative;
-}
-
-/* 5) Only for real background elements (JS adds .lp-has-bg) — ensures height by ratio */
+/* Background blocks: only when JS marks real backgrounds */
+.lp-has-bg { position: relative; }
 .lp-has-bg::before {
   content: "";
   display: block;
   padding-top: calc(var(--bg-h, 1920) / var(--bg-w, 1080) * 100%);
 }
 
-/* 6) Mobile-only rules */
+/* Uploader — drag & drop */
+:root {
+  --dnd-bg: #fafafa;
+  --dnd-border: #e5e5e5;
+  --dnd-border-active: #8ab4f8;
+  --dnd-text: #222;
+  --dnd-muted: #666;
+}
+.uploader { width: min(720px, 100%); margin: 24px auto; padding: 0 12px; }
+.dnd {
+  position: relative;
+  background: var(--dnd-bg);
+  border: 2px dashed var(--dnd-border);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  transition: border-color 120ms ease;
+  cursor: pointer;
+}
+.dnd.is-dragover { border-color: var(--dnd-border-active); }
+.dnd__input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+.dnd__icon { width: 40px; height: 40px; margin: 0 auto 10px; }
+.dnd__title { margin: 0 0 6px; font-size: 18px; color: var(--dnd-text); }
+.dnd__hint { margin: 0; font-size: 14px; color: var(--dnd-muted); }
+.dnd__subhint { margin: 6px 0 0; font-size: 12px; color: var(--dnd-muted); }
+.dnd__files { list-style: none; margin: 12px 0 0; padding: 0; }
+.dnd__file { display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid #eee; border-radius:8px; background:#fff; }
+.dnd__thumb { width:40px; height:40px; border-radius:6px; object-fit: cover; background:#f0f0f0; }
+.dnd__meta { display:flex; flex-direction:column; text-align:left; }
+.dnd__name { font-size:14px; color:#222; }
+.dnd__size { font-size:12px; color:#777; }
+
 @media (max-width: 768px) {
   html, body { overflow-x: hidden; }
-
-  /* Make sure wrappers don't introduce side shifts */
-  #root, #app, .root, .app, .page, .page__inner, .page-content, .wrapper, .wrap, .container, .content, .main, .viewport, .canvas {
-    width: 100%;
-    max-width: 100%;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 0;
-    padding-right: 0;
-    left: 0; right: 0; transform: none;
-  }
-
-  /* Preview images never crop */
-  .preview img, [class*="preview"] img {
-    object-fit: contain;
-    object-position: top center;
-  }
-
-  /* Vertical centering (single approach): apply only if wrapper has .lp-vc-flex */
-  .lp-vc-flex {
-    min-height: 100svh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    margin: 0;
-    padding: 0;
-    border-top: 0.1px solid transparent; /* prevent margin-collapsing */
-  }
-  .lp-vc-tall { min-height: 0; display: block; border-top: 0; }
-
-  /* Remove accidental top gaps on the centered child */
-  .lp-vc-flex > .preview,
-  .lp-vc-flex > [class*="preview"],
-  .lp-vc-flex > .lp-bg,
-  .lp-vc-flex > .lp-lottie,
-  .lp-vc-flex > .bg,
-  .lp-vc-flex > [class*="bg"] {
-    margin-top: 0;
-    margin-bottom: 0;
-    transform: none;
-  }
+  .uploader { margin: 16px auto; padding: 0 8px; }
 }

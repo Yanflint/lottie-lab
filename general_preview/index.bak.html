@@ -150,6 +150,21 @@ html.booting .placeholder { display: none !important; }
 
 
 <body>
+<section class="uploader" data-preview-wrapper>
+  <div class="dnd" id="uploader">
+    <input class="dnd__input" id="uploader-input" type="file" multiple>
+    <div class="dnd__content">
+      <svg class="dnd__icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M19 15a4 4 0 0 0-3.87-4A6 6 0 0 0 6 7a6 6 0 0 0-5.33 3.25A4 4 0 0 0 4 18h4v-4l4 4-4 4v-4H4a6 6 0 0 1-1.33-11.84A8 8 0 0 1 14 5a8 8 0 0 1 7.75 6.23A6 6 0 0 1 19 15z"/>
+      </svg>
+      <h2 class="dnd__title">Перетащите файлы сюда</h2>
+      <p class="dnd__hint">или нажмите, чтобы выбрать</p>
+      <p class="dnd__subhint">Поддерживаются: изображения, видео, JSON (Lottie)</p>
+    </div>
+  </div>
+  <ul class="dnd__files" id="uploader-files" aria-live="polite"></ul>
+</section>
+
   <div class="page">
     <div class="app">
 
@@ -213,6 +228,8 @@ html.booting .placeholder { display: none !important; }
   <script type="module" src="/src/app/main.js?v=0.15"></script>
   <script src="build.js" defer></script>
   <script src="build-tag.js" defer></script>
+
+  <script defer src="assets/js/dnd-upload.js"></script>
 </body>
 
 </html>
