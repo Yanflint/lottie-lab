@@ -148,6 +148,25 @@ html.booting .placeholder { display: none !important; }
   }
 }
 
+/* Mobile viewer: allow very tall images without cropping */
+@media (hover: none) and (pointer: coarse) {
+  /* scroll inside preview instead of clipping */
+  html.viewer .preview {
+    overflow: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* don't clip image inside .bg */
+  html.viewer .bg {
+    overflow: visible !important;
+    align-items: flex-start !important; /* anchor image to top */
+    justify-content: center !important;
+  }
+  /* overlay layer shouldn't clip either */
+  html.viewer .lottie-layer {
+    overflow: visible !important;
+  }
+}
+
 </style>
 </head>
 
