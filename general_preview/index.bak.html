@@ -60,7 +60,50 @@
   
 /* Mobile browser viewer: fit-by-width & vertical center */
 @media (hover: none) and (pointer: coarse) {
-  /* removed global fullscreen viewer block to enforce 1:1 on desktop */
+  html.viewer .wrapper {
+    width: 100vw !important;
+    height: 100dvh !important;
+    margin: 0 auto !important;
+  }
+  /* background image and lottie stage scale by width */
+  html.viewer .bg img {
+    width: 100% !important;
+    height: auto !important;
+  }
+}
+/* Fallback for browsers without 100dvh */
+@supports not (height: 100dvh) {
+  @media (hover: none) and (pointer: coarse) {
+    html.viewer .wrapper { height: 100vh !important; }
+  }
+}
+
+/* Edge-to-edge viewer on mobile and desktop */
+html.viewer .page {
+  padding: 0 !important;
+}
+html.viewer .app {
+  width: 100vw !important;
+  max-width: none !important;
+  align-items: stretch !important;
+}
+html.viewer body, html.viewer html {
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden !important;
+}
+html.viewer .wrapper {
+  width: 100vw !important;
+  height: 100dvh !important;
+  margin: 0 !important;
+}
+html.viewer .bg img {
+  width: 100% !important;
+  height: auto !important;
+}
+@supports not (height: 100dvh) {
+  html.viewer .wrapper { height: 100vh !important; }
+}
 
 /* Desktop web viewer: square 1:1 centered, editor-like, no controls */
 @media (hover: hover) and (pointer: fine) {
@@ -92,29 +135,6 @@
   html.viewer .bg img {
     width: auto !important;
     height: 100% !important;
-  }
-}
-
-
-/* Desktop/web fallback for wide touch devices: enforce square 1:1 even without hover/pointer detection */
-@media (min-width: 768px) {
-  html.viewer .page { padding: 16px !important; }
-  html.viewer .app {
-    width: 100% !important;
-    max-width: 1000px !important;
-    align-items: center !important;
-  }
-  html.viewer .wrapper {
-    aspect-ratio: 1 / 1 !important;
-    width: min(calc(100dvh - 32px), calc(100vw - 32px)) !important;
-    height: min(calc(100dvh - 32px), calc(100vw - 32px)) !important;
-    margin: 0 auto !important;
-  }
-  @supports not (height: 100dvh) {
-    html.viewer .wrapper {
-      width: min(calc(100vh - 32px), calc(100vw - 32px)) !important;
-      height: min(calc(100vh - 32px), calc(100vw - 32px)) !important;
-    }
   }
 }
 
