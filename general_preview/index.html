@@ -128,26 +128,6 @@ html.viewer .app {
 html.booting .controls,
 html.booting #mode,
 html.booting .placeholder { display: none !important; }
-/* Mobile browser viewer: fit-by-width & no crop */
-@media (hover: none) and (pointer: coarse) {
-  /* container spans screen width and viewport height to allow vertical centering; no forced square */
-  html.viewer .wrapper {
-    aspect-ratio: auto !important;
-    width: 100vw !important;
-    height: 100dvh !important;
-    margin: 0 auto !important;
-  }
-  @supports not (height: 100dvh) {
-    html.viewer .wrapper { height: 100vh !important; }
-  }
-
-  /* background image scales by width, keeps natural aspect ratio */
-  html.viewer .bg img {
-    width: 100% !important;
-    height: auto !important;
-  }
-}
-
 </style>
 </head>
 
