@@ -58,144 +58,20 @@
       background: #000;
     }
   
-/* Mobile browser viewer: fit-by-width & vertical center */
+/* Mobile browser viewer: contain & center (no cropping, no upscaling) */
 @media (hover: none) and (pointer: coarse) {
-  /* removed global fullscreen viewer block to enforce 1:1 on desktop */
-
-/* Desktop web viewer: square 1:1 centered, editor-like, no controls */
-@media (hover: hover) and (pointer: fine) {
-  /* restore some breathing room on desktop */
-  html.viewer .page { padding: 16px !important; }
-
-  /* center container */
-  html.viewer .app {
-    width: 100% !important;
-    max-width: 1000px !important;
-    align-items: center !important;
-  }
-
-  /* square stage centered; size limited by the smaller viewport side minus padding */
-    html.viewer .wrapper {
-    /* Use intrinsic preview size from CSS vars; cap by viewport */
-    height: var(--preview-h, 800px) !important;
-    aspect-ratio: var(--preview-ar, 360 / 800) !important;
-    width: auto !important;
+  html.viewer .wrapper {
+    width: 100vw !important;
+    height: 100dvh !important;
     margin: 0 auto !important;
-    max-width: min(calc(100vw - 32px), 1000px) !important;
-    max-height: calc(100dvh - 32px) !important;
-  
-  /* background uses native size until capped by viewport */
+  }
+  /* background image scales down to fit either width or height, preserves native pixels */
   html.viewer .bg img {
     width: auto !important;
     height: auto !important;
-    max-width: min(calc(100vw - 32px), 1000px) !important;
-    max-height: calc(100dvh - 32px) !important;
+    max-width: 100vw !important;
+    max-height: 100dvh !important;
+    object-fit: contain !important;
   }
 }
-
-  @supports not (height: 100dvh) {
-    html.viewer .wrapper {
-      width: min(calc(100vh - 32px), calc(100vw - 32px)) !important;
-      height: min(calc(100vh - 32px), calc(100vw - 32px)) !important;
-    }
-  }
-
-  /* background uses native size until capped by viewport */
-  html.viewer .bg img { width: auto !important; height: auto !important; }
-}
-
-
-html.viewer .app {
-    width: 100% !important;
-    max-width: 1000px !important;
-    align-items: center !important;
-  }
-  html.viewer .wrapper {
-    aspect-ratio: 1 / 1 !important;
-    width: min(calc(100dvh - 32px), calc(100vw - 32px)) !important;
-    height: min(calc(100dvh - 32px), calc(100vw - 32px)) !important;
-    margin: 0 auto !important;
-  }
-  @supports not (height: 100dvh) {
-    html.viewer .wrapper {
-      width: min(calc(100vh - 32px), calc(100vw - 32px)) !important;
-      height: min(calc(100vh - 32px), calc(100vw - 32px)) !important;
-    }
-  }
-}
-
-/* prevent editor flash during initial parse */
-html.booting .controls,
-html.booting #mode,
-html.booting .placeholder { display: none !important; }
-</style>
-</head>
-
-
-<body>
-  <div class="page">
-    <div class="app">
-
-      <div id="wrapper" class="wrapper" aria-label="Область превью">
-        <div id="preview" class="preview">
-          <div id="ph" class="placeholder">
-            <div class="ph">
-              <div class="ph-1">Перетащите файл:</div>
-              <div class="ph-2">PNG / JSON</div>
-            </div>
-          </div>
-
-          <div class="bg"><img id="bgImg" alt=""></div>
-
-          <div class="lottie-layer">
-            <div id="lotStage" class="lot-stage">
-              <div id="lottie" class="lottie-mount"></div>
-            </div>
-          </div>
-        </div>
-
-        <div id="dropOverlay" class="drop-overlay">
-          <div class="box">Положите тут</div>
-        </div>
-      </div>
-
-      <div id="mode" class="controls">
-        <button class="btn secondary" id="restartBtn" title="Повторить анимацию" aria-label="Повтор">▶</button>
-        <label class="chk" title="Играть зацикленно">
-          <input type="checkbox" id="loopChk"> Цикл
-        </label>
-
-        <!-- стиль кнопки НЕ меняю, твой класс/градиенты сохранятся -->
-        <button class="btn accent" id="shareBtn">Поделиться</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <div id="ver" class="ver"></div>
-
-  <!-- детектор standalone для CSS (только класс, без визуальных изменений) -->
-  <script type="module">
-    const isStandalone =
-      (window.matchMedia && (window.matchMedia('(display-mode: standalone)').matches ||
-        window.matchMedia('(display-mode: fullscreen)').matches)) ||
-      (navigator.standalone === true);
-
-    if (isStandalone) {
-      document.documentElement.classList.add('standalone');
-
-      // Режим подгонки: ?fit=edge | ?fit=safe (по умолчанию safe)
-      const fit = new URL(location.href).searchParams.get('fit');
-      const mode = (fit === 'edge' || fit === 'safe') ? fit : 'safe';
-      document.documentElement.classList.add(`fit-${mode}`);
-    }
-  </script>
-
-
-  <!-- Абсолютный путь к модулю -->
-  <script type="module" src="/src/app/main.js?v=0.15"></script>
-  <script src="build.js" defer></script>
-  <script src="build-tag.js" defer></script>
-</body>
-
-</html>
+>
