@@ -48,13 +48,10 @@
     }
 
     html.viewer .wrapper {
-    aspect-ratio: auto !important;
-    width: auto !important;
-    height: auto !important;
-    max-width: min(calc(100vw - 32px), 1000px) !important;
-    max-height: calc(100dvh - 32px) !important;
-    margin: 0 auto !important;
-  }
+      
+      
+      border-radius: 0 !important;
+    }
 
     html.viewer body,
     html.viewer html {
@@ -91,17 +88,17 @@
   html.viewer .bg img {
     width: auto !important;
     height: auto !important;
-    max-width: 100% !important;
-    max-height: 100% !important;
+    max-width: min(calc(100vw - 32px), 1000px) !important;
+    max-height: calc(100dvh - 32px) !important;
   }
 }
 
   @supports not (height: 100dvh) {
-  html.viewer .wrapper {
-    max-width: min(calc(100vw - 32px), 1000px) !important;
-    max-height: min(calc(100vh - 32px), 1000px) !important;
+    html.viewer .wrapper {
+      width: min(calc(100vh - 32px), calc(100vw - 32px)) !important;
+      height: min(calc(100vh - 32px), calc(100vw - 32px)) !important;
+    }
   }
-}
 
   /* background uses native size until capped by viewport */
   html.viewer .bg img { width: auto !important; height: auto !important; }
@@ -120,11 +117,11 @@ html.viewer .app {
     margin: 0 auto !important;
   }
   @supports not (height: 100dvh) {
-  html.viewer .wrapper {
-    max-width: min(calc(100vw - 32px), 1000px) !important;
-    max-height: min(calc(100vh - 32px), 1000px) !important;
+    html.viewer .wrapper {
+      width: min(calc(100vh - 32px), calc(100vw - 32px)) !important;
+      height: min(calc(100vh - 32px), calc(100vw - 32px)) !important;
+    }
   }
-}
 }
 
 /* prevent editor flash during initial parse */
@@ -141,11 +138,8 @@ html.booting .placeholder { display: none !important; }
     margin: 0 auto !important;
   }
   @supports not (height: 100dvh) {
-  html.viewer .wrapper {
-    max-width: min(calc(100vw - 32px), 1000px) !important;
-    max-height: min(calc(100vh - 32px), 1000px) !important;
+    html.viewer .wrapper { height: 100vh !important; }
   }
-}
 
   /* background image scales by width, keeps natural aspect ratio */
   html.viewer .bg img {
@@ -154,9 +148,6 @@ html.booting .placeholder { display: none !important; }
   }
 }
 
-
-  /* prevent clipping in viewer */
-  html.viewer .bg { overflow: visible !important; }
 </style>
 </head>
 
