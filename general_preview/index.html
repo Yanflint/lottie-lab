@@ -48,10 +48,13 @@
     }
 
     html.viewer .wrapper {
-      
-      
-      border-radius: 0 !important;
-    }
+    aspect-ratio: auto !important;
+    width: auto !important;
+    height: auto !important;
+    max-width: min(calc(100vw - 32px), 1000px) !important;
+    max-height: calc(100dvh - 32px) !important;
+    margin: 0 auto !important;
+  }
 
     html.viewer body,
     html.viewer html {
@@ -88,17 +91,17 @@
   html.viewer .bg img {
     width: auto !important;
     height: auto !important;
-    max-width: min(calc(100vw - 32px), 1000px) !important;
-    max-height: calc(100dvh - 32px) !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
   }
 }
 
   @supports not (height: 100dvh) {
-    html.viewer .wrapper {
-      width: min(calc(100vh - 32px), calc(100vw - 32px)) !important;
-      height: min(calc(100vh - 32px), calc(100vw - 32px)) !important;
-    }
+  html.viewer .wrapper {
+    max-width: min(calc(100vw - 32px), 1000px) !important;
+    max-height: min(calc(100vh - 32px), 1000px) !important;
   }
+}
 
   /* background uses native size until capped by viewport */
   html.viewer .bg img { width: auto !important; height: auto !important; }
@@ -117,11 +120,11 @@ html.viewer .app {
     margin: 0 auto !important;
   }
   @supports not (height: 100dvh) {
-    html.viewer .wrapper {
-      width: min(calc(100vh - 32px), calc(100vw - 32px)) !important;
-      height: min(calc(100vh - 32px), calc(100vw - 32px)) !important;
-    }
+  html.viewer .wrapper {
+    max-width: min(calc(100vw - 32px), 1000px) !important;
+    max-height: min(calc(100vh - 32px), 1000px) !important;
   }
+}
 }
 
 /* prevent editor flash during initial parse */
@@ -138,8 +141,11 @@ html.booting .placeholder { display: none !important; }
     margin: 0 auto !important;
   }
   @supports not (height: 100dvh) {
-    html.viewer .wrapper { height: 100vh !important; }
+  html.viewer .wrapper {
+    max-width: min(calc(100vw - 32px), 1000px) !important;
+    max-height: min(calc(100vh - 32px), 1000px) !important;
   }
+}
 
   /* background image scales by width, keeps natural aspect ratio */
   html.viewer .bg img {
@@ -148,25 +154,9 @@ html.booting .placeholder { display: none !important; }
   }
 }
 
-/* Mobile viewer: allow very tall images without cropping */
-@media (hover: none) and (pointer: coarse) {
-  /* scroll inside preview instead of clipping */
-  html.viewer .preview {
-    overflow: auto !important;
-    -webkit-overflow-scrolling: touch;
-  }
-  /* don't clip image inside .bg */
-  html.viewer .bg {
-    overflow: visible !important;
-    align-items: flex-start !important; /* anchor image to top */
-    justify-content: center !important;
-  }
-  /* overlay layer shouldn't clip either */
-  html.viewer .lottie-layer {
-    overflow: visible !important;
-  }
-}
 
+  /* prevent clipping in viewer */
+  html.viewer .bg { overflow: visible !important; }
 </style>
 </head>
 
