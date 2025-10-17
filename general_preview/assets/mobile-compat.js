@@ -1,214 +1,92 @@
-/*! mobile-compat.js — Stage 3: robust mobile handling for BG & Lottie containers (general_preview) */
+/*! mobile-compat.js — CLEAN MINIMAL */
 (function(){
   const mq = window.matchMedia && window.matchMedia("(max-width: 768px)");
   const isMobile = !!(mq && mq.matches);
   if (!isMobile) return;
 
-  // Utils
+  // Helpers
+  const qs  = (sel, ctx=document)=>ctx.querySelector(sel);
+  const qsa = (sel, ctx=document)=>Array.from(ctx.querySelectorAll(sel));
+
   function getBgUrl(el){
     const cs = getComputedStyle(el);
     const bg = cs.backgroundImage || "";
     const m = bg.match(/url\((['"]?)(.*?)\1\)/i);
     return m ? m[2] : null;
   }
-  function setVars(el, w, h){
-    if (w && h) {
-      try { el.style.aspectRatio = (w / h).toString(); } catch(e){}
-      el.style.setProperty('--bg-w', w);
-      el.style.setProperty('--bg-h', h);
+
+  // 1) Background previews: mark real background elements and set ratio vars
+  function initBackgrounds(){
+    const candidates = qsa('.lp-bg, .bg, [class*="bg"], .preview, [class*="preview"]');
+    for (const el of candidates){
+      const url = getBgUrl(el);
+      if (!url) continue;
+      el.classList.add('lp-has-bg');
+      const img = new Image();
+      img.onload = () => {
+        const w = img.naturalWidth || 1080;
+        const h = img.naturalHeight || 1920;
+        el.style.setProperty('--bg-w', w);
+        el.style.setProperty('--bg-h', h);
+      };
+      img.src = url;
     }
   }
-  function ensureMinHeight(el, w, h){
-    // If element collapsed (height ~ 0), give it a min-height from ratio
-    const rect = el.getBoundingClientRect();
-    const width = rect.width || el.clientWidth || 0;
-    const ratio = (w && h) ? (h / w) : 1920/1080; // default portrait fallback
-    const target = Math.max(1, Math.round(width * ratio));
-    // Use style.minHeight so layout around stays predictable
-    if ((rect.height || 0) < 2) {
-      el.style.minHeight = target + "px";
-    }
-  }
 
-  // 1) BACKGROUND ELEMENTS
-  const bgCandidates = Array.from(document.querySelectorAll('.lp-bg, .preview, [class*="preview"], .bg, [class*="bg"]'));
-  for (const el of bgCandidates){
-    const url = getBgUrl(el);
-    if (!url || /data:image\/svg\+xml/i.test(url)) continue; // skip inline svgs
-    el.classList.add('lp-has-bg');
-    const img = new Image();
-    img.onload = () => {
-      setVars(el, img.naturalWidth || 1080, img.naturalHeight || 1920);
-      ensureMinHeight(el, img.naturalWidth || 1080, img.naturalHeight || 1920);
-    };
-    img.src = url;
-  }
-
-  // 2) LOTTIE CONTAINERS
-  // Heuristics: explicit data attributes OR class/id hints OR child svg/canvas presence
-  function looksLikeLottie(el){
-    if (el.dataset && (el.dataset.lottie || el.dataset.anim || el.datasetAnimation)) return true;
-    const id = (el.id || "").toLowerCase();
-    const cl = (el.className || "").toLowerCase();
-    if (/lottie|animation|anim/.test(id) || /lottie|animation|anim/.test(cl)) return true;
-    // quick child check (after a tick, lottie usually injects)
-    return false;
-  }
-
-  const lottieCandidates = Array.from(document.querySelectorAll('.lp-lottie, [data-lottie], [data-anim], [id*="lottie"], [class*="lottie"], [id*="anim"], [class*="anim"]'));
-  const adjustLottie = (el)=>{
-    // Read desired AR from data-ar="9/16" or "16/9" or "1/1"
-    let arW = 16, arH = 9;
-    const arAttr = el.getAttribute('data-ar');
-    if (arAttr && /(\d+)\s*\/\s*(\d+)/.test(arAttr)) {
-      const m = arAttr.match(/(\d+)\s*\/\s*(\d+)/);
-      arW = parseInt(m[1], 10) || 16;
-      arH = parseInt(m[2], 10) || 9;
-    } else {
-      // Portrait default better for phone preview if container is narrow+long
-      arW = 9; arH = 16;
-    }
-    const rect = el.getBoundingClientRect();
-    const w = rect.width || el.clientWidth || 0;
-    const target = Math.max(1, Math.round((w * arH) / arW));
-    if ((rect.height || 0) < 2) {
-      el.style.minHeight = target + "px";
-    }
-  };
-
-  // initial pass
-  for (const el of lottieCandidates){
-    if (looksLikeLottie(el)) adjustLottie(el);
-  }
-
-  // Observe size changes (rotation / UI chrome changes)
-  if (window.ResizeObserver) {
-    const ro = new ResizeObserver(entries => {
-      for (const ent of entries) {
-        const el = ent.target;
-        if (looksLikeLottie(el)) adjustLottie(el);
-      }
-    });
-    lottieCandidates.forEach(el => ro.observe(el));
-  }
-
-  // Re-run when address bar shows/hides (vh jitter on mobile)
-  if (mq && mq.addEventListener) {
-    mq.addEventListener('change', () => {
-      lottieCandidates.forEach(adjustLottie);
-      bgCandidates.forEach(el => {
-        const w = parseFloat(getComputedStyle(el).getPropertyValue('--bg-w')) || 1080;
-        const h = parseFloat(getComputedStyle(el).getPropertyValue('--bg-h')) || 1920;
-        ensureMinHeight(el, w, h);
-      });
-    });
-  }
-})();
-
-
-  // ========== Vertical centering of preview on mobile ==========
-  function isVisible(el){
-    const rect = el.getBoundingClientRect();
-    return !!(rect.width || rect.height);
-  }
-  function pickPreview(){
-    const list = Array.from(document.querySelectorAll('.lp-bg, .lp-lottie, .preview, [class*="preview"], .bg, [class*="bg"]'));
+  // 2) Lottie containers: ensure they are visible (min height via AR when collapsed)
+  function initLottie(){
+    const list = qsa('.lp-lottie, [data-lottie], [data-anim], [id*="lottie"], [class*="lottie"], [id*="anim"], [class*="anim"]');
     for (const el of list){
-      if (isVisible(el)) return el;
+      // Optional: data-ar="9/16"
+      const arAttr = el.getAttribute('data-ar');
+      let arW=9, arH=16;
+      if (arAttr && /(\d+)\s*\/\s*(\d+)/.test(arAttr)) {
+        const m = arAttr.match(/(\d+)\s*\/\s*(\d+)/);
+        arW = parseInt(m[1],10)||9; arH = parseInt(m[2],10)||16;
+      }
+      const width = el.getBoundingClientRect().width || el.clientWidth || 0;
+      const minH  = Math.max(1, Math.round(width * (arH/arW)));
+      if ((el.getBoundingClientRect().height||0) < 2) el.style.minHeight = minH + "px";
     }
-    return null;
+  }
+
+  // 3) Vertical centering: choose the proper wrapper and toggle flex-centering
+  function pickPreview(){
+    return qs('.lp-bg, .lp-lottie') || qs('.preview, [class*="preview"], .bg, [class*="bg"]');
   }
   function pickWrapper(el){
     if (!el) return document.body;
-    const stops = ['#root','#app','.root','.app','.page','.page__inner','.page-content','.wrapper','.wrap','.container','.content','.main','body'];
-    let cur = el.parentElement;
-    while (cur && cur !== document.documentElement){
-      for (const s of stops){ if (cur.matches(s)) return cur; }
-      cur = cur.parentElement;
-    }
-    return document.body;
+    return el.closest('[data-preview-wrapper], .preview-wrapper, .canvas, .viewport, .page-content, .content, .container, .main, .page, .page__inner, .wrapper, .wrap, #root, #app, body') || document.body;
   }
   function applyVCenter(){
     const target = pickPreview();
     const wrap = pickWrapper(target);
     if (!wrap) return;
 
-    // Reset classes first
-    wrap.classList.remove('lp-vp-center','lp-tall');
+    wrap.classList.remove('lp-vc-flex','lp-vc-tall');
 
     if (!target) return;
 
-    // Measure
-    const vh = window.innerHeight || document.documentElement.clientHeight || 0;
-    const rh = target.getBoundingClientRect().height;
-
-    // If target fits viewport height, center it; else keep normal flow
-    if (vh && rh && rh + 1 < vh) {
-      wrap.classList.add('lp-vp-center');
-    } else {
-      wrap.classList.add('lp-tall');
-    }
-  }
-
-  // Initial and on resize / orientation / address bar changes
-  applyVCenter();
-  window.addEventListener('resize', applyVCenter, { passive: true });
-  window.addEventListener('orientationchange', applyVCenter, { passive: true });
-  if (mq && mq.addEventListener) mq.addEventListener('change', applyVCenter);
-  // ========== End vertical centering ==========
-
-
-
-  // ========== Vertical centering v2: compute exact top offset ==========
-  function getViewportHeight(){
-    if (window.visualViewport && window.visualViewport.height) return window.visualViewport.height;
-    return window.innerHeight || document.documentElement.clientHeight || 0;
-  }
-  function pickPreviewStrict(){
-    // Prefer explicit helpers first
-    const explicit = document.querySelector('.lp-bg, .lp-lottie');
-    if (explicit) return explicit;
-    // Fallback to common preview classes
-    const fallback = document.querySelector('.preview, [class*="preview"], .bg, [class*="bg"]');
-    return fallback;
-  }
-  function pickWrapperFor(el){
-    if (!el) return document.body;
-    const stops = ['.page','.page__inner','.page-content','.wrapper','.wrap','.container','.content','.main','#root','#app','body'];
-    let cur = el.parentElement;
-    while (cur && cur !== document.documentElement){
-      for (const s of stops){ if (cur.matches(s)) return cur; }
-      cur = cur.parentElement;
-    }
-    return document.body;
-  }
-  function applyVCenterOffset(){
-    const target = pickPreviewStrict();
-    const wrap = pickWrapperFor(target);
-    if (!wrap) return;
-
-    // Clear previous mode classes
-    wrap.classList.remove('lp-vp-center','lp-tall','lp-vc-wrap','lp-vc-tall');
-    // We rely on offset-based centering only
-    if (!target) return;
-
-    const vh = getViewportHeight();
+    const vh = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height
+              : (window.innerHeight || document.documentElement.clientHeight || 0);
     const rh = target.getBoundingClientRect().height;
 
     if (vh && rh && rh < vh) {
-      const offset = Math.max(0, Math.floor((vh - rh) / 2));
-      wrap.classList.add('lp-vc-wrap');
-      wrap.style.setProperty('--lp-vc-offset', offset + 'px');
+      wrap.classList.add('lp-vc-flex');
     } else {
       wrap.classList.add('lp-vc-tall');
-      wrap.style.removeProperty('--lp-vc-offset');
     }
   }
 
-  applyVCenterOffset();
-  window.addEventListener('resize', applyVCenterOffset, { passive: true });
-  window.addEventListener('orientationchange', applyVCenterOffset, { passive: true });
-  if (window.visualViewport) visualViewport.addEventListener('resize', applyVCenterOffset);
-  if (mq && mq.addEventListener) mq.addEventListener('change', applyVCenterOffset);
-  // ========== End v2 ==========
+  function boot(){
+    initBackgrounds();
+    initLottie();
+    applyVCenter();
+  }
 
+  boot();
+  window.addEventListener('resize', applyVCenter, { passive: true });
+  window.addEventListener('orientationchange', applyVCenter, { passive: true });
+  if (window.visualViewport) visualViewport.addEventListener('resize', applyVCenter);
+  if (mq && mq.addEventListener) mq.addEventListener('change', applyVCenter);
+})();
