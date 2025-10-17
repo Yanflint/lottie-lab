@@ -529,3 +529,57 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
   }
 }
 /* --- End mobile centering fix --- */
+
+/* --- Mobile left-gutter fix v2 (broader clamp) --- */
+@media (max-width: 768px) {
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    position: static !important;
+    left: 0 !important;
+    right: 0 !important;
+    transform: none !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Clamp typical wrappers */
+  #root, #app, .root, .app, .page, .page__inner, .page-content, .wrapper, .wrap, .container, .content, .main, .section, .viewport, .canvas {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    position: relative !important;
+    left: 0 !important;
+    right: 0 !important;
+    transform: none !important;
+  }
+
+  /* Center preview blocks without relying on transforms */
+  .preview, [class*="preview"], .lp-bg, .lp-lottie, .bg, [class*="bg"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    text-align: center !important;
+    transform: none !important;
+    position: relative !important;
+    left: 0 !important;
+    right: 0 !important;
+  }
+
+  /* Common media must never overflow */
+  img, video, canvas, svg {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* If some inner block still creates side scroll, clip it */
+  .preview *, [class*="preview"] *, .bg *, [class*="bg"] * {
+    max-width: 100% !important;
+  }
+}
+/* --- End v2 --- */
