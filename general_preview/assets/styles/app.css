@@ -583,3 +583,35 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
   }
 }
 /* --- End v2 --- */
+
+/* --- Mobile vertical centering for preview --- */
+@media (max-width: 768px) {
+  /* Wrapper that centers its first child (the preview) vertically if it's shorter than the viewport */
+  .lp-vp-center {
+    min-height: 100dvh !important;
+    display: grid !important;
+    place-items: center !important;
+    padding-top: env(safe-area-inset-top) !important;
+    padding-bottom: env(safe-area-inset-bottom) !important;
+    margin: 0 !important;
+  }
+  /* If content taller than viewport, fall back to normal flow */
+  .lp-vp-center.lp-tall {
+    display: block !important;
+    min-height: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  /* Ensure preview itself has no forced top offset */
+  .lp-vp-center > .preview,
+  .lp-vp-center > [class*="preview"],
+  .lp-vp-center > .lp-bg,
+  .lp-vp-center > .lp-lottie,
+  .lp-vp-center > .bg,
+  .lp-vp-center > [class*="bg"] {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+}
+/* --- End vertical centering --- */

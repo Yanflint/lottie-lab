@@ -104,3 +104,56 @@
     });
   }
 })();
+
+
+  // ========== Vertical centering of preview on mobile ==========
+  function isVisible(el){
+    const rect = el.getBoundingClientRect();
+    return !!(rect.width || rect.height);
+  }
+  function pickPreview(){
+    const list = Array.from(document.querySelectorAll('.lp-bg, .lp-lottie, .preview, [class*="preview"], .bg, [class*="bg"]'));
+    for (const el of list){
+      if (isVisible(el)) return el;
+    }
+    return null;
+  }
+  function pickWrapper(el){
+    if (!el) return document.body;
+    const stops = ['#root','#app','.root','.app','.page','.page__inner','.page-content','.wrapper','.wrap','.container','.content','.main','body'];
+    let cur = el.parentElement;
+    while (cur && cur !== document.documentElement){
+      for (const s of stops){ if (cur.matches(s)) return cur; }
+      cur = cur.parentElement;
+    }
+    return document.body;
+  }
+  function applyVCenter(){
+    const target = pickPreview();
+    const wrap = pickWrapper(target);
+    if (!wrap) return;
+
+    // Reset classes first
+    wrap.classList.remove('lp-vp-center','lp-tall');
+
+    if (!target) return;
+
+    // Measure
+    const vh = window.innerHeight || document.documentElement.clientHeight || 0;
+    const rh = target.getBoundingClientRect().height;
+
+    // If target fits viewport height, center it; else keep normal flow
+    if (vh && rh && rh + 1 < vh) {
+      wrap.classList.add('lp-vp-center');
+    } else {
+      wrap.classList.add('lp-tall');
+    }
+  }
+
+  // Initial and on resize / orientation / address bar changes
+  applyVCenter();
+  window.addEventListener('resize', applyVCenter, { passive: true });
+  window.addEventListener('orientationchange', applyVCenter, { passive: true });
+  if (mq && mq.addEventListener) mq.addEventListener('change', applyVCenter);
+  // ========== End vertical centering ==========
+
