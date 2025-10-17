@@ -157,3 +157,58 @@
   if (mq && mq.addEventListener) mq.addEventListener('change', applyVCenter);
   // ========== End vertical centering ==========
 
+
+
+  // ========== Vertical centering v2: compute exact top offset ==========
+  function getViewportHeight(){
+    if (window.visualViewport && window.visualViewport.height) return window.visualViewport.height;
+    return window.innerHeight || document.documentElement.clientHeight || 0;
+  }
+  function pickPreviewStrict(){
+    // Prefer explicit helpers first
+    const explicit = document.querySelector('.lp-bg, .lp-lottie');
+    if (explicit) return explicit;
+    // Fallback to common preview classes
+    const fallback = document.querySelector('.preview, [class*="preview"], .bg, [class*="bg"]');
+    return fallback;
+  }
+  function pickWrapperFor(el){
+    if (!el) return document.body;
+    const stops = ['.page','.page__inner','.page-content','.wrapper','.wrap','.container','.content','.main','#root','#app','body'];
+    let cur = el.parentElement;
+    while (cur && cur !== document.documentElement){
+      for (const s of stops){ if (cur.matches(s)) return cur; }
+      cur = cur.parentElement;
+    }
+    return document.body;
+  }
+  function applyVCenterOffset(){
+    const target = pickPreviewStrict();
+    const wrap = pickWrapperFor(target);
+    if (!wrap) return;
+
+    // Clear previous mode classes
+    wrap.classList.remove('lp-vp-center','lp-tall','lp-vc-wrap','lp-vc-tall');
+    // We rely on offset-based centering only
+    if (!target) return;
+
+    const vh = getViewportHeight();
+    const rh = target.getBoundingClientRect().height;
+
+    if (vh && rh && rh < vh) {
+      const offset = Math.max(0, Math.floor((vh - rh) / 2));
+      wrap.classList.add('lp-vc-wrap');
+      wrap.style.setProperty('--lp-vc-offset', offset + 'px');
+    } else {
+      wrap.classList.add('lp-vc-tall');
+      wrap.style.removeProperty('--lp-vc-offset');
+    }
+  }
+
+  applyVCenterOffset();
+  window.addEventListener('resize', applyVCenterOffset, { passive: true });
+  window.addEventListener('orientationchange', applyVCenterOffset, { passive: true });
+  if (window.visualViewport) visualViewport.addEventListener('resize', applyVCenterOffset);
+  if (mq && mq.addEventListener) mq.addEventListener('change', applyVCenterOffset);
+  // ========== End v2 ==========
+

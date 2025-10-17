@@ -615,3 +615,28 @@ html:not(.viewer) .lp-grabbing * { cursor: grabbing !important; }
   }
 }
 /* --- End vertical centering --- */
+
+/* --- Mobile vertical centering v2: computed top offset (no grid) --- */
+@media (max-width: 768px) {
+  .lp-vc-wrap {
+    /* Use small viewport height to avoid iOS address bar shifts */
+    min-height: 100svh !important;
+    padding-top: var(--lp-vc-offset, 0px) !important;
+    padding-bottom: 0 !important;
+    margin: 0 !important;
+  }
+  .lp-vc-wrap.lp-vc-tall {
+    min-height: 0 !important;
+    padding-top: 0 !important;
+  }
+  /* Ensure preview block itself has no stray top gaps */
+  .lp-vc-wrap > .preview,
+  .lp-vc-wrap > [class*="preview"],
+  .lp-vc-wrap > .lp-bg,
+  .lp-vc-wrap > .lp-lottie,
+  .lp-vc-wrap > .bg,
+  .lp-vc-wrap > [class*="bg"] {
+    margin-top: 0 !important;
+  }
+}
+/* --- End v2 --- */
