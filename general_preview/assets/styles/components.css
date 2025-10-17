@@ -1,0 +1,25 @@
+/* components.css — Stage 2 helpers */
+.lp-bg, .lp-lottie {
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .lp-lottie {
+    /* if container had no height, give it a minimal baseline (overridden via JS ratios) */
+    min-height: 1px;
+  }
+  .lp-bg {
+    position: relative;
+    min-height: 1px;
+    background-repeat: no-repeat;
+    background-position: top center;
+    background-size: contain;
+  }
+  /* The pseudo padding lives on .lp-has-bg assigned by JS to avoid zero-height backgrounds */
+  .lp-has-bg { position: relative; }
+  .lp-has-bg::before {
+    content: "";
+    display: block;
+    padding-top: calc(var(--bg-h, 1920) / var(--bg-w, 1080) * 100%);
+  }
+}

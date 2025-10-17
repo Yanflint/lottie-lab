@@ -18,7 +18,7 @@
     background-position: top center !important;
     background-size: contain !important;
   }
-  .preview::before, [class*="preview"]::before, .bg::before, [class*="bg"]::before {
+  .lp-has-bg::before {
     content: "";
     display: block;
     padding-top: calc(var(--bg-h, 1920) / var(--bg-w, 1080) * 100%);
